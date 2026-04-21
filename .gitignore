@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.playwright/
+.playwright-cli/
+.playwright-profile/
+outlook_report.json
+coverage/
+*.log
