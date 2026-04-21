@@ -1,0 +1,350 @@
+# outlook-cli
+
+A TypeScript command-line tool for reading Outlook mail and calendar, and
+managing mail folders, by reusing an interactively captured Outlook-web
+session — no app registration, no tenant admin, no API keys.
+
+---
+
+## Rationale
+
+The usual ways to script against an Outlook/Exchange mailbox are all heavy:
+
+- **Microsoft Graph** requires an app registration, admin consent, OAuth client
+  credentials, a tenant willing to grant `Mail.*` / `Calendars.*` scopes, and a
+  working redirect-URI plumbing. Fine for a service; overkill for one person who
+  just wants to read their own inbox from a script.
+- **EWS / MAPI** is deprecated, on-prem-flavored, and Windows-centric.
+- **IMAP/SMTP** is usually disabled in modern tenants.
+
+For a single user who is already allowed to sign in to `outlook.office.com` in
+a browser, there is a much shorter path: log in **once** in a headed Chrome
+window, grab the Bearer token and cookies that the web UI itself uses, cache
+them securely, and drive the same **`https://outlook.office.com/api/v2.0/...`**
+REST surface that Outlook-web talks to.
+
+That is what this tool does.
+
+### What it gives you
+
+- `login` — a one-shot headed Playwright Chrome window that you use to sign in
+  normally (including MFA / conditional access). The tool snoops the first
+  outbound request bearing `Authorization: Bearer`, extracts the token +
+  cookies, and writes them atomically to `$HOME/.outlook-cli/session.json`
+  (mode `0600`, parent dir `0700`).
+- `auth-check` — non-interactive verification that the cached session is still
+  accepted.
+- `list-mail`, `get-mail`, `download-attachments` — inbox + message access,
+  including saving attachments to a directory.
+- `list-calendar`, `get-event` — calendar window listing and single-event retrieval.
+- `list-folders`, `find-folder`, `create-folder`, `move-mail` — full folder
+  management: list, resolve by name/path/id, create (idempotently), and move
+  messages across folders.
+- Every subcommand re-uses the cached session. When the token expires the tool
+  auto-reopens the Playwright window for a silent re-auth (unless
+  `--no-auto-reauth` is passed, which makes expired-session failures hard).
+
+### What it deliberately does **not** do
+
+- It does not send mail, delete messages, or modify calendar events. It is a
+  **read + organize** surface, not a full client.
+- It does not persist anything upstream. The session file is local-only.
+- It does not bypass conditional access, MFA, or any tenant policy — you log in
+  exactly the way the browser would.
+
+### Security posture in one line
+
+The session file contains a live Bearer token + cookies. It is written atomically
+under a 0700 directory with mode 0600, is never printed or logged (body-snippet
+redaction runs on every error path), and is `.gitignore`d alongside the
+Playwright profile dir.
+
+---
+
+## Prerequisites
+
+### Runtime environment
+
+- **Node.js 20 LTS or newer** (tested on 22). Older Node versions lack the
+  global `fetch` and other APIs the tool relies on.
+- **npm 10+** (bundled with Node 20+). The repo ships a `package-lock.json`; no
+  yarn/pnpm support is assumed.
+- **git** — only needed to clone the repo.
+
+### Browser (critical)
+
+- A **real Google Chrome or Microsoft Edge installation on your machine**.
+  Playwright launches your *installed* browser via the `channel` mechanism
+  (`chromium.launchPersistentContext({ channel: ... })`), it does **not**
+  download its own Chromium build. You therefore do **not** need to run
+  `npx playwright install`.
+- Accepted channel values: `chrome` (default), `chrome-beta`, `chrome-dev`,
+  `msedge`, `msedge-beta`. Whichever you pick must actually be installed and
+  locatable by Playwright.
+- macOS, Linux, and Windows are all supported so long as the chosen channel
+  exists on the system.
+
+### Network
+
+- Outbound HTTPS to `https://outlook.office.com/*` and the Microsoft sign-in
+  chain (`login.microsoftonline.com`, conditional-access endpoints your tenant
+  routes through, etc.).
+- No inbound ports are opened. No proxy is configured; use your system proxy.
+
+### Account
+
+- A **Microsoft 365 / Office 365 mailbox** you can sign into at
+  `outlook.office.com` (work or school, or a personal MSA that resolves to
+  that endpoint). Legacy `outlook.live.com` / `hotmail.com` consumer mailboxes
+  use a different API surface and are **not** supported by this tool.
+- Your tenant's conditional-access / MFA policies apply exactly as they would
+  in the browser — you complete them in the Playwright window during `login`.
+
+### Platform / permissions
+
+- Write access to `$HOME` (the session file lives at
+  `$HOME/.outlook-cli/session.json`, parent dir `0700`, file `0600`).
+- On **macOS / Linux**, the POSIX file-mode enforcement is strict.
+- On **Windows**, `fs.chmod` is largely a no-op — the session file is still
+  written atomically, but filesystem ACL hardening is your responsibility.
+  The rest of the tool (Playwright, HTTP, commander wiring) works unchanged.
+
+---
+
+## Libraries & tools used
+
+### Runtime (production)
+
+| Package | Version | Why |
+|---|---|---|
+| [`commander`](https://github.com/tj/commander.js) | `^14.0.3` | CLI parser — subcommands, option mixing, help output. |
+
+That is the entire runtime footprint. Everything else (HTTP, JSON parsing,
+file IO, crypto, timezone math, token base64-URL decoding) uses Node's
+built-in `node:*` modules.
+
+### Development / build / test
+
+| Package | Version | Why |
+|---|---|---|
+| [`typescript`](https://www.typescriptlang.org/) | `^6.0.3` | Language. Compiled to CommonJS into `dist/`. |
+| [`ts-node`](https://typestrong.org/ts-node/) | `^10.9.2` | Run `.ts` directly (`npm run cli` / `npx ts-node src/cli.ts`). |
+| [`@types/node`](https://www.npmjs.com/package/@types/node) | `^25.6.0` | Type definitions for Node core APIs. |
+| [`playwright`](https://playwright.dev/) | `^1.59.1` | Drives the headed Chrome window during `login` and captures the outbound Bearer token + cookies. |
+| [`@playwright/test`](https://playwright.dev/docs/intro) | `^1.59.1` | Test-runner companion (present as a dev-dep; no live browser tests run in CI). |
+| [`vitest`](https://vitest.dev/) | `^4.1.4` | Test framework for the 208 unit + integration tests in `test_scripts/`. |
+
+### External binaries you provide
+
+- **Google Chrome** or **Microsoft Edge** (see Browser section above).
+- **Node.js 20+** runtime.
+- **git** for cloning.
+
+No global npm tools need to be installed ahead of time. `npm install` in the
+repo root fetches everything else.
+
+---
+
+## Build
+
+```bash
+git clone <this-repo> outlook-tool
+cd outlook-tool
+npm install
+npm run build          # emits dist/cli.js (chmod +x in postbuild)
+```
+
+Optional: link the CLI globally so you can call it as `outlook-cli` from anywhere:
+
+```bash
+npm link                # installs a symlink at $(npm prefix -g)/bin/outlook-cli
+```
+
+If you previously linked a differently named package, remove the stale symlink
+first (`rm $(which outlook-cli)`), then re-run `npm link`.
+
+You can also run the TypeScript sources directly without building:
+
+```bash
+npx ts-node src/cli.ts <subcommand> [options]
+# or
+npm run cli -- <subcommand> [options]
+```
+
+---
+
+## Run the tests
+
+```bash
+npm test               # vitest run — 208 tests across 17 files
+npm run test:watch     # incremental
+```
+
+---
+
+## First use
+
+```bash
+outlook-cli login
+```
+
+A Chrome window opens at `https://outlook.office.com/`. Sign in normally.
+The tool watches outbound requests, captures the first Bearer token it sees,
+closes the window, and writes `~/.outlook-cli/session.json`.
+
+After that, every subcommand reads that file. You don't need to run `login`
+again until the token expires (typically hours), and even then the default
+behavior is to auto-reopen the browser for a silent refresh.
+
+Quick verification:
+
+```bash
+outlook-cli auth-check
+# {
+#   "status": "ok",
+#   "tokenExpiresAt": "2026-04-22T15:03:25.000Z",
+#   "account": { "upn": "you@yourtenant.com" }
+# }
+```
+
+---
+
+## Configuration
+
+Three runtime-plumbing settings exist. Each has a default, so **no
+configuration is required** for a basic install:
+
+| Setting | CLI flag | Env var | Default |
+|---|---|---|---|
+| Per-REST-call HTTP timeout | `--timeout <ms>` | `OUTLOOK_CLI_HTTP_TIMEOUT_MS` | `30000` (30 s) |
+| Max wait for interactive login | `--login-timeout <ms>` | `OUTLOOK_CLI_LOGIN_TIMEOUT_MS` | `300000` (5 min) |
+| Playwright Chrome channel | `--chrome-channel <name>` | `OUTLOOK_CLI_CHROME_CHANNEL` | `chrome` |
+
+Precedence: CLI flag > env var > default. A malformed flag or env value still
+throws `ConfigurationError` (exit 3); the default only covers the unset case.
+
+If you want persistent overrides, `source ./outlook-cli.env` in your shell or
+append that line to `~/.zshrc` / `~/.bashrc`.
+
+Other (always-optional) flags are listed in `outlook-cli --help` and in
+`docs/design/configuration-guide.md`.
+
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success |
+| `1` | Unexpected error |
+| `2` | Invalid usage / bad argv |
+| `3` | Configuration error (malformed flag or env var) |
+| `4` | Auth failure (expired/rejected session, user cancelled login, `--no-auto-reauth` with no cache) |
+| `5` | Upstream API error (non-401 HTTP error, timeout, network failure, pagination limit) |
+| `6` | IO error — includes folder collision without `--idempotent`, file collision without `--overwrite` |
+
+---
+
+## Usage examples
+
+### Mail
+
+```bash
+# Most-recent 5 inbox messages as a human-readable table
+outlook-cli list-mail --top 5 --table
+
+# A specific message, body as text, written to disk
+outlook-cli get-mail AAMkAGI... --body text > message.json
+
+# Save all non-inline attachments to ./att
+outlook-cli download-attachments AAMkAGI... --out ./att
+```
+
+### Calendar
+
+```bash
+# Next 14 days
+outlook-cli list-calendar --from now --to "now + 14d" --table
+
+# One event
+outlook-cli get-event AAMkAGI...
+```
+
+### Folders
+
+```bash
+# List top-level folders
+outlook-cli list-folders --table
+
+# Walk the whole tree (bounded)
+outlook-cli list-folders --recursive --table
+
+# Resolve a folder by display-name path
+outlook-cli find-folder "Inbox/Projects/Alpha"
+
+# Create a nested folder idempotently (no-op if it already exists)
+outlook-cli create-folder "Inbox/Projects/Alpha" --create-parents --idempotent
+
+# Move messages to a folder (by alias, path, or id:<raw>)
+outlook-cli move-mail AAMk... AAMk... --to "Inbox/Archive-2026"
+outlook-cli move-mail AAMk... --to Archive
+outlook-cli move-mail AAMk... --to "id:AAMkAGI..." --continue-on-error
+```
+
+### List mail from an arbitrary folder
+
+```bash
+# By display-name path (resolved once, then listed)
+outlook-cli list-mail --folder "Inbox/Projects/Alpha" --top 10 --table
+
+# By explicit id (skips resolution)
+outlook-cli list-mail --folder-id AAMkAGI... --top 20
+
+# With an anchor — resolve "Projects/Alpha" under Inbox
+outlook-cli list-mail --folder-parent Inbox --folder "Projects/Alpha"
+```
+
+`outlook-cli <subcommand> --help` shows the complete flag set for each.
+
+---
+
+## Output modes
+
+Every subcommand supports two formats:
+
+- `--json` (default) — stable, stdout, pipe into `jq` / scripts.
+- `--table` — human-readable, compact columns.
+
+They are mutually exclusive. Errors are always emitted as JSON on **stderr**
+with `code`, optional `message`, and setting-specific fields (e.g.
+`missingSetting`, `destination`, `failed[]`).
+
+---
+
+## Project layout
+
+```
+src/
+  cli.ts                 # commander wiring, global options, error mapping
+  auth/                  # Playwright login flow, token capture
+  session/               # atomic session-file IO, locking, JWT parsing
+  http/                  # OutlookClient + error types + REST DTOs
+  folders/               # folder resolver (path, well-known, id) + types
+  commands/              # one file per subcommand
+  output/                # JSON / table formatter
+  config/                # loadConfig, env + flag precedence, defaults
+  util/                  # redaction, filename safety, misc helpers
+test_scripts/            # vitest suites (208 tests)
+docs/
+  design/                # refined specs, plans, project-design, config guide
+  reference/             # codebase scans
+  research/              # deep-dive docs on Outlook REST v2.0 quirks
+```
+
+Every meaningful behavior is documented in
+[`docs/design/project-design.md`](docs/design/project-design.md), and every
+phase of work has a `plan-NNN-*.md` alongside it.
+
+---
+
+## License
+
+ISC.
