@@ -692,12 +692,13 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
       );
     }
     const escaped = conversationId.replace(/'/g, "''");
+    // Outlook rejects `$filter=ConversationId eq '...' & $orderby=...` with
+    // "InefficientFilter" because cross-folder messages aren't indexed on
+    // ReceivedDateTime. Send the request WITHOUT $orderby and sort client-side
+    // (fork-only fix; upstream BikS2013/outlook-tool@cca2f50 ships the broken
+    // version that errors against live mailboxes).
     const query: Record<string, QueryValue> = {
       $filter: `ConversationId eq '${escaped}'`,
-      $orderby:
-        typeof opts.orderBy === 'string' && opts.orderBy.length > 0
-          ? opts.orderBy
-          : 'ReceivedDateTime asc',
     };
     if (typeof opts.top === 'number' && Number.isFinite(opts.top) && opts.top > 0) {
       query.$top = String(Math.floor(opts.top));
@@ -710,7 +711,20 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
         '/api/v2.0/me/messages',
         query,
       );
-      return Array.isArray(resp.value) ? resp.value : [];
+      const messages = Array.isArray(resp.value) ? resp.value : [];
+      // Client-side sort. Default ReceivedDateTime asc; honor "desc" if
+      // requested. Other orderBy expressions fall back to default.
+      const orderBy =
+        typeof opts.orderBy === 'string' && opts.orderBy.length > 0
+          ? opts.orderBy.trim().toLowerCase()
+          : 'receiveddatetime asc';
+      const desc = orderBy.includes('desc');
+      messages.sort((a, b) => {
+        const ta = Date.parse(a.ReceivedDateTime ?? '') || 0;
+        const tb = Date.parse(b.ReceivedDateTime ?? '') || 0;
+        return desc ? tb - ta : ta - tb;
+      });
+      return messages;
     } catch (err) {
       throw mapHttpToCliError(err);
     }

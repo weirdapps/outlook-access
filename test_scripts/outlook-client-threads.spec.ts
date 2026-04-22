@@ -131,10 +131,11 @@ describe('listMessagesByConversation', () => {
     vi.unstubAllGlobals();
   });
 
-  it('builds the expected /messages URL with $filter=ConversationId eq and defaults $orderby to ReceivedDateTime asc', async () => {
+  it('builds the expected /messages URL with $filter=ConversationId eq (no $orderby — sorted client-side)', async () => {
+    // Returned out-of-order to verify client-side sort applies.
     const msgs = [
-      makeMessage('m1', '2026-03-01T09:00:00Z'),
       makeMessage('m2', '2026-03-01T10:00:00Z'),
+      makeMessage('m1', '2026-03-01T09:00:00Z'),
     ];
     fetchMock.mockResolvedValueOnce(
       makeResponse({ status: 200, body: { value: msgs } }),
@@ -147,19 +148,27 @@ describe('listMessagesByConversation', () => {
     });
 
     const result = await client.listMessagesByConversation('CONV-ABC-123');
-    expect(result).toEqual(msgs);
+    // Default order: asc → m1 (09:00) before m2 (10:00).
+    expect(result.map((m) => m.Id)).toEqual(['m1', 'm2']);
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     const [url] = fetchMock.mock.calls[0] as [string, unknown];
     expect(url).toContain('https://outlook.office.com/api/v2.0/me/messages?');
     const decoded = decodeURIComponent(url.replace(/\+/g, '%20'));
     expect(decoded).toContain("ConversationId eq 'CONV-ABC-123'");
-    expect(decoded).toContain('ReceivedDateTime asc');
+    // Server-side $orderby intentionally omitted (Outlook rejects this combo
+    // as InefficientFilter — see fork CHANGELOG 1.2.0). Sorting is client-side.
+    expect(decoded).not.toContain('$orderby');
   });
 
-  it('honors custom orderBy and select', async () => {
+  it('honors custom orderBy (client-side desc sort) and forwards select/top', async () => {
+    // Out-of-order; orderBy: desc should reverse them.
+    const msgs = [
+      makeMessage('a', '2026-03-01T09:00:00Z'),
+      makeMessage('b', '2026-03-01T10:00:00Z'),
+    ];
     fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 200, body: { value: [] } }),
+      makeResponse({ status: 200, body: { value: msgs } }),
     );
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -168,16 +177,19 @@ describe('listMessagesByConversation', () => {
       onReauthNeeded: async () => buildFakeSession(),
     });
 
-    await client.listMessagesByConversation('CID', {
+    const result = await client.listMessagesByConversation('CID', {
       orderBy: 'ReceivedDateTime desc',
       select: ['Id', 'Subject', 'Body'],
       top: 50,
     });
+    // desc → b (10:00) before a (09:00).
+    expect(result.map((m) => m.Id)).toEqual(['b', 'a']);
 
     const decoded = decodeURIComponent(
       (fetchMock.mock.calls[0] as [string, unknown])[0].toString().replace(/\+/g, '%20'),
     );
-    expect(decoded).toContain('ReceivedDateTime desc');
+    // Client-side sort, so server-side $orderby is omitted.
+    expect(decoded).not.toContain('$orderby');
     expect(decoded).toContain('Id,Subject,Body');
     expect(decoded).toContain('$top=50');
   });
