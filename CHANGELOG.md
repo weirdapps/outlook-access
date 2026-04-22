@@ -11,6 +11,34 @@ Fork-only features (not in upstream):
 
 ---
 
+## [1.3.0] — 2026-04-22 (fork)
+
+Phase B1: send-mail core. Replaces the AppleScript send path for direct
+CLI use; downstream `email-handler` migration tracked separately.
+
+### Added
+- `send-mail` command — new email composition with **draft-first default**.
+  - `--to/--cc/--bcc` accept comma-separated strings AND/OR repeated flag.
+  - `--html <file>` and/or `--text <file>` body sources.
+  - `--attach <file>` repeatable (combined cap 30 MB).
+  - `--cc-self` ON by default (resolves to authenticated UPN); `--no-cc-self` opt-out.
+  - `--save-sent` ON by default (only meaningful with `--send-now`).
+  - `--send-now` bypasses draft, POSTs directly to `/me/sendmail`.
+  - `--no-open` suppresses Outlook desktop activation after draft.
+  - `--dry-run` prints the would-send payload without contacting M365.
+- `OutlookClient.sendMail(payload, opts?)` — immediate send via `/me/sendmail`.
+- `OutlookClient.createDraft(payload)` → `{Id, WebLink, ConversationId}` via `/me/messages`.
+- `OutlookClient.sendDraft(messageId)` — POST `/me/messages/{id}/send`.
+- `src/util/open-outlook.ts` `activateOutlookApp()` — wraps macOS `open -a "Microsoft Outlook"`. Non-darwin = no-op.
+- `redactMessageBodies()` extension — message Body.Content / HtmlBody / TextBody redacted from echoed-back error JSON (defense-in-depth; subject and ContentType preserved).
+
+### Notes
+- Inline `cid:` images, SharePoint reference attachments, and reply / reply-all / forward commands are deferred to **B2** (next plan).
+- `email-handler` `/send-mail` skill still uses AppleScript path; migration to `outlook-cli send-mail` in a separate downstream PR.
+- Smoke verified against live NBG mailbox: dry-run, draft creation, draft visible in Drafts folder, immediate send, attachment round-trip, Greek text preserved, error paths.
+
+---
+
 ## [1.2.0] — 2026-04-22 (fork)
 
 Cherry-pick from upstream `BikS2013/outlook-tool` v1.2.0 + v1.3.0

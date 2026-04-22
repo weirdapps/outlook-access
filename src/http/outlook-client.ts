@@ -92,6 +92,56 @@ export interface ListMessagesInFolderAllResult {
   truncated: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// Send / draft types (v1.3.0+)
+// ---------------------------------------------------------------------------
+
+/** Recipient address payload as required by the M365 v2.0 REST API. */
+export interface SendEmailAddress {
+  Address: string;
+  Name?: string;
+}
+
+export type SendBodyContentType = 'HTML' | 'Text';
+
+export interface SendBody {
+  ContentType: SendBodyContentType;
+  Content: string;
+}
+
+/** File attachment in the M365 v2.0 send payload — bytes are base64-encoded. */
+export interface SendFileAttachment {
+  '@odata.type': '#Microsoft.OutlookServices.FileAttachment';
+  Name: string;
+  ContentType?: string;
+  ContentBytes: string;
+  IsInline?: boolean;
+  ContentId?: string;
+  Size?: number;
+}
+
+/** Body of a `POST /me/sendmail` (or `POST /me/messages` for drafts). */
+export interface SendMailPayload {
+  Subject: string;
+  Body: SendBody;
+  ToRecipients: { EmailAddress: SendEmailAddress }[];
+  CcRecipients?: { EmailAddress: SendEmailAddress }[];
+  BccRecipients?: { EmailAddress: SendEmailAddress }[];
+  Attachments?: SendFileAttachment[];
+}
+
+export interface SendMailOptions {
+  /** Whether the sent message is saved to SentItems. Default: true. */
+  saveToSentItems?: boolean;
+}
+
+/** Returned by createDraft — the bare minimum to navigate to the draft. */
+export interface CreateDraftResult {
+  Id: string;
+  WebLink: string;
+  ConversationId?: string;
+}
+
 export interface OutlookClient {
   /**
    * GET a JSON resource. Returns the parsed body typed as T.
@@ -205,6 +255,30 @@ export interface OutlookClient {
     conversationId: string,
     opts?: ListMessagesByConversationOptions,
   ): Promise<MessageSummary[]>;
+
+  /**
+   * Send a new message immediately via `POST /api/v2.0/me/sendmail`.
+   * Resolves with `void` on HTTP 202; rejects with mapped CLI errors on
+   * 4xx/5xx. The sent message is saved to SentItems unless
+   * `opts.saveToSentItems === false`.
+   */
+  sendMail(payload: SendMailPayload, opts?: SendMailOptions): Promise<void>;
+
+  /**
+   * Create a draft message via `POST /api/v2.0/me/messages`. Returns the
+   * server-assigned `{ Id, WebLink, ConversationId? }`. The draft lives in
+   * the user's Drafts folder until `sendDraft(id)` is called or it is
+   * deleted/edited via Outlook.
+   */
+  createDraft(payload: SendMailPayload): Promise<CreateDraftResult>;
+
+  /**
+   * Send a previously-created draft via
+   * `POST /api/v2.0/me/messages/{messageId}/send`. The draft is then moved
+   * to SentItems by the server (no separate save flag here — the
+   * `SaveToSentItems` knob applies only to the immediate `/sendmail` path).
+   */
+  sendDraft(messageId: string): Promise<void>;
 }
 
 export interface CreateClientOptions {
@@ -730,6 +804,55 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     }
   }
 
+  async function sendMail(
+    payload: SendMailPayload,
+    opts: SendMailOptions = {},
+  ): Promise<void> {
+    const body = {
+      Message: payload,
+      SaveToSentItems: opts.saveToSentItems !== false,
+    };
+    try {
+      await doPost('/api/v2.0/me/sendmail', body);
+    } catch (err) {
+      throw mapHttpToCliError(err);
+    }
+  }
+
+  async function createDraft(
+    payload: SendMailPayload,
+  ): Promise<CreateDraftResult> {
+    try {
+      const resp = await doPost<
+        SendMailPayload,
+        { Id: string; WebLink: string; ConversationId?: string }
+      >('/api/v2.0/me/messages', payload);
+      return {
+        Id: resp.Id,
+        WebLink: resp.WebLink,
+        ConversationId: resp.ConversationId,
+      };
+    } catch (err) {
+      throw mapHttpToCliError(err);
+    }
+  }
+
+  async function sendDraft(messageId: string): Promise<void> {
+    if (typeof messageId !== 'string' || messageId.length === 0) {
+      throw new Error(
+        'outlook-client: sendDraft requires a non-empty messageId',
+      );
+    }
+    try {
+      await doPost(
+        `/api/v2.0/me/messages/${encodeURIComponent(messageId)}/send`,
+        {},
+      );
+    } catch (err) {
+      throw mapHttpToCliError(err);
+    }
+  }
+
   return {
     get: doGet,
     listFolders,
@@ -740,6 +863,9 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     listMessagesInFolderAll,
     countMessagesInFolder,
     listMessagesByConversation,
+    sendMail,
+    createDraft,
+    sendDraft,
   };
 }
 
