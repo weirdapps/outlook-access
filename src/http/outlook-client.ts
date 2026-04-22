@@ -56,6 +56,34 @@ export interface ListMessagesInFolderOptions {
   filter?: string;
 }
 
+/** Options for `countMessagesInFolder`. */
+export interface CountMessagesInFolderOptions {
+  /** Raw OData `$filter` expression, passed through verbatim. */
+  filter?: string;
+}
+
+/** Result shape for `countMessagesInFolder`. */
+export interface CountMessagesResult {
+  /** The message count. */
+  count: number;
+  /**
+   * `true` when the server returned `@odata.count` (authoritative total
+   * across all pages); `false` when it did not, in which case `count`
+   * reflects only the first page and may underestimate the real total.
+   */
+  exact: boolean;
+}
+
+/** Options for `listMessagesByConversation`. */
+export interface ListMessagesByConversationOptions {
+  /** `$top` — 1..1000; when omitted the server default applies. */
+  top?: number;
+  /** `$select` field names. Serialised as a comma-joined OData `$select`. */
+  select?: string[];
+  /** `$orderby` clause. Default: `'ReceivedDateTime asc'` (oldest-first thread). */
+  orderBy?: string;
+}
+
 /** Result envelope for the auto-paginating `listMessagesInFolderAll`. */
 export interface ListMessagesInFolderAllResult {
   /** Collected message summaries (capped at `maxResults`). */
@@ -153,6 +181,29 @@ export interface OutlookClient {
   listMessagesInFolder(
     folderId: string,
     opts: ListMessagesInFolderOptions,
+  ): Promise<MessageSummary[]>;
+
+  /**
+   * Server-side count of messages matching `filter` inside `folderId`, via
+   * `$count=true` on the same `/MailFolders/{folderId}/messages` endpoint.
+   * Uses `$top=1&$select=Id` to minimize payload — the messages themselves
+   * are discarded. Returns `{ count, exact }`; `exact: false` signals the
+   * server did not return `@odata.count` and the count may be partial.
+   */
+  countMessagesInFolder(
+    folderId: string,
+    opts?: CountMessagesInFolderOptions,
+  ): Promise<CountMessagesResult>;
+
+  /**
+   * List every message in a conversation (thread) regardless of folder, via
+   * `GET /api/v2.0/me/messages?$filter=ConversationId eq '{id}'`. The caller
+   * is responsible for providing the conversation id (usually extracted from
+   * any single message's `ConversationId` field).
+   */
+  listMessagesByConversation(
+    conversationId: string,
+    opts?: ListMessagesByConversationOptions,
   ): Promise<MessageSummary[]>;
 }
 
@@ -597,6 +648,88 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     return { messages, truncated };
   }
 
+  async function countMessagesInFolder(
+    folderId: string,
+    opts: CountMessagesInFolderOptions = {},
+  ): Promise<CountMessagesResult> {
+    if (typeof folderId !== 'string' || folderId.length === 0) {
+      throw new Error(
+        'outlook-client: countMessagesInFolder requires a non-empty folderId',
+      );
+    }
+    const query: Record<string, QueryValue> = {
+      $count: 'true',
+      $top: '1',
+      $select: 'Id',
+    };
+    if (typeof opts.filter === 'string' && opts.filter.length > 0) {
+      query.$filter = opts.filter;
+    }
+    const path =
+      `/api/v2.0/me/MailFolders/${encodeURIComponent(folderId)}/messages`;
+    try {
+      const resp = await doGet<ODataListResponse<MessageSummary>>(path, query);
+      const serverCount = resp['@odata.count'];
+      if (typeof serverCount === 'number' && Number.isFinite(serverCount)) {
+        return { count: serverCount, exact: true };
+      }
+      return {
+        count: Array.isArray(resp.value) ? resp.value.length : 0,
+        exact: false,
+      };
+    } catch (err) {
+      throw mapHttpToCliError(err);
+    }
+  }
+
+  async function listMessagesByConversation(
+    conversationId: string,
+    opts: ListMessagesByConversationOptions = {},
+  ): Promise<MessageSummary[]> {
+    if (typeof conversationId !== 'string' || conversationId.length === 0) {
+      throw new Error(
+        'outlook-client: listMessagesByConversation requires a non-empty conversationId',
+      );
+    }
+    const escaped = conversationId.replace(/'/g, "''");
+    // Outlook rejects `$filter=ConversationId eq '...' & $orderby=...` with
+    // "InefficientFilter" because cross-folder messages aren't indexed on
+    // ReceivedDateTime. Send the request WITHOUT $orderby and sort client-side
+    // (fork-only fix; upstream BikS2013/outlook-tool@cca2f50 ships the broken
+    // version that errors against live mailboxes).
+    const query: Record<string, QueryValue> = {
+      $filter: `ConversationId eq '${escaped}'`,
+    };
+    if (typeof opts.top === 'number' && Number.isFinite(opts.top) && opts.top > 0) {
+      query.$top = String(Math.floor(opts.top));
+    }
+    if (Array.isArray(opts.select) && opts.select.length > 0) {
+      query.$select = opts.select.join(',');
+    }
+    try {
+      const resp = await doGet<ODataListResponse<MessageSummary>>(
+        '/api/v2.0/me/messages',
+        query,
+      );
+      const messages = Array.isArray(resp.value) ? resp.value : [];
+      // Client-side sort. Default ReceivedDateTime asc; honor "desc" if
+      // requested. Other orderBy expressions fall back to default.
+      const orderBy =
+        typeof opts.orderBy === 'string' && opts.orderBy.length > 0
+          ? opts.orderBy.trim().toLowerCase()
+          : 'receiveddatetime asc';
+      const desc = orderBy.includes('desc');
+      messages.sort((a, b) => {
+        const ta = Date.parse(a.ReceivedDateTime ?? '') || 0;
+        const tb = Date.parse(b.ReceivedDateTime ?? '') || 0;
+        return desc ? tb - ta : ta - tb;
+      });
+      return messages;
+    } catch (err) {
+      throw mapHttpToCliError(err);
+    }
+  }
+
   return {
     get: doGet,
     listFolders,
@@ -605,6 +738,8 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     moveMessage,
     listMessagesInFolder,
     listMessagesInFolderAll,
+    countMessagesInFolder,
+    listMessagesByConversation,
   };
 }
 

@@ -44,6 +44,8 @@ export interface MessageSummary {
   HasAttachments: boolean;
   IsRead: boolean;
   WebLink: string;
+  /** Present when `$select` includes `ConversationId` (used by get-thread). */
+  ConversationId?: string;
 }
 
 /**
@@ -226,9 +228,13 @@ export interface MoveMessageRequest {
 /**
  * Generic OData list envelope: `{ "value": T[] }`. Commands typically unwrap
  * `.value` before returning to callers.
+ *
+ * `@odata.count` is present only when the request includes `$count=true` AND
+ * the server honors it. Used by list-mail's `--just-count` mode.
  */
 export interface ODataListResponse<T> {
   '@odata.context'?: string;
   '@odata.nextLink'?: string;
+  '@odata.count'?: number;
   value: T[];
 }

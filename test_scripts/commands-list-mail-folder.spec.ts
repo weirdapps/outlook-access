@@ -462,13 +462,13 @@ describe('list-mail folder flag extension (Phase 7)', () => {
   // Regression: --top bounds still enforced ahead of the new branches
   // -----------------------------------------------------------------
 
-  it('(11) --top out of range still UsageError (pre-existing behavior preserved)', async () => {
+  it('(11) --top out of range still UsageError (cap raised to 1000 in v1.2.0)', async () => {
     const { deps, client } = makeDeps();
     await expect(
       listMail.run(deps, { top: 0, folderId: 'AAMk-raw' }),
     ).rejects.toBeInstanceOf(UsageError);
     await expect(
-      listMail.run(deps, { top: 101, folder: 'Inbox' }),
+      listMail.run(deps, { top: 1001, folder: 'Inbox' }),
     ).rejects.toBeInstanceOf(UsageError);
     // None of the listing methods should be invoked after a bad --top.
     expect(client.get).not.toHaveBeenCalled();

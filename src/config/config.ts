@@ -42,7 +42,7 @@ export interface CliConfig {
   tz: string;
   /** Default output mode when neither --json nor --table is passed. */
   outputMode: OutputMode;
-  /** Default --top for list-mail. Range 1..100. */
+  /** Default --top for list-mail. Range 1..1000 (raised from 100 in v1.2.0). */
   listMailTop: number;
   /** Default --folder for list-mail. */
   listMailFolder: string;
@@ -298,11 +298,11 @@ export function loadConfig(cliFlags: CliFlags): CliConfig {
       : undefined;
 
   // 3. Sanity checks for optional numeric fields that still have bounds
-  if (!Number.isInteger(listMailTop) || listMailTop < 1 || listMailTop > 100) {
+  if (!Number.isInteger(listMailTop) || listMailTop < 1 || listMailTop > 1000) {
     throw new ConfigurationError(
       'listMailTop',
       ['--top flag'],
-      'must be an integer between 1 and 100',
+      'must be an integer between 1 and 1000',
     );
   }
 
