@@ -23,6 +23,10 @@ import type { CliConfig } from '../config/config';
 import type { OutlookClient } from '../http/outlook-client';
 import type { MessageSummary } from '../http/types';
 import type { SessionFile } from '../session/schema';
+import {
+  extractCidReferences,
+  saveSignatureAssets,
+} from '../util/signature-assets';
 
 import { ensureSession, mapHttpError, UsageError } from './list-mail';
 
@@ -57,6 +61,12 @@ export interface CaptureSignatureResult {
   signature: string;
   /** Which heuristic produced the signature, for debugging. */
   heuristic: 'div-signature' | 'div-elementtoproof' | 'last-hr' | 'reply-marker' | 'whole-body';
+  /** Where the signature inline image assets were saved (or null if none). */
+  assetsDir: string | null;
+  /** Number of inline images captured (matched the signature's cid: refs). */
+  inlineAssetCount: number;
+  /** cid: references in signature that had no matching attachment (orphans). */
+  unmatchedCidRefs: string[];
 }
 
 const DEFAULT_OUT_REL = path.join('.outlook-cli', 'signature.html');
@@ -120,12 +130,60 @@ export async function run(
   const writer = deps.writeFile ?? ((p: string, d: string) => fs.writeFile(p, d, { mode: 0o600 }));
   await writer(outPath, signature);
 
+  // -------- Inline image assets --------
+  // Scan signature for cid: refs; if any, fetch the source message's
+  // attachments, match by ContentId, save to <signature-dir>/signature-assets/.
+  const cidRefs = extractCidReferences(signature);
+  let assetsDir: string | null = null;
+  let inlineAssetCount = 0;
+  let unmatchedCidRefs: string[] = [];
+  if (cidRefs.length > 0) {
+    let attachments;
+    try {
+      attachments = await client.listMessageAttachments(sourceId);
+    } catch (err) {
+      throw mapHttpError(err);
+    }
+    // Filter to inline FileAttachments matching the cid refs.
+    const wanted = new Set(cidRefs);
+    const matchedAttachments = attachments.filter(
+      (a) =>
+        a['@odata.type'] === '#Microsoft.OutlookServices.FileAttachment' &&
+        typeof a.ContentId === 'string' &&
+        wanted.has(a.ContentId) &&
+        typeof a.ContentBytes === 'string' &&
+        a.ContentBytes.length > 0,
+    );
+    const matched = new Set(
+      matchedAttachments.map((a) => a.ContentId as string),
+    );
+    unmatchedCidRefs = cidRefs.filter((c) => !matched.has(c));
+
+    if (matchedAttachments.length > 0) {
+      assetsDir = path.join(path.dirname(outPath), 'signature-assets');
+      await saveSignatureAssets({
+        assetsDir,
+        sourceMessageId: sourceId,
+        attachments: matchedAttachments.map((a) => ({
+          contentId: a.ContentId as string,
+          contentType: a.ContentType ?? 'application/octet-stream',
+          contentBytesBase64: a.ContentBytes as string,
+          name: a.Name,
+        })),
+      });
+      inlineAssetCount = matchedAttachments.length;
+    }
+  }
+
   return {
     path: outPath,
     sourceMessageId: sourceId,
     sourceSubject: msg.Subject,
     signature,
     heuristic,
+    assetsDir,
+    inlineAssetCount,
+    unmatchedCidRefs,
   };
 }
 

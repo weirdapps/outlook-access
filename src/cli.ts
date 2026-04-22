@@ -1034,6 +1034,14 @@ export async function main(argv: string[]): Promise<number> {
       [] as string[],
     )
     .option(
+      '--signature <file>',
+      'Override signature file path (default: ~/.outlook-cli/signature.html)',
+    )
+    .option(
+      '--no-signature',
+      'Do not append signature even if signature.html exists',
+    )
+    .option(
       '--no-cc-self',
       'Suppress automatic CC to authenticated user (CLAUDE.md mandates CC-self by default)',
     )
@@ -1054,6 +1062,8 @@ export async function main(argv: string[]): Promise<number> {
           html?: string;
           text?: string;
           attach?: string[];
+          signature?: string;
+          noSignature?: boolean;
           ccSelf?: boolean;
           saveSent?: boolean;
           sendNow?: boolean;
@@ -1094,6 +1104,7 @@ export async function main(argv: string[]): Promise<number> {
     .option('--text <file>', 'Plain-text body file (escaped + wrapped in <p>)')
     .option('--signature <file>', 'Override signature file path (default: ~/.outlook-cli/signature.html)')
     .option('--no-signature', 'Suppress signature appending')
+    .option('--no-cc-self', 'Suppress automatic CC to authenticated user (default: ON, per CLAUDE.md compliance)')
     .option('--send-now', 'Send immediately, skip draft + Outlook activation', false)
     .option('--no-open', 'Do not activate Outlook desktop after creating the draft')
     .option('--dry-run', 'Print result without contacting M365', false)
@@ -1104,6 +1115,7 @@ export async function main(argv: string[]): Promise<number> {
           text?: string;
           signature?: string;
           noSignature?: boolean;
+          ccSelf?: boolean;
           sendNow?: boolean;
           open?: boolean;
           dryRun?: boolean;
@@ -1124,6 +1136,7 @@ export async function main(argv: string[]): Promise<number> {
     .option('--text <file>', 'Plain-text body file')
     .option('--signature <file>', 'Override signature file path')
     .option('--no-signature', 'Suppress signature appending')
+    .option('--no-cc-self', 'Suppress automatic CC to authenticated user')
     .option('--send-now', 'Send immediately, skip draft + Outlook activation', false)
     .option('--no-open', 'Do not activate Outlook desktop')
     .option('--dry-run', 'Print result without contacting M365', false)
@@ -1134,6 +1147,7 @@ export async function main(argv: string[]): Promise<number> {
           text?: string;
           signature?: string;
           noSignature?: boolean;
+          ccSelf?: boolean;
           sendNow?: boolean;
           open?: boolean;
           dryRun?: boolean;
@@ -1159,6 +1173,7 @@ export async function main(argv: string[]): Promise<number> {
     .option('--text <file>', 'Plain-text body file')
     .option('--signature <file>', 'Override signature file path')
     .option('--no-signature', 'Suppress signature appending')
+    .option('--no-cc-self', 'Suppress automatic CC to authenticated user')
     .option('--send-now', 'Send immediately, skip draft + Outlook activation', false)
     .option('--no-open', 'Do not activate Outlook desktop')
     .option('--dry-run', 'Print result without contacting M365', false)
@@ -1172,6 +1187,7 @@ export async function main(argv: string[]): Promise<number> {
           text?: string;
           signature?: string;
           noSignature?: boolean;
+          ccSelf?: boolean;
           sendNow?: boolean;
           open?: boolean;
           dryRun?: boolean;

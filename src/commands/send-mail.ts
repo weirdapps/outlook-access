@@ -7,6 +7,7 @@
 // Pass `--send-now` to bypass the draft and POST to /me/sendmail directly.
 
 import { promises as fs } from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
 
 import type { CliConfig } from '../config/config';
@@ -19,6 +20,7 @@ import type {
 } from '../http/outlook-client';
 import type { SessionFile } from '../session/schema';
 import { activateOutlookApp } from '../util/open-outlook';
+import { loadSignatureAttachments } from '../util/signature-assets';
 
 import { ensureSession, mapHttpError, UsageError } from './list-mail';
 
@@ -36,6 +38,8 @@ export interface SendMailDeps {
   activateOutlook?: () => Promise<void>;
   /** Optional override for tests — defaults to fs.readFile. */
   readFile?: (p: string) => Promise<Buffer>;
+  /** Optional override for tests — defaults to os.homedir. */
+  homeDir?: () => string;
 }
 
 export interface SendMailOptions {
@@ -51,6 +55,13 @@ export interface SendMailOptions {
   text?: string;
   /** Repeatable --attach <file>. */
   attach?: string[];
+  /**
+   * Override signature file path. Defaults to `~/.outlook-cli/signature.html`
+   * if it exists. Signature is appended after the user's body content.
+   */
+  signature?: string;
+  /** When true, do NOT append signature even if signature.html exists. */
+  noSignature?: boolean;
   /** When false, do NOT auto-CC the authenticated user. Default true. */
   ccSelf?: boolean;
   /** When false, do not save to SentItems. Default true. */
@@ -74,11 +85,18 @@ export interface SendMailResult {
   bcc: string[];
   subject: string;
   attachmentCount: number;
+  /** True when signature.html was found and appended to the body. */
+  signatureApplied: boolean;
   /** Populated only when mode === 'dry-run' — the payload that WOULD POST. */
   payload?: SendMailPayload;
 }
 
 const MAX_ATTACHMENT_BYTES = 30 * 1024 * 1024; // 30 MB practical /sendmail JSON cap
+
+/** Default signature file location (relative to home dir). */
+const DEFAULT_SIGNATURE_REL = path.join('.outlook-cli', 'signature.html');
+/** Default signature-assets dir (relative to dirname(signaturePath)). */
+const DEFAULT_SIGNATURE_ASSETS_REL = 'signature-assets';
 
 const MIME_BY_EXT: Record<string, string> = {
   '.pdf': 'application/pdf',
@@ -134,6 +152,48 @@ export async function run(
     bodyContent = await readBodyFile(reader, opts.text as string, '--text');
   }
 
+  // -------- Signature injection --------
+  // Default: read ~/.outlook-cli/signature.html and append after the user's
+  // body content. --no-signature suppresses; --signature <path> overrides
+  // the default location. Plain-text bodies skip injection (signature is HTML).
+  let signatureApplied = false;
+  let signatureInlineAttachments: SendFileAttachment[] = [];
+  let signatureUnmatchedCidRefs: string[] = [];
+  if (opts.noSignature !== true && bodyContentType === 'HTML') {
+    const home = (deps.homeDir ?? os.homedir)();
+    const sigPath = opts.signature ?? path.join(home, DEFAULT_SIGNATURE_REL);
+    try {
+      const buf = await reader(sigPath);
+      const sigHtml = buf.toString('utf-8');
+      if (sigHtml.length > 0) {
+        bodyContent = composeWithSignature(bodyContent, sigHtml);
+        signatureApplied = true;
+        // Look for cid: references in the signature → load matching inline
+        // images from the assets dir. Default assets dir sits next to the
+        // signature file (e.g., ~/.outlook-cli/signature-assets/).
+        const assetsDir = path.join(path.dirname(sigPath), DEFAULT_SIGNATURE_ASSETS_REL);
+        const sigAssets = await loadSignatureAttachments({
+          signatureHtml: sigHtml,
+          assetsDir,
+          reader,
+        });
+        signatureInlineAttachments = sigAssets.attachments;
+        signatureUnmatchedCidRefs = sigAssets.unmatchedRefs;
+        if (sigAssets.unmatchedRefs.length > 0) {
+          process.stderr.write(
+            `send-mail: warning — ${sigAssets.unmatchedRefs.length} cid: reference(s) ` +
+              `in signature have no matching inline image asset (will display as broken ` +
+              `image in Outlook): ${sigAssets.unmatchedRefs.join(', ')}. ` +
+              `Re-run \`outlook-cli capture-signature\` to refresh assets.\n`,
+          );
+        }
+      }
+    } catch {
+      // Signature file missing/unreadable — non-fatal. The flag in the
+      // result tells the caller it wasn't applied.
+    }
+  }
+
   // -------- Attachment load --------
   const attachmentPaths = Array.isArray(opts.attach) ? opts.attach : [];
   const attachments: SendFileAttachment[] = [];
@@ -171,8 +231,11 @@ export async function run(
       EmailAddress: { Address: addr },
     }));
   }
-  if (attachments.length > 0) {
-    payload.Attachments = attachments;
+  // Splice signature inline assets in BEFORE user attachments so cid:
+  // references in signature HTML resolve to FileAttachment(IsInline:true).
+  const allAttachments = [...signatureInlineAttachments, ...attachments];
+  if (allAttachments.length > 0) {
+    payload.Attachments = allAttachments;
   }
 
   // -------- Dry-run short-circuit --------
@@ -184,6 +247,7 @@ export async function run(
       bcc,
       subject: opts.subject,
       attachmentCount: attachments.length,
+      signatureApplied,
       payload,
     };
   }
@@ -205,6 +269,7 @@ export async function run(
       bcc,
       subject: opts.subject,
       attachmentCount: attachments.length,
+      signatureApplied,
     };
   }
 
@@ -237,7 +302,33 @@ export async function run(
     bcc,
     subject: opts.subject,
     attachmentCount: attachments.length,
+    signatureApplied,
   };
+}
+
+/**
+ * Append signature HTML to user body, inserted just before the closing
+ * `</body>` tag if present. If the body has no `</body>` (e.g., user passed
+ * just an HTML fragment), the signature is appended at the end with two
+ * line breaks of separation.
+ *
+ * Exported for unit testing.
+ */
+export function composeWithSignature(
+  bodyHtml: string,
+  signatureHtml: string,
+): string {
+  if (signatureHtml.length === 0) return bodyHtml;
+  const sigBlock = `<br><br>${signatureHtml}`;
+  const closeBodyMatch = bodyHtml.match(/<\/body\s*>/i);
+  if (closeBodyMatch && typeof closeBodyMatch.index === 'number') {
+    return (
+      bodyHtml.slice(0, closeBodyMatch.index) +
+      sigBlock +
+      bodyHtml.slice(closeBodyMatch.index)
+    );
+  }
+  return bodyHtml + sigBlock;
 }
 
 // ---------------------------------------------------------------------------

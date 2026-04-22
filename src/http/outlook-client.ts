@@ -359,6 +359,39 @@ export interface OutlookClient {
    * forward target(s) before sending.
    */
   createForward(messageId: string): Promise<CreateReplyResult>;
+
+  /**
+   * List attachments on a message via `GET /me/messages/{id}/attachments`.
+   * Returns FileAttachment + ItemAttachment + ReferenceAttachment types
+   * raw — caller filters by `@odata.type` if needed.
+   */
+  listMessageAttachments(messageId: string): Promise<MessageAttachment[]>;
+
+  /**
+   * Add a single FileAttachment to an existing draft via `POST
+   * /me/messages/{id}/attachments`. Used to splice signature inline images
+   * into reply/forward drafts (PATCH /messages/{id} does NOT accept the
+   * Attachments field — they need this separate endpoint).
+   */
+  addMessageAttachment(
+    messageId: string,
+    attachment: SendFileAttachment,
+  ): Promise<MessageAttachment>;
+}
+
+/** Raw attachment shape from M365 v2.0 REST. Three subtypes via @odata.type. */
+export interface MessageAttachment {
+  '@odata.type'?: string;
+  Id: string;
+  Name: string;
+  ContentType?: string;
+  Size?: number;
+  IsInline?: boolean;
+  ContentId?: string;
+  /** FileAttachment only — base64-encoded bytes. */
+  ContentBytes?: string;
+  /** ReferenceAttachment only — SharePoint URL. */
+  SourceUrl?: string;
 }
 
 export interface CreateClientOptions {
@@ -1009,6 +1042,40 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     return createReplyKind(messageId, 'createForward');
   }
 
+  async function listMessageAttachments(
+    messageId: string,
+  ): Promise<MessageAttachment[]> {
+    if (typeof messageId !== 'string' || messageId.length === 0) {
+      throw new Error(
+        'outlook-client: listMessageAttachments requires a non-empty messageId',
+      );
+    }
+    const path = `/api/v2.0/me/messages/${encodeURIComponent(messageId)}/attachments`;
+    try {
+      const resp = await doGet<ODataListResponse<MessageAttachment>>(path);
+      return Array.isArray(resp.value) ? resp.value : [];
+    } catch (err) {
+      throw mapHttpToCliError(err);
+    }
+  }
+
+  async function addMessageAttachment(
+    messageId: string,
+    attachment: SendFileAttachment,
+  ): Promise<MessageAttachment> {
+    if (typeof messageId !== 'string' || messageId.length === 0) {
+      throw new Error(
+        'outlook-client: addMessageAttachment requires a non-empty messageId',
+      );
+    }
+    const path = `/api/v2.0/me/messages/${encodeURIComponent(messageId)}/attachments`;
+    try {
+      return await doPost<SendFileAttachment, MessageAttachment>(path, attachment);
+    } catch (err) {
+      throw mapHttpToCliError(err);
+    }
+  }
+
   return {
     get: doGet,
     listFolders,
@@ -1027,6 +1094,8 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     createReply,
     createReplyAll,
     createForward,
+    listMessageAttachments,
+    addMessageAttachment,
   };
 }
 

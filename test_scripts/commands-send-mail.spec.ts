@@ -69,6 +69,7 @@ function makeDeps(clientOverrides: Partial<OutlookClient> = {}, fileMap: Record<
       createClient: vi.fn(() => client),
       activateOutlook,
       readFile,
+      homeDir: () => '/tmp/fake-home',
     },
     client,
     activateOutlook,
@@ -305,5 +306,148 @@ describe('send-mail — dispatch', () => {
     });
     expect(result.mode).toBe('draft');
     expect(result.id).toBe('AAMk-draft-001');
+  });
+});
+
+describe('send-mail — signature injection (v1.5.0)', () => {
+  it('appends signature.html before </body> when default file exists', async () => {
+    const { deps, client } = makeDeps(
+      {},
+      {
+        '/tmp/b.html': '<html><body><p>hi</p></body></html>',
+        '/tmp/fake-home/.outlook-cli/signature.html': '<b>D.P.</b>',
+      },
+    );
+    const result = await run(deps, {
+      to: 'a@x.com',
+      subject: 's',
+      html: '/tmp/b.html',
+    });
+    expect(result.signatureApplied).toBe(true);
+    const payload = (client.createDraft as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(payload.Body.Content).toContain('<b>D.P.</b>');
+    // Signature comes BEFORE </body>
+    expect(payload.Body.Content.indexOf('<b>D.P.</b>')).toBeLessThan(
+      payload.Body.Content.indexOf('</body>'),
+    );
+    // User content still present and BEFORE signature
+    expect(payload.Body.Content.indexOf('hi')).toBeLessThan(
+      payload.Body.Content.indexOf('<b>D.P.</b>'),
+    );
+  });
+
+  it('--no-signature suppresses injection even if file exists', async () => {
+    const { deps, client } = makeDeps(
+      {},
+      {
+        '/tmp/b.html': '<p>hi</p>',
+        '/tmp/fake-home/.outlook-cli/signature.html': '<b>D.P.</b>',
+      },
+    );
+    const result = await run(deps, {
+      to: 'a@x.com',
+      subject: 's',
+      html: '/tmp/b.html',
+      noSignature: true,
+    });
+    expect(result.signatureApplied).toBe(false);
+    const payload = (client.createDraft as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(payload.Body.Content).not.toContain('D.P.');
+  });
+
+  it('--signature <path> overrides default location', async () => {
+    const { deps, client } = makeDeps(
+      {},
+      {
+        '/tmp/b.html': '<p>hi</p>',
+        '/tmp/custom-sig.html': '<i>custom signature</i>',
+        // Default location also has content but should NOT be used
+        '/tmp/fake-home/.outlook-cli/signature.html': '<b>default sig</b>',
+      },
+    );
+    const result = await run(deps, {
+      to: 'a@x.com',
+      subject: 's',
+      html: '/tmp/b.html',
+      signature: '/tmp/custom-sig.html',
+    });
+    expect(result.signatureApplied).toBe(true);
+    const payload = (client.createDraft as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(payload.Body.Content).toContain('custom signature');
+    expect(payload.Body.Content).not.toContain('default sig');
+  });
+
+  it('signature missing is non-fatal (signatureApplied: false)', async () => {
+    const { deps, client } = makeDeps({}, { '/tmp/b.html': '<p>hi</p>' });
+    // No signature.html in fileMap
+    const result = await run(deps, {
+      to: 'a@x.com',
+      subject: 's',
+      html: '/tmp/b.html',
+    });
+    expect(result.signatureApplied).toBe(false);
+    const payload = (client.createDraft as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(payload.Body.Content).toBe('<p>hi</p>');
+  });
+
+  it('plain-text body skips signature (signature is HTML)', async () => {
+    const { deps, client } = makeDeps(
+      {},
+      {
+        '/tmp/b.txt': 'plain text body',
+        '/tmp/fake-home/.outlook-cli/signature.html': '<b>D.P.</b>',
+      },
+    );
+    const result = await run(deps, {
+      to: 'a@x.com',
+      subject: 's',
+      text: '/tmp/b.txt',
+    });
+    expect(result.signatureApplied).toBe(false);
+    const payload = (client.createDraft as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(payload.Body.ContentType).toBe('Text');
+    expect(payload.Body.Content).toBe('plain text body');
+  });
+
+  it('signature also injected on --send-now path', async () => {
+    const { deps, client } = makeDeps(
+      {},
+      {
+        '/tmp/b.html': '<html><body><p>hi</p></body></html>',
+        '/tmp/fake-home/.outlook-cli/signature.html': '<b>D.P.</b>',
+      },
+    );
+    const result = await run(deps, {
+      to: 'a@x.com',
+      subject: 's',
+      html: '/tmp/b.html',
+      sendNow: true,
+    });
+    expect(result.mode).toBe('sent');
+    expect(result.signatureApplied).toBe(true);
+    const [payload] = (client.sendMail as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    expect(payload.Body.Content).toContain('<b>D.P.</b>');
+  });
+
+  it('body without </body> tag still gets signature appended at end', async () => {
+    const { deps, client } = makeDeps(
+      {},
+      {
+        '/tmp/b.html': '<p>just a fragment</p>',
+        '/tmp/fake-home/.outlook-cli/signature.html': '<b>D.P.</b>',
+      },
+    );
+    const result = await run(deps, {
+      to: 'a@x.com',
+      subject: 's',
+      html: '/tmp/b.html',
+    });
+    expect(result.signatureApplied).toBe(true);
+    const payload = (client.createDraft as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(payload.Body.Content).toContain('<p>just a fragment</p>');
+    expect(payload.Body.Content).toContain('<b>D.P.</b>');
+    expect(payload.Body.Content.indexOf('fragment')).toBeLessThan(
+      payload.Body.Content.indexOf('D.P.'),
+    );
   });
 });
