@@ -11,6 +11,48 @@ Fork-only features (not in upstream):
 
 ---
 
+## [1.4.0] — 2026-04-22 (fork)
+
+Phase B2: reply / forward / signature. Together with v1.3.0 (B1), this
+gives the fork a complete send pipeline that can replace the AppleScript
+send path in `email-handler` (downstream migration tracked separately).
+
+### Added
+- `capture-signature [--from-message <id>] [--out <file>]` — extracts
+  email signature from a SentItems message (or specified one). Heuristic
+  priority: `<div id="Signature">` (Outlook web wrapper) → `<div class="elementToProof">`
+  → last `<hr>` content → pre-reply-marker last `<p>` block → whole-body
+  fallback. Saves to `~/.outlook-cli/signature.html` (mode 0600, parent
+  dir 0700). Hand-edit to refine if heuristic captures too much.
+- `reply <id>` — reply DRAFT via M365 `/me/messages/{id}/createReply`.
+  Server pre-populates ToRecipients (original sender) and Subject ("RE:..."),
+  auto-quotes the original body. Command then PATCHes the body to inject
+  the user's `--html`/`--text` content + signature ABOVE the auto-quote.
+  `--no-signature` to skip; `--signature <file>` to override default path.
+- `reply-all <id>` — same pipeline using `/createReplyAll`. Server
+  populates To+Cc with all original parties.
+- `forward <id> --to <recipients>` — `/createForward`. ToRecipients is
+  empty in the server response; command patches it from `--to` (also
+  honors `--cc` and `--bcc`). Same draft-first default.
+- All four new commands honor `--send-now` (skip draft, dispatch via
+  sendDraft), `--no-open` (skip Outlook activation), `--dry-run`.
+- New `OutlookClient` methods: `getMessage`, `updateMessage` (PATCH),
+  `createReply`, `createReplyAll`, `createForward`. `doRequest` /
+  `executeFetch` / `buildHeaders` extended to support PATCH method.
+- New types: `CreateReplyResult`, `UpdateMessagePatch`, `GetMessageResult`,
+  `GetMessageOptions`.
+
+### Notes
+- Inline `cid:` images and SharePoint reference attachments are still
+  deferred (would have been B2 stretch — likely a v1.5.0 follow-up if
+  needed).
+- Smoke-verified against live NBG mailbox: capture-signature pulled the
+  user's standard NBG signature; reply against a real message produced
+  draft with auto-quote + signature + user content; forward pre-populated
+  recipient correctly; missing `--to` on forward → BAD_USAGE.
+
+---
+
 ## [1.3.0] — 2026-04-22 (fork)
 
 Phase B1: send-mail core. Replaces the AppleScript send path for direct
