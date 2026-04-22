@@ -142,6 +142,50 @@ export interface CreateDraftResult {
   ConversationId?: string;
 }
 
+/**
+ * Returned by createReply / createReplyAll / createForward. Includes the
+ * server-built draft Body (with the original message auto-quoted) so the
+ * caller can prepend the user's new content + signature before patching.
+ */
+export interface CreateReplyResult {
+  Id: string;
+  WebLink: string;
+  ConversationId?: string;
+  Subject: string;
+  /** Server-composed body containing the auto-quoted original. */
+  Body: SendBody;
+  /** Pre-populated for reply (original sender) and reply-all (all). Empty for forward. */
+  ToRecipients: { EmailAddress: SendEmailAddress }[];
+  CcRecipients?: { EmailAddress: SendEmailAddress }[];
+}
+
+/** PATCH-able subset of a draft message. All fields optional. */
+export interface UpdateMessagePatch {
+  Subject?: string;
+  Body?: SendBody;
+  ToRecipients?: { EmailAddress: SendEmailAddress }[];
+  CcRecipients?: { EmailAddress: SendEmailAddress }[];
+  BccRecipients?: { EmailAddress: SendEmailAddress }[];
+}
+
+/** Single message returned by getMessage (subset of fields we use). */
+export interface GetMessageResult {
+  Id: string;
+  Subject: string;
+  Body?: SendBody;
+  WebLink?: string;
+  From?: { EmailAddress: SendEmailAddress };
+  ToRecipients?: { EmailAddress: SendEmailAddress }[];
+  CcRecipients?: { EmailAddress: SendEmailAddress }[];
+  ConversationId?: string;
+  ParentFolderId?: string;
+}
+
+export interface GetMessageOptions {
+  /** $select fields. Default returns the standard subset. */
+  select?: string[];
+}
+
 export interface OutlookClient {
   /**
    * GET a JSON resource. Returns the parsed body typed as T.
@@ -279,6 +323,42 @@ export interface OutlookClient {
    * `SaveToSentItems` knob applies only to the immediate `/sendmail` path).
    */
   sendDraft(messageId: string): Promise<void>;
+
+  /**
+   * Get a single message by id. Subset of fields by default; pass `select`
+   * for a custom projection.
+   */
+  getMessage(messageId: string, opts?: GetMessageOptions): Promise<GetMessageResult>;
+
+  /**
+   * PATCH a draft message (subject / body / recipients). Used by reply/forward
+   * after `createReply` etc returns the auto-quoted draft.
+   */
+  updateMessage(
+    messageId: string,
+    patch: UpdateMessagePatch,
+  ): Promise<GetMessageResult>;
+
+  /**
+   * Create a reply DRAFT via `POST /me/messages/{id}/createReply`. Returns
+   * the new draft including the server-composed Body with the original
+   * message auto-quoted, the To recipients pre-populated from the original
+   * sender, and a "RE: <subject>" subject line.
+   */
+  createReply(messageId: string): Promise<CreateReplyResult>;
+
+  /**
+   * Like `createReply` but recipients include all original To/Cc parties.
+   * Endpoint: `POST /me/messages/{id}/createReplyAll`.
+   */
+  createReplyAll(messageId: string): Promise<CreateReplyResult>;
+
+  /**
+   * Create a forward DRAFT via `POST /me/messages/{id}/createForward`.
+   * ToRecipients is empty — the caller MUST patch the new draft with the
+   * forward target(s) before sending.
+   */
+  createForward(messageId: string): Promise<CreateReplyResult>;
 }
 
 export interface CreateClientOptions {
@@ -335,7 +415,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
    * by `listAll` for `@odata.nextLink` follow-through).
    */
   async function doRequest<T>(
-    method: 'GET' | 'POST',
+    method: 'GET' | 'POST' | 'PATCH',
     urlOrPath: string,
     body?: unknown,
   ): Promise<T> {
@@ -411,6 +491,21 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     }
     const url = buildUrl(path, undefined);
     return doRequest<TRes>('POST', url, body);
+  }
+
+  /**
+   * PATCH a JSON resource. Same envelope/error contract as doPost; used by
+   * `updateMessage` to mutate draft Body/Subject/Recipients before sending.
+   */
+  async function doPatch<TBody, TRes>(
+    path: string,
+    body: TBody,
+  ): Promise<TRes> {
+    if (!path.startsWith('/')) {
+      throw new Error(`outlook-client: path must start with '/': ${path}`);
+    }
+    const url = buildUrl(path, undefined);
+    return doRequest<TRes>('PATCH', url, body);
   }
 
   /**
@@ -853,6 +948,67 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     }
   }
 
+  async function getMessage(
+    messageId: string,
+    opts: GetMessageOptions = {},
+  ): Promise<GetMessageResult> {
+    if (typeof messageId !== 'string' || messageId.length === 0) {
+      throw new Error('outlook-client: getMessage requires a non-empty messageId');
+    }
+    const select =
+      Array.isArray(opts.select) && opts.select.length > 0
+        ? opts.select.join(',')
+        : 'Id,Subject,Body,WebLink,From,ToRecipients,CcRecipients,ConversationId,ParentFolderId';
+    const path = `/api/v2.0/me/messages/${encodeURIComponent(messageId)}`;
+    try {
+      return await doGet<GetMessageResult>(path, { $select: select });
+    } catch (err) {
+      throw mapHttpToCliError(err);
+    }
+  }
+
+  async function updateMessage(
+    messageId: string,
+    patch: UpdateMessagePatch,
+  ): Promise<GetMessageResult> {
+    if (typeof messageId !== 'string' || messageId.length === 0) {
+      throw new Error('outlook-client: updateMessage requires a non-empty messageId');
+    }
+    const path = `/api/v2.0/me/messages/${encodeURIComponent(messageId)}`;
+    try {
+      return await doPatch<UpdateMessagePatch, GetMessageResult>(path, patch);
+    } catch (err) {
+      throw mapHttpToCliError(err);
+    }
+  }
+
+  async function createReplyKind(
+    messageId: string,
+    kind: 'createReply' | 'createReplyAll' | 'createForward',
+  ): Promise<CreateReplyResult> {
+    if (typeof messageId !== 'string' || messageId.length === 0) {
+      throw new Error(`outlook-client: ${kind} requires a non-empty messageId`);
+    }
+    const path = `/api/v2.0/me/messages/${encodeURIComponent(messageId)}/${kind}`;
+    try {
+      return await doPost<Record<string, never>, CreateReplyResult>(path, {});
+    } catch (err) {
+      throw mapHttpToCliError(err);
+    }
+  }
+
+  async function createReply(messageId: string): Promise<CreateReplyResult> {
+    return createReplyKind(messageId, 'createReply');
+  }
+
+  async function createReplyAll(messageId: string): Promise<CreateReplyResult> {
+    return createReplyKind(messageId, 'createReplyAll');
+  }
+
+  async function createForward(messageId: string): Promise<CreateReplyResult> {
+    return createReplyKind(messageId, 'createForward');
+  }
+
   return {
     get: doGet,
     listFolders,
@@ -866,6 +1022,11 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     sendMail,
     createDraft,
     sendDraft,
+    getMessage,
+    updateMessage,
+    createReply,
+    createReplyAll,
+    createForward,
   };
 }
 
@@ -969,7 +1130,7 @@ function buildUrl(
 
 function buildHeaders(
   s: SessionFile,
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'PATCH',
 ): Record<string, string> {
   const rawToken = s.bearer.token ?? '';
   const authValue = rawToken.startsWith('Bearer ')
@@ -983,7 +1144,7 @@ function buildHeaders(
   };
 
   // Only body-bearing methods set Content-Type.
-  if (method === 'POST') {
+  if (method === 'POST' || method === 'PATCH') {
     headers['Content-Type'] = 'application/json';
   }
 
@@ -1037,7 +1198,7 @@ function cookieDomainMatches(domain: string): boolean {
 // ---------------------------------------------------------------------------
 
 async function executeFetch(
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'PATCH',
   url: string,
   body: unknown,
   s: SessionFile,
@@ -1045,14 +1206,14 @@ async function executeFetch(
 ): Promise<Response> {
   const headers = buildHeaders(s, method);
 
-  // Serialise the body for POST (and any future body-bearing methods). GET
+  // Serialise the body for body-bearing methods (POST, PATCH). GET
   // never carries a body.
   const init: RequestInit = {
     method,
     headers,
     signal: AbortSignal.timeout(timeoutMs),
   };
-  if (method === 'POST' && body !== undefined) {
+  if ((method === 'POST' || method === 'PATCH') && body !== undefined) {
     init.body = JSON.stringify(body);
   }
 
