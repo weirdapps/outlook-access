@@ -59,6 +59,7 @@ import { LIST_FOLDERS_COLUMNS } from './commands/list-folders';
 import * as findFolder from './commands/find-folder';
 import * as createFolder from './commands/create-folder';
 import * as moveMail from './commands/move-mail';
+import * as sendMail from './commands/send-mail';
 
 // ---------------------------------------------------------------------------
 // Package version (read lazily so --help doesn't need it)
@@ -1005,6 +1006,62 @@ export async function main(argv: string[]): Promise<number> {
         if (result.failed.length > 0) {
           process.exitCode = 5;
         }
+      }),
+    );
+
+  // -------- send-mail --------
+  program
+    .command('send-mail')
+    .description(
+      'Send a new email. Default: creates a draft and activates Outlook desktop. ' +
+        '--send-now bypasses the draft and sends immediately.',
+    )
+    .option(
+      '--to <recipients...>',
+      'TO recipients (comma-separated string and/or repeat flag)',
+    )
+    .option('--cc <recipients...>', 'CC recipients (comma + repeat)')
+    .option('--bcc <recipients...>', 'BCC recipients (comma + repeat)')
+    .option('--subject <s>', 'Subject line')
+    .option('--html <file>', 'HTML body file path')
+    .option('--text <file>', 'Plain-text body file path (if no --html)')
+    .option(
+      '--attach <file>',
+      'Attach file (repeatable). Combined size capped at 30 MB.',
+      (v: string, acc: string[] = []) => [...acc, v],
+      [] as string[],
+    )
+    .option(
+      '--no-cc-self',
+      'Suppress automatic CC to authenticated user (CLAUDE.md mandates CC-self by default)',
+    )
+    .option('--no-save-sent', 'Do not save to SentItems (only meaningful with --send-now)')
+    .option('--send-now', 'Send immediately, skip draft + Outlook activation', false)
+    .option(
+      '--no-open',
+      'Do not activate Outlook desktop after creating the draft',
+    )
+    .option('--dry-run', 'Print payload, do not contact M365', false)
+    .action(
+      makeAction<
+        {
+          to?: string | string[];
+          cc?: string | string[];
+          bcc?: string | string[];
+          subject?: string;
+          html?: string;
+          text?: string;
+          attach?: string[];
+          ccSelf?: boolean;
+          saveSent?: boolean;
+          sendNow?: boolean;
+          open?: boolean;
+          dryRun?: boolean;
+        },
+        []
+      >(program, async (deps, g, cmdOpts) => {
+        const result = await sendMail.run(deps, cmdOpts);
+        emitResult(result, resolveOutputMode(g));
       }),
     );
 
