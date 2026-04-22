@@ -658,7 +658,7 @@ export async function main(argv: string[]): Promise<number> {
   program
     .command('list-mail')
     .description('List recent messages from a well-known folder')
-    .option('-n, --top <N>', 'Number of messages (1..100)', parseIntArg)
+    .option('-n, --top <N>', 'Number of messages (1..1000, default 10)', parseIntArg)
     .option(
       '--folder <name>',
       'Folder name (Inbox|SentItems|Drafts|DeletedItems|Archive or path/alias)',

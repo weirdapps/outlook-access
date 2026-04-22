@@ -89,9 +89,9 @@ export async function run(
 ): Promise<MessageSummary[]> {
   // Resolve effective option values (fall back to CliConfig defaults).
   const top = typeof opts.top === 'number' ? opts.top : deps.config.listMailTop;
-  if (!Number.isInteger(top) || top < 1 || top > 100) {
+  if (!Number.isInteger(top) || top < 1 || top > 1000) {
     throw new UsageError(
-      `list-mail: --top must be an integer between 1 and 100 (got ${String(top)})`,
+      `list-mail: --top must be an integer between 1 and 1000 (got ${String(top)})`,
     );
   }
 
