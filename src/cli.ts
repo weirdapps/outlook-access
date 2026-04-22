@@ -60,6 +60,8 @@ import * as findFolder from './commands/find-folder';
 import * as createFolder from './commands/create-folder';
 import * as moveMail from './commands/move-mail';
 import * as sendMail from './commands/send-mail';
+import * as captureSignature from './commands/capture-signature';
+import * as reply from './commands/reply';
 
 // ---------------------------------------------------------------------------
 // Package version (read lazily so --help doesn't need it)
@@ -1061,6 +1063,122 @@ export async function main(argv: string[]): Promise<number> {
         []
       >(program, async (deps, g, cmdOpts) => {
         const result = await sendMail.run(deps, cmdOpts);
+        emitResult(result, resolveOutputMode(g));
+      }),
+    );
+
+  // -------- capture-signature --------
+  program
+    .command('capture-signature')
+    .description(
+      'Extract email signature from a SentItems message and save to ~/.outlook-cli/signature.html',
+    )
+    .option('--from-message <id>', 'Source message id (default: latest in SentItems)')
+    .option('--out <file>', 'Output path (default: ~/.outlook-cli/signature.html)')
+    .action(
+      makeAction<{ fromMessage?: string; out?: string }, []>(
+        program,
+        async (deps, g, cmdOpts) => {
+          const result = await captureSignature.run(deps, cmdOpts);
+          emitResult(result, resolveOutputMode(g));
+        },
+      ),
+    );
+
+  // -------- reply <id> --------
+  program
+    .command('reply')
+    .argument('<id>', 'Source message id to reply to')
+    .description('Reply to a message (draft-first by default; --send-now to dispatch)')
+    .option('--html <file>', 'HTML body file (your reply content; auto-quote + signature appended)')
+    .option('--text <file>', 'Plain-text body file (escaped + wrapped in <p>)')
+    .option('--signature <file>', 'Override signature file path (default: ~/.outlook-cli/signature.html)')
+    .option('--no-signature', 'Suppress signature appending')
+    .option('--send-now', 'Send immediately, skip draft + Outlook activation', false)
+    .option('--no-open', 'Do not activate Outlook desktop after creating the draft')
+    .option('--dry-run', 'Print result without contacting M365', false)
+    .action(
+      makeAction<
+        {
+          html?: string;
+          text?: string;
+          signature?: string;
+          noSignature?: boolean;
+          sendNow?: boolean;
+          open?: boolean;
+          dryRun?: boolean;
+        },
+        [string]
+      >(program, async (deps, g, cmdOpts, id) => {
+        const result = await reply.run(deps, 'reply', id, cmdOpts);
+        emitResult(result, resolveOutputMode(g));
+      }),
+    );
+
+  // -------- reply-all <id> --------
+  program
+    .command('reply-all')
+    .argument('<id>', 'Source message id to reply-all to')
+    .description('Reply-all to a message (recipients pre-pop from server)')
+    .option('--html <file>', 'HTML body file')
+    .option('--text <file>', 'Plain-text body file')
+    .option('--signature <file>', 'Override signature file path')
+    .option('--no-signature', 'Suppress signature appending')
+    .option('--send-now', 'Send immediately, skip draft + Outlook activation', false)
+    .option('--no-open', 'Do not activate Outlook desktop')
+    .option('--dry-run', 'Print result without contacting M365', false)
+    .action(
+      makeAction<
+        {
+          html?: string;
+          text?: string;
+          signature?: string;
+          noSignature?: boolean;
+          sendNow?: boolean;
+          open?: boolean;
+          dryRun?: boolean;
+        },
+        [string]
+      >(program, async (deps, g, cmdOpts, id) => {
+        const result = await reply.run(deps, 'reply-all', id, cmdOpts);
+        emitResult(result, resolveOutputMode(g));
+      }),
+    );
+
+  // -------- forward <id> --------
+  program
+    .command('forward')
+    .argument('<id>', 'Source message id to forward')
+    .description(
+      'Forward a message — auto-quotes original. --to required (forward target).',
+    )
+    .option('--to <recipients...>', 'Forward target(s) (comma + repeat). REQUIRED.')
+    .option('--cc <recipients...>', 'CC on the forward')
+    .option('--bcc <recipients...>', 'BCC on the forward')
+    .option('--html <file>', 'HTML body file (your forwarding note)')
+    .option('--text <file>', 'Plain-text body file')
+    .option('--signature <file>', 'Override signature file path')
+    .option('--no-signature', 'Suppress signature appending')
+    .option('--send-now', 'Send immediately, skip draft + Outlook activation', false)
+    .option('--no-open', 'Do not activate Outlook desktop')
+    .option('--dry-run', 'Print result without contacting M365', false)
+    .action(
+      makeAction<
+        {
+          to?: string | string[];
+          cc?: string | string[];
+          bcc?: string | string[];
+          html?: string;
+          text?: string;
+          signature?: string;
+          noSignature?: boolean;
+          sendNow?: boolean;
+          open?: boolean;
+          dryRun?: boolean;
+        },
+        [string]
+      >(program, async (deps, g, cmdOpts, id) => {
+        const result = await reply.run(deps, 'forward', id, cmdOpts);
         emitResult(result, resolveOutputMode(g));
       }),
     );
