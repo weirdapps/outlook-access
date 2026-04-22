@@ -11,6 +11,72 @@ Fork-only features (not in upstream):
 
 ---
 
+## [1.5.0] — 2026-04-22 (fork)
+
+Phase B3: complete signature handling across send-mail / reply / forward,
+including inline-image asset support so the user's NBG logo renders
+correctly in delivered mail. Also strengthens CC-self compliance.
+
+### Added
+- **`send-mail` signature injection** — defaults to reading
+  `~/.outlook-cli/signature.html` and appending after the user's HTML
+  body (before `</body>`). New flags: `--signature <file>` (override),
+  `--no-signature` (suppress). Plain-text bodies skip signature (HTML only).
+- **Inline-image assets for signatures** — new util
+  `src/util/signature-assets.ts`:
+  - `extractCidReferences(html)` — finds `<img src="cid:XXX">` references.
+  - `saveSignatureAssets(...)` + `loadManifest(...)` — persists/reads
+    inline image bytes + manifest under `~/.outlook-cli/signature-assets/`.
+  - `loadSignatureAttachments(...)` — for each cid in signature, returns a
+    `SendFileAttachment` with `IsInline:true` + matching `ContentId`.
+- **`capture-signature` extension** — after extracting signature HTML,
+  scans for cid: refs and downloads matching attachments from the source
+  message via the new `OutlookClient.listMessageAttachments`. Saves to
+  `signature-assets/` with manifest. Result includes `assetsDir`,
+  `inlineAssetCount`, `unmatchedCidRefs`.
+- **`reply` / `reply-all` / `forward` inline-image support** — same
+  signature loading pipeline; inline attachments POSTed via new
+  `OutlookClient.addMessageAttachment` (M365 PATCH doesn't accept the
+  Attachments collection — needs separate POST per attachment).
+  Dedupe: if createReply preserved an attachment with matching cid,
+  skip re-adding to avoid duplicates.
+- **CC-self for reply / reply-all / forward** — new flag `--no-cc-self`
+  (default ON, mirroring send-mail). Reply/reply-all merge into the
+  server-populated CcRecipients; forward merges into user-supplied.
+  ALWAYS adds self to CC unless already in CC (allows self in TO + CC,
+  per CLAUDE.md compliance + audit-trail requirement).
+- **`OutlookClient.listMessageAttachments(messageId)`** + **
+  `addMessageAttachment(messageId, FileAttachment)`** — public methods
+  used by capture-signature and reply.
+
+### Changed
+- `doRequest` / `executeFetch` / `buildHeaders` extended to accept PATCH
+  (was only GET/POST).
+- `SendMailOptions` types extended with `signature?` and `noSignature?`.
+- `SendMailResult` and reply `ReplyResult` now report `signatureApplied`
+  flag for caller verification.
+
+### Notes
+- Default behavior is "always cc self, always have signature, image
+  displays properly" per user's explicit requirement.
+- Stderr warning when signature has cid: refs but no matching asset
+  (the image will display as broken in Outlook); user should re-run
+  `outlook-cli capture-signature` to refresh the assets.
+- Smoke verified end-to-end against live NBG mailbox: send-mail with
+  unique-marker body → delivered with inline logo (verified bytes via
+  sha256 prefix); reply with CC-self → present in CcRecipients; clean
+  signature.html → no forwarded-thread cruft in delivered body.
+
+### Known limitation
+- `extractSignature` heuristic is best-effort — when capturing from a
+  reply message, the "last-hr" fallback can grab the forwarded-thread
+  block instead of the signature. User should hand-edit
+  `~/.outlook-cli/signature.html` after capture to clean up if needed
+  (or capture from a NEW outgoing mail rather than a reply). Improving
+  the heuristic to detect `divRplyFwdMsg` markers is a follow-up.
+
+---
+
 ## [1.4.0] — 2026-04-22 (fork)
 
 Phase B2: reply / forward / signature. Together with v1.3.0 (B1), this

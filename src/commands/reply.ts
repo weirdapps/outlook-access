@@ -23,10 +23,12 @@ import type {
   SendBody,
   SendBodyContentType,
   SendEmailAddress,
+  SendFileAttachment,
   UpdateMessagePatch,
 } from '../http/outlook-client';
 import type { SessionFile } from '../session/schema';
 import { activateOutlookApp } from '../util/open-outlook';
+import { loadSignatureAttachments } from '../util/signature-assets';
 
 import { ensureSession, mapHttpError, UsageError } from './list-mail';
 
@@ -59,6 +61,11 @@ export interface ReplyOptions {
   cc?: string | string[];
   /** Forward only — additional BCC recipients. */
   bcc?: string | string[];
+  /**
+   * When false, do NOT auto-CC the authenticated user. Default true
+   * (matches send-mail's CLAUDE.md compliance default).
+   */
+  ccSelf?: boolean;
   /** Send immediately after composing (default: leave as draft + activate Outlook). */
   sendNow?: boolean;
   /** Activate Outlook desktop after draft (default true). */
@@ -123,11 +130,30 @@ export async function run(
   const sigPath = opts.signature ?? path.join(home, DEFAULT_SIG_REL);
   let signatureHtml = '';
   let signatureApplied = false;
+  let signatureInlineAttachments: SendFileAttachment[] = [];
   if (opts.noSignature !== true) {
     try {
       const buf = await reader(sigPath);
       signatureHtml = buf.toString('utf-8');
       signatureApplied = signatureHtml.length > 0;
+      if (signatureApplied) {
+        // Load matching inline images (cid: refs in signature → assets dir).
+        const assetsDir = path.join(path.dirname(sigPath), 'signature-assets');
+        const sigAssets = await loadSignatureAttachments({
+          signatureHtml,
+          assetsDir,
+          reader,
+        });
+        signatureInlineAttachments = sigAssets.attachments;
+        if (sigAssets.unmatchedRefs.length > 0) {
+          process.stderr.write(
+            `${kind}: warning — ${sigAssets.unmatchedRefs.length} cid: reference(s) ` +
+              `in signature have no matching inline image asset (will display as ` +
+              `broken image): ${sigAssets.unmatchedRefs.join(', ')}. ` +
+              `Re-run \`outlook-cli capture-signature\` to refresh.\n`,
+          );
+        }
+      }
     } catch {
       // Signature file missing or unreadable — note in result, don't fail.
       signatureApplied = false;
@@ -199,10 +225,78 @@ export async function run(
       patch.BccRecipients = userBcc.map((addr) => ({ EmailAddress: { Address: addr } }));
     }
   }
+
+  // -------- CC-self injection (compliance default: ON) --------
+  // ALWAYS add self to CC unless already in CC (audit/archive — user's
+  // CLAUDE.md mandates this, and they explicitly want self-CC even when
+  // they're also the To recipient e.g., when replying to own mail).
+  // For reply/reply-all: merge into the server-populated CcRecipients.
+  // For forward: merge into the user-supplied CcRecipients (already in patch).
+  // Suppress only if --no-cc-self.
+  if (opts.ccSelf !== false) {
+    const selfUpn = session.account?.upn;
+    if (typeof selfUpn === 'string' && selfUpn.length > 0) {
+      const existingCc = kind === 'forward'
+        ? (patch.CcRecipients ?? [])
+        : (draft.CcRecipients ?? []);
+      const lower = selfUpn.toLowerCase();
+      const alreadyInCc = existingCc.some(
+        (r) => r.EmailAddress.Address.toLowerCase() === lower,
+      );
+      if (alreadyInCc) {
+        // Preserve existing CC list in the patch so other patched fields
+        // don't accidentally clear it (PATCH semantics: omitted = unchanged,
+        // present = replace).
+        patch.CcRecipients = existingCc;
+      } else {
+        patch.CcRecipients = [
+          ...existingCc,
+          { EmailAddress: { Address: selfUpn } },
+        ];
+      }
+    }
+  }
   try {
     await client.updateMessage(draft.Id, patch);
   } catch (err) {
     throw mapHttpError(err);
+  }
+
+  // -------- Splice signature inline attachments --------
+  // Each inline image must be POSTed to /messages/{id}/attachments
+  // separately (PATCH doesn't accept the Attachments collection).
+  //
+  // Dedupe: M365's createReply / createForward preserves the original
+  // message's attachments. If the original was a previous reply that
+  // already contained our signature image, the cid is already in the
+  // draft. List existing attachments and skip any cid already present.
+  if (signatureInlineAttachments.length > 0) {
+    let existingCids = new Set<string>();
+    try {
+      const existing = await client.listMessageAttachments(draft.Id);
+      for (const a of existing) {
+        if (typeof a.ContentId === 'string' && a.ContentId.length > 0) {
+          existingCids.add(a.ContentId);
+        }
+      }
+    } catch {
+      // Non-fatal: if list fails, attempt to add all and let M365 dedupe.
+    }
+    for (const inlineAtt of signatureInlineAttachments) {
+      if (inlineAtt.ContentId && existingCids.has(inlineAtt.ContentId)) {
+        continue; // already in draft (preserved from original)
+      }
+      try {
+        await client.addMessageAttachment(draft.Id, inlineAtt);
+      } catch (err) {
+        // Non-fatal: the draft is created and the body refers to the cid;
+        // the image will just show as broken. Warn once per failure.
+        const msg = err instanceof Error ? err.message : String(err);
+        process.stderr.write(
+          `${kind}: failed to attach inline image "${inlineAtt.Name}" (${inlineAtt.ContentId}): ${msg}\n`,
+        );
+      }
+    }
   }
 
   // -------- Send-now or activate Outlook --------
