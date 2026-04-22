@@ -7,6 +7,7 @@ import type { CliConfig } from '../config/config';
 import type { OutlookClient } from '../http/outlook-client';
 import type { EventSummary, ODataListResponse } from '../http/types';
 import type { SessionFile } from '../session/schema';
+import { parseTimestamp } from '../util/dates';
 
 import { ensureSession, mapHttpError, UsageError } from './list-mail';
 
@@ -25,32 +26,18 @@ export interface ListCalendarOptions {
   tz?: string;
 }
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
 /**
  * Resolve a human keyword / ISO8601 string to a concrete ISO8601 timestamp.
+ * Grammar documented in `src/util/dates.ts` (now / now+Nd / now-Nd / ISO).
  *
- *   "now"        → current instant (UTC)
- *   "now + Nd"   → current instant + N days (whitespace-insensitive)
- *   otherwise    → validated ISO8601 (throws UsageError on parse failure)
+ * Throws `UsageError` with a `list-calendar:` prefix on parse failure.
  */
 export function resolveCalendarDate(raw: string, label: string): string {
-  const trimmed = raw.trim();
-  if (trimmed === 'now') {
-    return new Date().toISOString();
+  const r = parseTimestamp(raw);
+  if (!r.ok) {
+    throw new UsageError(`list-calendar: ${label} is ${r.reason}`);
   }
-  const rel = trimmed.match(/^now\s*\+\s*(\d+)\s*d$/i);
-  if (rel) {
-    const days = Number.parseInt(rel[1]!, 10);
-    return new Date(Date.now() + days * MS_PER_DAY).toISOString();
-  }
-  const t = Date.parse(trimmed);
-  if (!Number.isFinite(t)) {
-    throw new UsageError(
-      `list-calendar: ${label} is not a valid ISO8601 date (got ${JSON.stringify(raw)})`,
-    );
-  }
-  return new Date(t).toISOString();
+  return r.iso;
 }
 
 export async function run(
