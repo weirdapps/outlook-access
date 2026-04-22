@@ -67,9 +67,9 @@ export function redactJwt(token: string): string {
 
 /**
  * Replace any long (>100 char) run of base64-URL / base64 characters inside an
- * arbitrary string with "[REDACTED]". This is the last-line-of-defense helper
- * used when formatting error messages derived from upstream body text — the
- * upstream may echo back our token or a session cookie in rare cases.
+ * arbitrary string with "[REDACTED]". Also redacts message body content (HTML
+ * or plain) that may appear in echoed-back JSON error bodies — see
+ * `redactMessageBodies` for the body patterns covered.
  *
  * Character class matches base64 + base64url alphabets plus the JWT separator:
  *   [A-Za-z0-9+/=_\-.]
@@ -77,6 +77,39 @@ export function redactJwt(token: string): string {
  */
 export function redactString(s: string): string {
   if (!s) return s;
-  const re = /[A-Za-z0-9+/=_\-.]{101,}/g;
-  return s.replace(re, REDACTED);
+  const tokenRe = /[A-Za-z0-9+/=_\-.]{101,}/g;
+  return redactMessageBodies(s.replace(tokenRe, REDACTED));
+}
+
+const REDACTED_BODY = '[REDACTED-BODY]';
+
+/**
+ * Redact email message body content from a JSON-shaped string. Targets the
+ * shapes M365 may echo back inside an error response body when our send-mail
+ * payload trips a server-side validation rule:
+ *
+ *   "Body":{"ContentType":"HTML","Content":"<the html>"}   → Content value redacted
+ *   "Body":{"ContentType":"Text","Content":"the text"}     → Content value redacted
+ *   "HtmlBody":"<the html>"                                 → value redacted
+ *   "TextBody":"the text"                                   → value redacted
+ *
+ * The patterns are intentionally permissive (allow embedded escaped quotes)
+ * but bounded so the regex doesn't catastrophically backtrack on adversarial
+ * input. ContentType / Subject / recipients are intentionally NOT redacted —
+ * those are debugging metadata.
+ */
+export function redactMessageBodies(s: string): string {
+  if (!s) return s;
+  let out = s;
+  // "Body":{ ... "Content":"..." ... }
+  out = out.replace(
+    /("Body"\s*:\s*\{[^}]*"Content"\s*:\s*")([^"\\]|\\.){0,20000}"/g,
+    `$1${REDACTED_BODY}"`,
+  );
+  // "HtmlBody":"..." or "TextBody":"..."
+  out = out.replace(
+    /("(?:HtmlBody|TextBody)"\s*:\s*")([^"\\]|\\.){0,20000}"/g,
+    `$1${REDACTED_BODY}"`,
+  );
+  return out;
 }

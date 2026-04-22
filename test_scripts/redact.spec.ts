@@ -5,7 +5,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { redactHeaders, redactJwt, redactString } from '../src/util/redact';
+import {
+  redactHeaders,
+  redactJwt,
+  redactString,
+  redactMessageBodies,
+} from '../src/util/redact';
 
 describe('redactHeaders', () => {
   it('redacts Authorization case-insensitively', () => {
@@ -100,5 +105,47 @@ describe('redactString', () => {
       'A'.repeat(40) + '.' + 'B'.repeat(40) + '.' + 'C'.repeat(40);
     const out = redactString(longJwt);
     expect(out).toBe('[REDACTED]');
+  });
+
+  it('redacts message body content from echoed-back send-mail JSON', () => {
+    const echo =
+      '{"Subject":"test","Body":{"ContentType":"HTML","Content":"<p>secret content</p>"}}';
+    const out = redactString(echo);
+    expect(out).toContain('"Subject":"test"');
+    expect(out).toContain('"ContentType":"HTML"');
+    expect(out).not.toContain('secret content');
+    expect(out).toContain('"Content":"[REDACTED-BODY]"');
+  });
+
+  it('redacts HtmlBody/TextBody flat field shapes', () => {
+    const out1 = redactString('{"HtmlBody":"<b>secret</b>"}');
+    expect(out1).toContain('"HtmlBody":"[REDACTED-BODY]"');
+    expect(out1).not.toContain('secret');
+
+    const out2 = redactString('{"TextBody":"the plain text body"}');
+    expect(out2).toContain('"TextBody":"[REDACTED-BODY]"');
+    expect(out2).not.toContain('plain text');
+  });
+});
+
+describe('redactMessageBodies', () => {
+  it('handles empty input', () => {
+    expect(redactMessageBodies('')).toBe('');
+  });
+
+  it('leaves non-body content untouched', () => {
+    expect(redactMessageBodies('{"Subject":"hi","From":"a@x.com"}')).toBe(
+      '{"Subject":"hi","From":"a@x.com"}',
+    );
+  });
+
+  it('preserves Subject and ContentType when redacting Body.Content', () => {
+    const input =
+      '{"Message":{"Subject":"S","Body":{"ContentType":"Text","Content":"body content here"}}}';
+    const out = redactMessageBodies(input);
+    expect(out).toContain('"Subject":"S"');
+    expect(out).toContain('"ContentType":"Text"');
+    expect(out).toContain('"Content":"[REDACTED-BODY]"');
+    expect(out).not.toContain('body content here');
   });
 });
