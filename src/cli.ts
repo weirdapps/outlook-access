@@ -933,7 +933,8 @@ export async function main(argv: string[]): Promise<number> {
     // commander exits for --help / --version via a CommanderError with a
     // zero-ish `exitCode`. Honour it so the process can terminate cleanly.
     if (err.exitCode === 0) {
-      process.exit(0);
+      void exitWithDrain(0);
+      return;
     }
     throw err;
   });
@@ -970,15 +971,41 @@ function parseIntArg(v: string): number {
 // Entry point
 // ---------------------------------------------------------------------------
 
+/**
+ * Exit only after stdout (and stderr) have drained to a piped consumer.
+ * `process.exit()` on its own does NOT wait for buffered writes to flush
+ * to a downstream pipe — large JSON payloads got truncated at ~64KB on a
+ * pipe boundary because the Node runtime tore down before the kernel
+ * pipe drained. We yield the event loop until both streams report
+ * `writableLength === 0` before calling `process.exit`.
+ */
+export async function exitWithDrain(code: number): Promise<never> {
+  await Promise.all([
+    drainStream(process.stdout),
+    drainStream(process.stderr),
+  ]);
+  process.exit(code);
+}
+
+function drainStream(stream: NodeJS.WriteStream): Promise<void> {
+  return new Promise((resolve) => {
+    if (stream.writableLength === 0 || stream.writableEnded) {
+      resolve();
+      return;
+    }
+    stream.once('drain', () => resolve());
+  });
+}
+
 // Only invoke main when executed as a script (not when imported by tests).
 if (require.main === module) {
   main(process.argv).then(
     (code) => {
-      process.exit(code);
+      void exitWithDrain(code);
     },
     (err) => {
       const code = reportError(err);
-      process.exit(code);
+      void exitWithDrain(code);
     },
   );
 }
