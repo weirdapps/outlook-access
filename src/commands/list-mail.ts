@@ -56,6 +56,18 @@ export interface ListMailOptions {
   all?: boolean;
   /** Hard cap on total results when `all` is true. Defaults to 10000. */
   max?: number;
+  /**
+   * When true, return just the count of matching messages (server-side via
+   * `$count=true`) instead of the messages themselves. Ignores `--top` and
+   * `--select`. Works alongside every folder flag and the date window.
+   */
+  justCount?: boolean;
+}
+
+/** Result shape returned by `run()` when `justCount` is true. */
+export interface ListMailCountResult {
+  count: number;
+  exact: boolean;
 }
 
 /** Default safety cap when --all is set without --max. */
@@ -86,12 +98,23 @@ export class UsageError extends OutlookCliError {
 export async function run(
   deps: ListMailDeps,
   opts: ListMailOptions = {},
-): Promise<MessageSummary[]> {
+): Promise<MessageSummary[] | ListMailCountResult> {
+  const justCount = opts.justCount === true;
+
   // Resolve effective option values (fall back to CliConfig defaults).
+  // Skip --top validation in count mode — the flag is ignored there.
   const top = typeof opts.top === 'number' ? opts.top : deps.config.listMailTop;
-  if (!Number.isInteger(top) || top < 1 || top > 1000) {
+  if (!justCount && (!Number.isInteger(top) || top < 1 || top > 1000)) {
     throw new UsageError(
       `list-mail: --top must be an integer between 1 and 1000 (got ${String(top)})`,
+    );
+  }
+
+  // --just-count is incompatible with --all (count is one HTTP call by design).
+  if (justCount && opts.all === true) {
+    throw new UsageError(
+      'list-mail: --just-count and --all are mutually exclusive ' +
+        '(count uses server-side $count=true and returns in one request).',
     );
   }
 
@@ -218,8 +241,13 @@ export async function run(
     }
   }
 
-  // Single dispatch point: paginate or single-page based on --all.
+  // Single dispatch point: count, paginate, or single-page.
   try {
+    if (justCount) {
+      return await client.countMessagesInFolder(targetFolderId, {
+        filter: filter.length > 0 ? filter : undefined,
+      });
+    }
     if (fetchAll) {
       const result = await client.listMessagesInFolderAll(
         targetFolderId,

@@ -683,6 +683,9 @@ export async function main(argv: string[]): Promise<number> {
     .option('--all', 'Auto-paginate via @odata.nextLink until exhausted', false)
     .option('--max <N>',
       'Safety cap for --all (default 10000, max 100000)', parseIntArg)
+    .option('--just-count',
+      'Return only {count, exact} via server-side $count=true. Ignores --top/--select. Mutually exclusive with --all.',
+      false)
     .action(
       makeAction<
         {
@@ -697,15 +700,23 @@ export async function main(argv: string[]): Promise<number> {
           to?: string;
           all?: boolean;
           max?: number;
+          justCount?: boolean;
         },
         []
       >(program, async (deps, g, cmdOpts) => {
         const result = await listMail.run(deps, cmdOpts);
-        emitResult(
-          result,
-          resolveOutputMode(g),
-          LIST_MAIL_COLUMNS as unknown as ColumnSpec<unknown>[],
-        );
+        const mode = resolveOutputMode(g);
+        // --just-count returns {count, exact}, not a message array — emit as
+        // a plain object regardless of mode (no columns).
+        if (cmdOpts.justCount === true) {
+          emitResult(result, mode);
+        } else {
+          emitResult(
+            result,
+            mode,
+            LIST_MAIL_COLUMNS as unknown as ColumnSpec<unknown>[],
+          );
+        }
       }),
     );
 
