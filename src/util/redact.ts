@@ -101,15 +101,16 @@ const REDACTED_BODY = '[REDACTED-BODY]';
 export function redactMessageBodies(s: string): string {
   if (!s) return s;
   let out = s;
-  // "Body":{ ... "Content":"..." ... }
+  // "Body":{ ... "Content":"..." ... } — also matches escaped form (\"Body\"...)
+  // when the JSON has been stringified inside another JSON envelope.
   out = out.replace(
-    /("Body"\s*:\s*\{[^}]*"Content"\s*:\s*")([^"\\]|\\.){0,20000}"/g,
-    `$1${REDACTED_BODY}"`,
+    /(\\?"Body\\?"\s*:\s*\{[^}]*\\?"Content\\?"\s*:\s*\\?")(?:[^"\\]|\\.){0,20000}(\\?")/g,
+    `$1${REDACTED_BODY}$2`,
   );
-  // "HtmlBody":"..." or "TextBody":"..."
+  // "HtmlBody":"..." or "TextBody":"..." (also handles escaped form)
   out = out.replace(
-    /("(?:HtmlBody|TextBody)"\s*:\s*")([^"\\]|\\.){0,20000}"/g,
-    `$1${REDACTED_BODY}"`,
+    /(\\?"(?:HtmlBody|TextBody)\\?"\s*:\s*\\?")(?:[^"\\]|\\.){0,20000}(\\?")/g,
+    `$1${REDACTED_BODY}$2`,
   );
   return out;
 }
