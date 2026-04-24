@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S node --preserve-symlinks
 // src/cli.ts
 //
 // Commander bootstrap for the Outlook CLI.
@@ -46,6 +46,7 @@ import type {
 } from './folders/types';
 
 import * as authCheck from './commands/auth-check';
+import * as authRenew from './commands/auth-renew';
 import * as login from './commands/login';
 import * as listMail from './commands/list-mail';
 import * as getMail from './commands/get-mail';
@@ -653,6 +654,20 @@ export async function main(argv: string[]): Promise<number> {
     .action(
       makeAction<Record<string, never>, []>(program, async (deps, g) => {
         const result = await authCheck.run(deps);
+        emitResult(result, resolveOutputMode(g));
+      }),
+    );
+
+  // -------- auth-renew --------
+  program
+    .command('auth-renew')
+    .description('Silently renew the bearer using the persisted browser profile (headless)')
+    .option('--timeout <ms>', 'Headless capture timeout (default 30000)', parseIntArg)
+    .action(
+      makeAction<{ timeout?: number }, []>(program, async (deps, g, cmdOpts) => {
+        const result = await authRenew.run(deps, {
+          timeoutMs: cmdOpts.timeout,
+        });
         emitResult(result, resolveOutputMode(g));
       }),
     );

@@ -57,6 +57,10 @@ export interface CaptureOptions {
    *  after Outlook auth succeeds. Host must end in ".sharepoint.com" — see
    *  captureSharepointFromContext for validation. */
   sharepointHost?: string;
+  /** When true, launch Chromium headless. Requires a persistent profile with
+   *  valid ESTSAUTHPERSISTENT cookie so Entra silently re-issues a bearer
+   *  without user interaction. Used by `outlook-cli auth-renew`. */
+  headless?: boolean;
 }
 
 export type AuthCaptureErrorCode =
@@ -226,7 +230,7 @@ export async function captureOutlookSession(
     opts.profileDir,
     {
       channel: opts.chromeChannel,
-      headless: false,
+      headless: opts.headless === true,
       viewport: { width: 1280, height: 900 },
       args: ['--no-first-run', '--no-default-browser-check'],
     },
