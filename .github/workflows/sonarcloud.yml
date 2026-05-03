@@ -42,7 +42,18 @@ jobs:
         run: npm test -- --coverage
         continue-on-error: true
 
+      - name: Check for SonarCloud token
+        id: check-sonar
+        run: |
+          if [ -n "${{ secrets.SONAR_TOKEN }}" ]; then
+            echo "has_token=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_token=false" >> $GITHUB_OUTPUT
+            echo "::notice::SONAR_TOKEN not configured — skipping SonarCloud scan"
+          fi
+
       - name: SonarCloud Scan
+        if: steps.check-sonar.outputs.has_token == 'true'
         uses: SonarSource/sonarcloud-github-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
