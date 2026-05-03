@@ -26,13 +26,13 @@ This document covers:
 
 ### `context.addInitScript` vs `page.addInitScript`
 
-| | `context.addInitScript(script)` | `page.addInitScript(script)` |
-|---|---|---|
-| Scope | Every frame in every page in the context, now and in the future | Every frame in that one page only |
-| Survives navigation | Yes — re-evaluates on each navigation | Yes, but only for the one page |
-| Applies to popup windows | Yes | No |
-| Applies to pre-restored pages (persistent profile) | **No** (see Pitfall 1 below) | Same gap |
-| Ordering guarantee vs page scripts | Runs after `document` created, before page scripts | Same |
+|                                                    | `context.addInitScript(script)`                                 | `page.addInitScript(script)`      |
+| -------------------------------------------------- | --------------------------------------------------------------- | --------------------------------- |
+| Scope                                              | Every frame in every page in the context, now and in the future | Every frame in that one page only |
+| Survives navigation                                | Yes — re-evaluates on each navigation                           | Yes, but only for the one page    |
+| Applies to popup windows                           | Yes                                                             | No                                |
+| Applies to pre-restored pages (persistent profile) | **No** (see Pitfall 1 below)                                    | Same gap                          |
+| Ordering guarantee vs page scripts                 | Runs after `document` created, before page scripts              | Same                              |
 
 **Use `context.addInitScript`.** Outlook uses redirects and popup windows during the login flow; context-level registration covers all of them without having to hook each new page individually.
 
@@ -42,11 +42,11 @@ The official doc states:
 
 ### `context.exposeBinding` vs `context.exposeFunction`
 
-| | `exposeBinding(name, cb)` | `exposeFunction(name, cb)` |
-|---|---|---|
-| Callback signature | `(source, ...args)` where `source = { browserContext, page, frame }` | `(...args)` — plain args only |
-| Scope | Every frame in every page in the context | Every frame in every page (when called on context) |
-| Return value to caller | Yes — cb return value resolves the Promise in-page | Yes |
+|                        | `exposeBinding(name, cb)`                                            | `exposeFunction(name, cb)`                         |
+| ---------------------- | -------------------------------------------------------------------- | -------------------------------------------------- |
+| Callback signature     | `(source, ...args)` where `source = { browserContext, page, frame }` | `(...args)` — plain args only                      |
+| Scope                  | Every frame in every page in the context                             | Every frame in every page (when called on context) |
+| Return value to caller | Yes — cb return value resolves the Promise in-page                   | Yes                                                |
 
 **Use `context.exposeBinding`.** The `source` argument gives you the `Page` object for free, which is useful for attaching the `page.on('close')` guard without needing a separate reference.
 
@@ -79,7 +79,7 @@ When `launchPersistentContext` restores a previous browser session with open tab
 ```typescript
 // After context.addInitScript(...) and context.exposeBinding(...)
 const existingPages = context.pages();
-const page = existingPages[0] ?? await context.newPage();
+const page = existingPages[0] ?? (await context.newPage());
 
 // Force a reload so the init script fires on any pre-restored page.
 // This also triggers Outlook's MSAL silent-SSO re-auth, which is what
@@ -127,8 +127,8 @@ Since we always navigate to the Outlook mail URL anyway (to trigger the SPA boot
 
   function isTargetUrl(url) {
     // url may be a string or a URL object
-    const s = typeof url === 'string' ? url : (url && url.href ? url.href : String(url));
-    return TARGET_PREFIXES.some(prefix => s.startsWith(prefix));
+    const s = typeof url === 'string' ? url : url && url.href ? url.href : String(url);
+    return TARGET_PREFIXES.some((prefix) => s.startsWith(prefix));
   }
 
   function extractBearer(headers) {
@@ -140,15 +140,11 @@ Since we always navigate to the Outlook mail URL anyway (to trigger the SPA boot
     }
     if (Array.isArray(headers)) {
       // Array of [name, value] tuples
-      const pair = headers.find(
-        ([k]) => k.toLowerCase() === 'authorization'
-      );
+      const pair = headers.find(([k]) => k.toLowerCase() === 'authorization');
       return pair ? pair[1] : null;
     }
     // Plain object — header names may be mixed-case
-    const key = Object.keys(headers).find(
-      k => k.toLowerCase() === 'authorization'
-    );
+    const key = Object.keys(headers).find((k) => k.toLowerCase() === 'authorization');
     return key ? headers[key] : null;
   }
 
@@ -254,8 +250,8 @@ Since we always navigate to the Outlook mail URL anyway (to trigger the SPA boot
 import { BrowserContext, Page } from 'playwright';
 
 export interface CapturedAuth {
-  token: string;   // Full "Bearer eyJ..." string
-  url: string;     // URL that carried the token (for diagnostics)
+  token: string; // Full "Bearer eyJ..." string
+  url: string; // URL that carried the token (for diagnostics)
 }
 
 /**
@@ -275,14 +271,13 @@ export async function captureFirstBearerToken(
   page: Page,
   timeoutMs: number,
 ): Promise<CapturedAuth> {
-
   // ── 1. Create the one-shot promise ─────────────────────────────────────────
   let resolveCapture!: (auth: CapturedAuth) => void;
   let rejectCapture!: (err: Error) => void;
 
   const capturePromise = new Promise<CapturedAuth>((resolve, reject) => {
     resolveCapture = resolve;
-    rejectCapture  = reject;
+    rejectCapture = reject;
   });
 
   // ── 2. Register the exposeBinding ──────────────────────────────────────────
@@ -325,10 +320,10 @@ export async function captureFirstBearerToken(
   // ── 5. Timeout guard ───────────────────────────────────────────────────────
   const timeoutHandle = setTimeout(() => {
     rejectCapture(
-      Object.assign(
-        new Error(`No Authorization: Bearer token captured within ${timeoutMs}ms`),
-        { code: 'LOGIN_TIMEOUT', exitCode: 4 },
-      ),
+      Object.assign(new Error(`No Authorization: Bearer token captured within ${timeoutMs}ms`), {
+        code: 'LOGIN_TIMEOUT',
+        exitCode: 4,
+      }),
     );
   }, timeoutMs);
 
@@ -352,14 +347,14 @@ export async function captureFirstBearerToken(
 import { chromium } from 'playwright';
 import { captureFirstBearerToken } from './fetchHook';
 
-const PROFILE_DIR  = path.join(os.homedir(), '.outlook-cli', 'playwright-profile');
-const TIMEOUT_MS   = parseInt(process.env.OUTLOOK_CLI_LOGIN_TIMEOUT_MS ?? '', 10);
+const PROFILE_DIR = path.join(os.homedir(), '.outlook-cli', 'playwright-profile');
+const TIMEOUT_MS = parseInt(process.env.OUTLOOK_CLI_LOGIN_TIMEOUT_MS ?? '', 10);
 // Per project convention: throw if config missing, no fallback
 if (isNaN(TIMEOUT_MS)) {
-  throw Object.assign(
-    new Error('OUTLOOK_CLI_LOGIN_TIMEOUT_MS is not set'),
-    { code: 'MISSING_CONFIG', exitCode: 3 },
-  );
+  throw Object.assign(new Error('OUTLOOK_CLI_LOGIN_TIMEOUT_MS is not set'), {
+    code: 'MISSING_CONFIG',
+    exitCode: 3,
+  });
 }
 
 export async function acquireToken(): Promise<string> {
@@ -375,7 +370,7 @@ export async function acquireToken(): Promise<string> {
   // we pass it to captureFirstBearerToken for the close guard.
   // The actual navigation happens AFTER captureFirstBearerToken installs
   // its hooks (the function returns after hook installation, before goto).
-  const page = context.pages()[0] ?? await context.newPage();
+  const page = context.pages()[0] ?? (await context.newPage());
 
   // captureFirstBearerToken registers exposeBinding + addInitScript,
   // then returns a Promise that resolves on first token capture.
@@ -409,15 +404,18 @@ Playwright's `page.on('request', handler)` and `context.on('request', handler)` 
 
 ### Header visibility
 
-- `request.headers()` — returns a plain object with lower-cased header names. Per the official docs: *"this method does not return security-related headers, including cookie-related ones"*. `Authorization` is considered security-related and **may be omitted** by `request.headers()` in some Playwright versions.
+- `request.headers()` — returns a plain object with lower-cased header names. Per the official docs: _"this method does not return security-related headers, including cookie-related ones"_. `Authorization` is considered security-related and **may be omitted** by `request.headers()` in some Playwright versions.
 - `request.allHeaders()` — async method (returns a Promise) that includes all headers including cookies and `Authorization`. This is the correct method to use if taking the Node-side route.
 
 ```typescript
 // Node-side alternative (not the recommended path — see below)
 context.on('request', async (request) => {
   const url = request.url();
-  if (!url.startsWith('https://outlook.office.com/api/v2.0/') &&
-      !url.startsWith('https://outlook.office.com/ows/')) return;
+  if (
+    !url.startsWith('https://outlook.office.com/api/v2.0/') &&
+    !url.startsWith('https://outlook.office.com/ows/')
+  )
+    return;
 
   const headers = await request.allHeaders(); // async — note the await
   const auth = headers['authorization'];
@@ -496,7 +494,7 @@ PROCEDURE acquireToken(profileDir, timeoutMs):
 
 ### Pitfall 1: Registering the init script AFTER `page.goto()`
 
-If `context.addInitScript()` is called after `page.goto()` has already started (or after the page has loaded), the hook will not be in place for the current document. It will fire on the *next* navigation, not the current one. The Outlook SPA may have already made its first authenticated API call by then.
+If `context.addInitScript()` is called after `page.goto()` has already started (or after the page has loaded), the hook will not be in place for the current document. It will fire on the _next_ navigation, not the current one. The Outlook SPA may have already made its first authenticated API call by then.
 
 **Fix**: Always register `exposeBinding` and `addInitScript` before any `goto()` call. The code structure in §4 enforces this.
 
@@ -627,8 +625,8 @@ export const INIT_SCRIPT_TEXT = `
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface CapturedAuth {
-  token: string;  // Full "Bearer eyJ..." string
-  url: string;    // URL that triggered capture (for diagnostics only)
+  token: string; // Full "Bearer eyJ..." string
+  url: string; // URL that triggered capture (for diagnostics only)
 }
 
 // ── Main function ────────────────────────────────────────────────────────────
@@ -649,13 +647,12 @@ export async function captureFirstBearerToken(
   page: Page,
   timeoutMs: number,
 ): Promise<CapturedAuth> {
-
   let resolveCapture!: (auth: CapturedAuth) => void;
-  let rejectCapture!:  (err: Error) => void;
+  let rejectCapture!: (err: Error) => void;
 
   const capturePromise = new Promise<CapturedAuth>((resolve, reject) => {
     resolveCapture = resolve;
-    rejectCapture  = reject;
+    rejectCapture = reject;
   });
 
   // Register binding BEFORE init script (order does not technically matter
@@ -675,10 +672,10 @@ export async function captureFirstBearerToken(
   const onClose = () => {
     if (alreadyResolved) return;
     rejectCapture(
-      Object.assign(
-        new Error('Browser closed before Bearer token was captured'),
-        { code: 'BROWSER_CLOSED', exitCode: 4 },
-      ),
+      Object.assign(new Error('Browser closed before Bearer token was captured'), {
+        code: 'BROWSER_CLOSED',
+        exitCode: 4,
+      }),
     );
   };
 
@@ -709,7 +706,7 @@ export async function captureFirstBearerToken(
 
 ```typescript
 import path from 'node:path';
-import os   from 'node:os';
+import os from 'node:os';
 import { chromium } from 'playwright';
 import { captureFirstBearerToken, CapturedAuth } from './fetchHook';
 
@@ -718,10 +715,10 @@ export async function acquireToken(): Promise<CapturedAuth> {
 
   const timeoutRaw = process.env.OUTLOOK_CLI_LOGIN_TIMEOUT_MS;
   if (!timeoutRaw) {
-    throw Object.assign(
-      new Error('OUTLOOK_CLI_LOGIN_TIMEOUT_MS is not configured'),
-      { code: 'MISSING_CONFIG', exitCode: 3 },
-    );
+    throw Object.assign(new Error('OUTLOOK_CLI_LOGIN_TIMEOUT_MS is not configured'), {
+      code: 'MISSING_CONFIG',
+      exitCode: 3,
+    });
   }
   const timeoutMs = parseInt(timeoutRaw, 10);
   if (isNaN(timeoutMs) || timeoutMs <= 0) {
@@ -739,7 +736,7 @@ export async function acquireToken(): Promise<CapturedAuth> {
     // so the init script fires reliably (see Pitfall 3).
   });
 
-  const page = context.pages()[0] ?? await context.newPage();
+  const page = context.pages()[0] ?? (await context.newPage());
 
   // Install hooks BEFORE goto(). captureFirstBearerToken is async and
   // completes the hook registrations before returning its Promise.
@@ -763,13 +760,13 @@ export async function acquireToken(): Promise<CapturedAuth> {
 
 ## 10. Assumptions and Scope
 
-| Assumption | Confidence | Impact if Wrong |
-|---|---|---|
-| Outlook web uses `fetch` (not exclusively XHR) for the first authenticated API call to `/api/v2.0/` | HIGH — confirmed by POC | XHR fallback in init script provides coverage; would need to verify which path fires |
-| `window.fetch` and `window.XMLHttpRequest` are the actual request channels (not a service worker intercepting first) | MEDIUM — consistent with POC observations | Service worker requests are invisible to both init-script and `page.on('request')`; would require a different capture strategy |
-| The Bearer token in the first captured request is valid for the full `outlook.office.com/api/v2.0/` surface (mail + calendar) | HIGH — POC validated with `/me/messages` and `/me/calendarview` | Would need to add validation calls as part of `auth-check` |
-| `launchPersistentContext` with `channel: 'chrome'` (not Playwright's bundled Chromium) retains the full Chrome session state needed for MSAL silent-SSO | HIGH — spec requirement, matches POC | Without system Chrome, MSAL session cookies may not survive across runs |
-| Playwright 1.40+ (specifically the bug in issue #28692) means pre-restored pages do not get init scripts | HIGH — bug confirmed as of April 2026 | Workaround (always `goto()`) is already applied |
+| Assumption                                                                                                                                              | Confidence                                                      | Impact if Wrong                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Outlook web uses `fetch` (not exclusively XHR) for the first authenticated API call to `/api/v2.0/`                                                     | HIGH — confirmed by POC                                         | XHR fallback in init script provides coverage; would need to verify which path fires                                           |
+| `window.fetch` and `window.XMLHttpRequest` are the actual request channels (not a service worker intercepting first)                                    | MEDIUM — consistent with POC observations                       | Service worker requests are invisible to both init-script and `page.on('request')`; would require a different capture strategy |
+| The Bearer token in the first captured request is valid for the full `outlook.office.com/api/v2.0/` surface (mail + calendar)                           | HIGH — POC validated with `/me/messages` and `/me/calendarview` | Would need to add validation calls as part of `auth-check`                                                                     |
+| `launchPersistentContext` with `channel: 'chrome'` (not Playwright's bundled Chromium) retains the full Chrome session state needed for MSAL silent-SSO | HIGH — spec requirement, matches POC                            | Without system Chrome, MSAL session cookies may not survive across runs                                                        |
+| Playwright 1.40+ (specifically the bug in issue #28692) means pre-restored pages do not get init scripts                                                | HIGH — bug confirmed as of April 2026                           | Workaround (always `goto()`) is already applied                                                                                |
 
 ### Out of scope
 
@@ -782,20 +779,20 @@ export async function acquireToken(): Promise<CapturedAuth> {
 
 ## References
 
-| # | Source | URL | Information Gathered |
-|---|---|---|---|
-| 1 | Playwright Docs — BrowserContext.addInitScript | https://playwright.dev/docs/api/class-browsercontext | Script timing ("after document created, before page scripts"), context vs page scope, Disposable return |
-| 2 | Playwright Docs — BrowserContext.exposeBinding | https://playwright.dev/docs/api/class-browsercontext | `source` argument shape `{ browserContext, page, frame }`, context-scope, Promise resolution |
-| 3 | Playwright Docs — BrowserContext.exposeFunction | https://github.com/microsoft/playwright/blob/main/docs/src/api/class-browsercontext.md | Difference from exposeBinding (no source arg), Disposable |
-| 4 | Playwright Docs — Request.headers / allHeaders | https://playwright.dev/docs/api/class-request | `headers()` strips security-related headers; `allHeaders()` is async and returns all including Authorization |
-| 5 | Playwright Docs — Network interception | https://playwright.dev/docs/network | `page.route()` mechanics, `route.request().headers()`, service worker visibility |
-| 6 | Playwright GitHub Issue #28692 | https://github.com/microsoft/playwright/issues/28692 | Confirmed bug: addInitScript does not fire on pre-restored pages in launchPersistentContext |
-| 7 | Playwright GitHub Issue #28029 | https://github.com/microsoft/playwright/issues/28029 | addInitScript does not reach service workers — known limitation |
-| 8 | Playwright GitHub Issue #1915 | https://github.com/microsoft/playwright/issues/1915 | Community question on capturing Bearer token from browser for use in Node requests |
-| 9 | Playwright GitHub Issue #10884 | https://github.com/microsoft/playwright/issues/10884 | Pattern: page.evaluate() to extract token from localStorage as alternative |
-| 10 | Playwright Source — mock-browser-js.md | https://github.com/microsoft/playwright/blob/main/docs/src/mock-browser-js.md | Combined addInitScript + exposeFunction pattern for logging API calls |
-| 11 | Context7 — Playwright library docs | https://context7.com/microsoft/playwright/llms.txt | route() interception examples, TypeScript fetch/header patterns |
-| 12 | Playwright Solutions — Part 4 Authentication | https://playwrightsolutions.com/the-definitive-guide-to-api-test-automation-with-playwright-part-4-handling-headers-and-authentication/ | Real-world pattern for creating auth tokens / cookies in Node context for Playwright |
+| #   | Source                                          | URL                                                                                                                                     | Information Gathered                                                                                         |
+| --- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 1   | Playwright Docs — BrowserContext.addInitScript  | https://playwright.dev/docs/api/class-browsercontext                                                                                    | Script timing ("after document created, before page scripts"), context vs page scope, Disposable return      |
+| 2   | Playwright Docs — BrowserContext.exposeBinding  | https://playwright.dev/docs/api/class-browsercontext                                                                                    | `source` argument shape `{ browserContext, page, frame }`, context-scope, Promise resolution                 |
+| 3   | Playwright Docs — BrowserContext.exposeFunction | https://github.com/microsoft/playwright/blob/main/docs/src/api/class-browsercontext.md                                                  | Difference from exposeBinding (no source arg), Disposable                                                    |
+| 4   | Playwright Docs — Request.headers / allHeaders  | https://playwright.dev/docs/api/class-request                                                                                           | `headers()` strips security-related headers; `allHeaders()` is async and returns all including Authorization |
+| 5   | Playwright Docs — Network interception          | https://playwright.dev/docs/network                                                                                                     | `page.route()` mechanics, `route.request().headers()`, service worker visibility                             |
+| 6   | Playwright GitHub Issue #28692                  | https://github.com/microsoft/playwright/issues/28692                                                                                    | Confirmed bug: addInitScript does not fire on pre-restored pages in launchPersistentContext                  |
+| 7   | Playwright GitHub Issue #28029                  | https://github.com/microsoft/playwright/issues/28029                                                                                    | addInitScript does not reach service workers — known limitation                                              |
+| 8   | Playwright GitHub Issue #1915                   | https://github.com/microsoft/playwright/issues/1915                                                                                     | Community question on capturing Bearer token from browser for use in Node requests                           |
+| 9   | Playwright GitHub Issue #10884                  | https://github.com/microsoft/playwright/issues/10884                                                                                    | Pattern: page.evaluate() to extract token from localStorage as alternative                                   |
+| 10  | Playwright Source — mock-browser-js.md          | https://github.com/microsoft/playwright/blob/main/docs/src/mock-browser-js.md                                                           | Combined addInitScript + exposeFunction pattern for logging API calls                                        |
+| 11  | Context7 — Playwright library docs              | https://context7.com/microsoft/playwright/llms.txt                                                                                      | route() interception examples, TypeScript fetch/header patterns                                              |
+| 12  | Playwright Solutions — Part 4 Authentication    | https://playwrightsolutions.com/the-definitive-guide-to-api-test-automation-with-playwright-part-4-handling-headers-and-authentication/ | Real-world pattern for creating auth tokens / cookies in Node context for Playwright                         |
 
 ### Recommended for Deep Reading
 

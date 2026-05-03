@@ -2,11 +2,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 
-import {
-  run,
-  composeReplyBody,
-  UsageError,
-} from '../src/commands/reply';
+import { run, composeReplyBody, UsageError } from '../src/commands/reply';
 import type { OutlookClient } from '../src/http/outlook-client';
 import type { SessionFile } from '../src/session/schema';
 import type { CliConfig } from '../src/config/config';
@@ -44,7 +40,12 @@ const SESSION: SessionFile = {
 
 const SAMPLE_QUOTED = '<html><body><div>Auto-quoted original from sender.</div></body></html>';
 
-function makeDeps(fileMap: Record<string, string> = {}, draftToRecipients: { EmailAddress: { Address: string } }[] = [{ EmailAddress: { Address: 'sender@x.com' } }]) {
+function makeDeps(
+  fileMap: Record<string, string> = {},
+  draftToRecipients: { EmailAddress: { Address: string } }[] = [
+    { EmailAddress: { Address: 'sender@x.com' } },
+  ],
+) {
   const client = {
     createReply: vi.fn(async (id: string) => ({
       Id: `${id}-reply-draft`,
@@ -130,7 +131,9 @@ describe('composeReplyBody', () => {
 describe('reply / reply-all / forward — input validation', () => {
   it('rejects missing source message id', async () => {
     const { deps } = makeDeps({ '/tmp/r.html': '<p>r</p>' });
-    await expect(run(deps, 'reply', '', { html: '/tmp/r.html' })).rejects.toBeInstanceOf(UsageError);
+    await expect(run(deps, 'reply', '', { html: '/tmp/r.html' })).rejects.toBeInstanceOf(
+      UsageError,
+    );
   });
 
   it('rejects when neither --html nor --text provided', async () => {
@@ -147,9 +150,9 @@ describe('reply / reply-all / forward — input validation', () => {
 
   it('forward requires --to', async () => {
     const { deps } = makeDeps({ '/tmp/r.html': '<p>r</p>' });
-    await expect(
-      run(deps, 'forward', 'AAMk-1', { html: '/tmp/r.html' }),
-    ).rejects.toBeInstanceOf(UsageError);
+    await expect(run(deps, 'forward', 'AAMk-1', { html: '/tmp/r.html' })).rejects.toBeInstanceOf(
+      UsageError,
+    );
   });
 });
 
@@ -236,9 +239,7 @@ describe('forward', () => {
     });
     expect(client.createForward).toHaveBeenCalledWith('AAMk-1');
     const [, patch] = (client.updateMessage as ReturnType<typeof vi.fn>).mock.calls[0]!;
-    expect(patch.ToRecipients).toEqual([
-      { EmailAddress: { Address: 'colleague@x.com' } },
-    ]);
+    expect(patch.ToRecipients).toEqual([{ EmailAddress: { Address: 'colleague@x.com' } }]);
     expect(result.to).toEqual(['colleague@x.com']);
   });
 
@@ -255,9 +256,7 @@ describe('forward', () => {
     // 2 user CCs + 1 self-CC (default ON, session.account.upn = me@nbg.gr)
     expect(patch.CcRecipients).toHaveLength(3);
     expect(patch.CcRecipients!.map((r: any) => r.EmailAddress.Address)).toContain('me@nbg.gr');
-    expect(patch.BccRecipients).toEqual([
-      { EmailAddress: { Address: 'audit@nbg.gr' } },
-    ]);
+    expect(patch.BccRecipients).toEqual([{ EmailAddress: { Address: 'audit@nbg.gr' } }]);
   });
 
   it('forward --no-cc-self (ccSelf: false) suppresses self-CC', async () => {

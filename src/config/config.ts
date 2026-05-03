@@ -157,10 +157,7 @@ function resolveOptionalInt(
   flagLabel: string,
   defaultValue: number,
 ): number {
-  const checkedSources: readonly string[] = [
-    `${flagLabel} flag`,
-    `${envName} env var`,
-  ];
+  const checkedSources: readonly string[] = [`${flagLabel} flag`, `${envName} env var`];
   let resolved: number | undefined;
   if (typeof flagValue === 'number') {
     if (!Number.isFinite(flagValue) || !Number.isInteger(flagValue)) {
@@ -178,11 +175,7 @@ function resolveOptionalInt(
     return defaultValue;
   }
   if (resolved <= 0) {
-    throw new ConfigurationError(
-      settingName,
-      checkedSources,
-      'must be a positive integer',
-    );
+    throw new ConfigurationError(settingName, checkedSources, 'must be a positive integer');
   }
   return resolved;
 }
@@ -196,8 +189,7 @@ function resolveOptionalString(
   envName: string,
   defaultValue: string,
 ): string {
-  const flag =
-    typeof flagValue === 'string' && flagValue !== '' ? flagValue : undefined;
+  const flag = typeof flagValue === 'string' && flagValue !== '' ? flagValue : undefined;
   const envRaw = process.env[envName];
   const env = typeof envRaw === 'string' && envRaw !== '' ? envRaw : undefined;
   return flag ?? env ?? defaultValue;
@@ -235,8 +227,7 @@ export function loadConfig(cliFlags: CliFlags): CliConfig {
   const home = os.homedir();
 
   const sessionFilePath =
-    (typeof cliFlags.sessionFilePath === 'string' &&
-    cliFlags.sessionFilePath !== ''
+    (typeof cliFlags.sessionFilePath === 'string' && cliFlags.sessionFilePath !== ''
       ? cliFlags.sessionFilePath
       : undefined) ??
     (process.env[ENV.SESSION_FILE] && process.env[ENV.SESSION_FILE] !== ''
@@ -254,9 +245,7 @@ export function loadConfig(cliFlags: CliFlags): CliConfig {
     path.join(home, '.outlook-cli', 'playwright-profile');
 
   const tz =
-    (typeof cliFlags.tz === 'string' && cliFlags.tz !== ''
-      ? cliFlags.tz
-      : undefined) ??
+    (typeof cliFlags.tz === 'string' && cliFlags.tz !== '' ? cliFlags.tz : undefined) ??
     (process.env[ENV.TZ] && process.env[ENV.TZ] !== ''
       ? (process.env[ENV.TZ] as string)
       : undefined) ??
@@ -277,9 +266,7 @@ export function loadConfig(cliFlags: CliFlags): CliConfig {
     'now';
 
   const calTo =
-    (typeof cliFlags.calTo === 'string' && cliFlags.calTo !== ''
-      ? cliFlags.calTo
-      : undefined) ??
+    (typeof cliFlags.calTo === 'string' && cliFlags.calTo !== '' ? cliFlags.calTo : undefined) ??
     (process.env[ENV.CAL_TO] && process.env[ENV.CAL_TO] !== ''
       ? (process.env[ENV.CAL_TO] as string)
       : undefined) ??
@@ -288,8 +275,7 @@ export function loadConfig(cliFlags: CliFlags): CliConfig {
   const quiet = cliFlags.quiet ?? false;
   const noAutoReauth = cliFlags.noAutoReauth ?? false;
   const sessionFileOverride =
-    typeof cliFlags.sessionFileOverride === 'string' &&
-    cliFlags.sessionFileOverride !== ''
+    typeof cliFlags.sessionFileOverride === 'string' && cliFlags.sessionFileOverride !== ''
       ? cliFlags.sessionFileOverride
       : undefined;
   const logFilePath =

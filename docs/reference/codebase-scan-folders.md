@@ -78,7 +78,7 @@ exact plug-in points for `list-folders`, `find-folder`, `create-folder`,
 get<T>(path: string, query?: Record<string, QueryValue>): Promise<T>
 ```
 
-- **`createOutlookClient(opts)`** (line 66) — validates `session`, `httpTimeoutMs`, `onReauthNeeded`; keeps a *mutable* `session` so a post-reauth call uses the new token for subsequent requests. The 401-retry-once flow lives in `doGet` (line 80): on 401 it drains the body, awaits `opts.onReauthNeeded()`, reassigns `session`, and retries exactly once. Second 401 → `throwForResponse(..., 'AFTER_RETRY')`.
+- **`createOutlookClient(opts)`** (line 66) — validates `session`, `httpTimeoutMs`, `onReauthNeeded`; keeps a _mutable_ `session` so a post-reauth call uses the new token for subsequent requests. The 401-retry-once flow lives in `doGet` (line 80): on 401 it drains the body, awaits `opts.onReauthNeeded()`, reassigns `session`, and retries exactly once. Second 401 → `throwForResponse(..., 'AFTER_RETRY')`.
 - **Private helpers folder work MUST reuse (do not fork):**
   - `buildUrl(path, query)` (line 123) — `path` must start with `/`; `query` record is URL-encoded via `URLSearchParams`; OData `$`-keys pass through verbatim. Folder/mover code must build its URLs via this helper (indirectly, by calling `get` / `post`).
   - `buildHeaders(session)` (line 143) — authorative Authorization / X-AnchorMailbox / Cookie wiring. `Accept: application/json` is the only Accept. **Never construct headers elsewhere**.
@@ -117,13 +117,13 @@ No change is needed to `createOutlookClient`'s validation block, session-mutatio
 **File:** `src/config/errors.ts`
 **Classes (all subclasses of abstract `OutlookCliError`, line 14):**
 
-| Class | Exit | Notable fields | Used by |
-|---|---|---|---|
-| `ConfigurationError` (line 36) | 3 | `missingSetting`, `checkedSources` | mandatory env/flag miss |
-| `AuthError` (line 67) | 4 | `code: AUTH_LOGIN_CANCELLED | AUTH_LOGIN_TIMEOUT | AUTH_401_AFTER_RETRY | AUTH_NO_REAUTH` | capture / 401 paths |
-| `UpstreamError` (line 95) | 5 | `code`, `httpStatus?`, `requestId?`, `url?` | non-401 HTTP, network, timeout |
-| `IoError` (line 127) | 6 | `code`, `path?` | filesystem errors (currently the only exit-6 path) |
-| `UsageError` (in `src/commands/list-mail.ts:52`, extends `OutlookCliError`) | 2 | `code: BAD_USAGE` | per-command argv validation |
+| Class                                                                       | Exit | Notable fields                              | Used by                                            |
+| --------------------------------------------------------------------------- | ---- | ------------------------------------------- | -------------------------------------------------- | -------------------- | --------------- | ------------------- |
+| `ConfigurationError` (line 36)                                              | 3    | `missingSetting`, `checkedSources`          | mandatory env/flag miss                            |
+| `AuthError` (line 67)                                                       | 4    | `code: AUTH_LOGIN_CANCELLED                 | AUTH_LOGIN_TIMEOUT                                 | AUTH_401_AFTER_RETRY | AUTH_NO_REAUTH` | capture / 401 paths |
+| `UpstreamError` (line 95)                                                   | 5    | `code`, `httpStatus?`, `requestId?`, `url?` | non-401 HTTP, network, timeout                     |
+| `IoError` (line 127)                                                        | 6    | `code`, `path?`                             | filesystem errors (currently the only exit-6 path) |
+| `UsageError` (in `src/commands/list-mail.ts:52`, extends `OutlookCliError`) | 2    | `code: BAD_USAGE`                           | per-command argv validation                        |
 
 `OutlookCliError.exitCode` is abstract — every new error class MUST declare it, and `cli.ts` `exitCodeFor` already falls back to `err.exitCode` for any subclass (line 365).
 
@@ -149,7 +149,7 @@ No change is needed to `createOutlookClient`'s validation block, session-mutatio
 - **No discriminated unions on the wire side** — attachments are the one exception: `Attachment = FileAttachment | ItemAttachment | ReferenceAttachment` discriminated on `@odata.type`. This is the pattern for `FolderSummary` vs (if ever needed) search-folder subtypes.
 - **No `any`**. Response parsing returns `T` via `client.get<T>(...)`; the client performs no schema validation.
 
-**What folder work needs from it:** **add a new file `src/folders/types.ts`** (per refined spec §8) for `FolderSummary`, `FolderSpec`, `ResolvedFolder`, `CreateResult`, `MoveResult`. Put the REST-shaped interfaces (`FolderSummary`, `FolderCreateRequest`) next to existing REST types *logically*, i.e. if `src/http/types.ts` keeps REST wire types, move the wire-shaped `FolderSummary` there and keep the CLI-shaped `ResolvedFolder`/`MoveResult`/`CreateResult` in `src/folders/types.ts`. Plan phase decides the split.
+**What folder work needs from it:** **add a new file `src/folders/types.ts`** (per refined spec §8) for `FolderSummary`, `FolderSpec`, `ResolvedFolder`, `CreateResult`, `MoveResult`. Put the REST-shaped interfaces (`FolderSummary`, `FolderCreateRequest`) next to existing REST types _logically_, i.e. if `src/http/types.ts` keeps REST wire types, move the wire-shaped `FolderSummary` there and keep the CLI-shaped `ResolvedFolder`/`MoveResult`/`CreateResult` in `src/folders/types.ts`. Plan phase decides the split.
 
 **Minimum new REST type (wire shape):**
 
@@ -161,7 +161,7 @@ export interface FolderSummary {
   ChildFolderCount?: number;
   UnreadItemCount?: number;
   TotalItemCount?: number;
-  WellKnownName?: string;  // only populated by Outlook on well-known folders
+  WellKnownName?: string; // only populated by Outlook on well-known folders
   IsHidden?: boolean;
   // Added by client (not from REST): materialized path for --recursive output.
   Path?: string;
@@ -226,7 +226,7 @@ To ship folder support, the work MUST touch:
 2. `src/commands/list-mail.ts` — widen `--folder` to accept non-well-known names via the resolver; add `--folder-id` / `--folder-parent` handling; preserve the well-known fast-path verbatim; keep `ALLOWED_FOLDERS` (use it as the "skip resolver" fast-path list).
 3. `src/http/outlook-client.ts` — extend `OutlookClient` with `post<TBody, TRes>(path, body, query?)` and a paging helper (e.g. `listAll<T>` or `getPaged<T>`) that follows `@odata.nextLink` up to 50 pages. Refactor internal `doGet` → `doRequest(method, ...)` so the 401-retry-once envelope is shared. Reuse `buildUrl` / `buildHeaders` / `executeFetch` / `handleSuccessOrThrow` / `throwForResponse` / `mapFetchException` unchanged.
 4. `src/http/types.ts` — add `FolderSummary` (REST wire shape) and extend exports.
-5. `src/config/errors.ts` — no new class (unless §13 open question chooses `CollisionError`); new code *strings* raised against existing `UsageError` / `UpstreamError`.
+5. `src/config/errors.ts` — no new class (unless §13 open question chooses `CollisionError`); new code _strings_ raised against existing `UsageError` / `UpstreamError`.
 6. `CLAUDE.md` — add per-subcommand entries under the `<outlook-cli>` block (AC-CLAUDEMD-UPDATED-FOLDERS).
 7. `docs/design/project-design.md`, `docs/design/project-functions.MD` — update per convention.
 
@@ -256,7 +256,7 @@ To ship folder support, the work MUST touch:
 
 5. **IDs never get `maxWidth` in any `ColumnSpec`.** Rationale comment at `src/cli.ts:226`. Applies to every new folder `Id` / `ParentFolderId` / `newId` / `sourceId` column.
 
-6. **Error classes are concrete (not a discriminated union); discrimination is by `instanceof`.** `src/cli.ts:297-356` (`formatErrorJson`) and `src/cli.ts:359-385` (`exitCodeFor`) cascade through `instanceof ConfigurationError | CliAuthError | UpstreamError | IoError | AuthCaptureError | OutlookCliError | CommanderLikeError`. New error codes are new *strings* on existing classes; new error classes are only justified when the exit-code surface genuinely changes (e.g. the open §13 `CollisionError` question).
+6. **Error classes are concrete (not a discriminated union); discrimination is by `instanceof`.** `src/cli.ts:297-356` (`formatErrorJson`) and `src/cli.ts:359-385` (`exitCodeFor`) cascade through `instanceof ConfigurationError | CliAuthError | UpstreamError | IoError | AuthCaptureError | OutlookCliError | CommanderLikeError`. New error codes are new _strings_ on existing classes; new error classes are only justified when the exit-code surface genuinely changes (e.g. the open §13 `CollisionError` question).
 
 7. **401 retry-once envelope is owned by the HTTP client, not the commands.** `createOutlookClient` mutates its `session` reference on successful re-auth; a second 401 raises `HttpAuthError{reason: 'AFTER_RETRY'}` which `mapHttpError` in `list-mail.ts` converts to `CliAuthError{code: 'AUTH_401_AFTER_RETRY'}`. Folder commands inherit this transparently — they MUST NOT catch 401 themselves.
 

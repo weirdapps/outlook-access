@@ -5,12 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  redactHeaders,
-  redactJwt,
-  redactString,
-  redactMessageBodies,
-} from '../src/util/redact';
+import { redactHeaders, redactJwt, redactString, redactMessageBodies } from '../src/util/redact';
 
 describe('redactHeaders', () => {
   it('redacts Authorization case-insensitively', () => {
@@ -91,9 +86,7 @@ describe('redactString', () => {
 
   it('leaves short/regular strings alone', () => {
     expect(redactString('Hello, world!')).toBe('Hello, world!');
-    expect(redactString('Request failed with status 403')).toBe(
-      'Request failed with status 403',
-    );
+    expect(redactString('Request failed with status 403')).toBe('Request failed with status 403');
   });
 
   it('handles empty input', () => {
@@ -101,8 +94,7 @@ describe('redactString', () => {
   });
 
   it('scrubs a JWT-shaped triple of base64url when length exceeds threshold', () => {
-    const longJwt =
-      'A'.repeat(40) + '.' + 'B'.repeat(40) + '.' + 'C'.repeat(40);
+    const longJwt = 'A'.repeat(40) + '.' + 'B'.repeat(40) + '.' + 'C'.repeat(40);
     const out = redactString(longJwt);
     expect(out).toBe('[REDACTED]');
   });

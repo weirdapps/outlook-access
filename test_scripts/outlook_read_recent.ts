@@ -33,9 +33,12 @@ async function waitForInbox(page: Page): Promise<void> {
     const url = page.url();
     if (/outlook\.(office|live)\.com\/mail/.test(url)) {
       try {
-        await page.waitForSelector('div[role="option"], [aria-label="Message list"] [role="option"]', {
-          timeout: 10_000,
-        });
+        await page.waitForSelector(
+          'div[role="option"], [aria-label="Message list"] [role="option"]',
+          {
+            timeout: 10_000,
+          },
+        );
         return;
       } catch {
         // keep waiting — maybe still loading
@@ -50,7 +53,8 @@ async function extractTopEmails(page: Page, count: number): Promise<EmailItem[]>
   await page.waitForSelector('div[role="option"]', { timeout: LIST_TIMEOUT_MS });
 
   const items = await page.evaluate((n) => {
-    const results: Array<{ sender: string; subject: string; preview: string; received: string }> = [];
+    const results: Array<{ sender: string; subject: string; preview: string; received: string }> =
+      [];
     const nodes = Array.from(document.querySelectorAll('div[role="option"]')) as HTMLElement[];
 
     for (const node of nodes) {

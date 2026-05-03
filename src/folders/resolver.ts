@@ -122,9 +122,7 @@ function parseFolderPath(input: string): string[] {
     const c = input[i];
     if (c === '\\') {
       if (i + 1 >= input.length) {
-        throw new UsageError(
-          'folder path: dangling escape at end of input (FOLDER_PATH_INVALID)',
-        );
+        throw new UsageError('folder path: dangling escape at end of input (FOLDER_PATH_INVALID)');
       }
       const next = input[i + 1];
       if (next === '/') {
@@ -134,15 +132,11 @@ function parseFolderPath(input: string): string[] {
         current += '\\';
         i += 2;
       } else {
-        throw new UsageError(
-          `folder path: unknown escape '\\${next}' (FOLDER_PATH_INVALID)`,
-        );
+        throw new UsageError(`folder path: unknown escape '\\${next}' (FOLDER_PATH_INVALID)`);
       }
     } else if (c === '/') {
       if (current === '') {
-        throw new UsageError(
-          'folder path: empty segment (FOLDER_PATH_INVALID)',
-        );
+        throw new UsageError('folder path: empty segment (FOLDER_PATH_INVALID)');
       }
       segments.push(current.normalize('NFC'));
       current = '';
@@ -265,9 +259,7 @@ export async function resolveFolder(
     default: {
       // Exhaustiveness check.
       const _exhaustive: never = spec;
-      throw new Error(
-        `resolveFolder: unknown FolderSpec kind (${String(_exhaustive)})`,
-      );
+      throw new Error(`resolveFolder: unknown FolderSpec kind (${String(_exhaustive)})`);
     }
   }
 }
@@ -280,15 +272,13 @@ async function resolvePath(
   const segments = parseFolderPath(spec.value);
 
   // Choose the anchor. Default: MsgFolderRoot (ADR-15).
-  const anchorSpec: FolderSpec =
-    spec.parent ?? { kind: 'wellKnown', value: 'MsgFolderRoot' };
+  const anchorSpec: FolderSpec = spec.parent ?? { kind: 'wellKnown', value: 'MsgFolderRoot' };
 
   // Well-known-wins-at-root: applies only when the anchor is MsgFolderRoot
   // (the default), and only to segment 0. A shadowed top-level user folder
   // called "Inbox" is reachable via `--parent MsgFolderRoot --first-match`
   // or by id — see §10.5 "Well-known precedence".
-  const anchorIsRoot =
-    anchorSpec.kind === 'wellKnown' && anchorSpec.value === 'MsgFolderRoot';
+  const anchorIsRoot = anchorSpec.kind === 'wellKnown' && anchorSpec.value === 'MsgFolderRoot';
 
   let currentId: string;
   let currentPath: string;
@@ -328,9 +318,7 @@ async function resolvePath(
     if (matches.length === 0) {
       throw new UpstreamError({
         code: 'UPSTREAM_FOLDER_NOT_FOUND',
-        message:
-          `Folder segment '${segment}' was not found under parent id ` +
-          `'${currentId}'.`,
+        message: `Folder segment '${segment}' was not found under parent id ` + `'${currentId}'.`,
       });
     }
 
@@ -354,17 +342,13 @@ async function resolvePath(
     lastFolder = chosen;
     currentId = chosen.Id;
     currentPath =
-      currentPath === ''
-        ? escapeSegment(segment)
-        : `${currentPath}/${escapeSegment(segment)}`;
+      currentPath === '' ? escapeSegment(segment) : `${currentPath}/${escapeSegment(segment)}`;
   }
 
   if (lastFolder === null) {
     // Can only happen when segments.length === 0 — which parseFolderPath
     // already rejects. Defensive.
-    throw new UsageError(
-      'folder path: empty path after parse (FOLDER_PATH_INVALID)',
-    );
+    throw new UsageError('folder path: empty path after parse (FOLDER_PATH_INVALID)');
   }
 
   return toResolved(lastFolder, currentPath, 'path');
@@ -412,9 +396,7 @@ export async function ensurePath(
   opts: EnsurePathOptions,
 ): Promise<ResolvedFolder> {
   if (!Array.isArray(segments) || segments.length === 0) {
-    throw new UsageError(
-      'ensurePath: segments must be a non-empty array (FOLDER_PATH_INVALID)',
-    );
+    throw new UsageError('ensurePath: segments must be a non-empty array (FOLDER_PATH_INVALID)');
   }
   if (segments.length > MAX_PATH_SEGMENTS) {
     throw new UsageError(
@@ -428,8 +410,7 @@ export async function ensurePath(
   // starts from that resolved folder. The well-known-wins-at-root rule is
   // NOT applied here — the caller is expected to have rejected "Inbox at
   // root" for the leaf up front (§10.7 validation table).
-  const anchorSpec: FolderSpec =
-    opts.anchor ?? { kind: 'wellKnown', value: 'MsgFolderRoot' };
+  const anchorSpec: FolderSpec = opts.anchor ?? { kind: 'wellKnown', value: 'MsgFolderRoot' };
   const anchorResolved = await resolveFolder(client, anchorSpec);
   let currentId = anchorResolved.Id;
   let currentPath = anchorResolved.Path === 'MsgFolderRoot' ? '' : anchorResolved.Path;
@@ -447,8 +428,7 @@ export async function ensurePath(
     const normalizedTarget = normalizeSegment(nfcSegment);
     const matches = children.filter(
       (c) =>
-        typeof c.DisplayName === 'string' &&
-        normalizeSegment(c.DisplayName) === normalizedTarget,
+        typeof c.DisplayName === 'string' && normalizeSegment(c.DisplayName) === normalizedTarget,
     );
 
     if (matches.length > 1) {
@@ -473,9 +453,7 @@ export async function ensurePath(
       if (isLeaf && !opts.idempotent) {
         throw new CollisionError({
           code: 'FOLDER_ALREADY_EXISTS',
-          message:
-            `A folder named '${segment}' already exists under parent ` +
-            `'${currentId}'.`,
+          message: `A folder named '${segment}' already exists under parent ` + `'${currentId}'.`,
           path: segment,
           parentId: currentId,
         });
@@ -501,8 +479,7 @@ export async function ensurePath(
           const normTarget = normalizeSegment(nfcSegment);
           const recovered = retry.filter(
             (c) =>
-              typeof c.DisplayName === 'string' &&
-              normalizeSegment(c.DisplayName) === normTarget,
+              typeof c.DisplayName === 'string' && normalizeSegment(c.DisplayName) === normTarget,
           );
           if (recovered.length === 0) {
             // Collision reported but folder not visible post-retry. Forward
@@ -527,9 +504,7 @@ export async function ensurePath(
     lastFolder = next;
     currentId = next.Id;
     currentPath =
-      currentPath === ''
-        ? escapeSegment(segment)
-        : `${currentPath}/${escapeSegment(segment)}`;
+      currentPath === '' ? escapeSegment(segment) : `${currentPath}/${escapeSegment(segment)}`;
   }
 
   return toResolved(lastFolder, currentPath, 'path');

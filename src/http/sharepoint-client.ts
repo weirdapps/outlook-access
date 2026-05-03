@@ -39,7 +39,11 @@ function parseContentDispositionFilename(header: string | null): string | undefi
   // RFC 5987: filename*=UTF-8''encoded-name takes precedence
   const m1 = header.match(/filename\*=(?:UTF-8'')?([^;]+)/i);
   if (m1) {
-    try { return decodeURIComponent(m1[1].trim().replace(/^"|"$/g, '')); } catch { /* fall through */ }
+    try {
+      return decodeURIComponent(m1[1].trim().replace(/^"|"$/g, ''));
+    } catch {
+      /* fall through */
+    }
   }
   // Fallback: filename="..."
   const m2 = header.match(/filename=("?)([^";]+)\1/i);
@@ -55,8 +59,8 @@ export class SharepointClient {
     const timer = setTimeout(() => ctrl.abort(), this.opts.timeoutMs);
     try {
       const headers: Record<string, string> = {
-        'Authorization': `Bearer ${this.opts.bearer}`,
-        'Accept': '*/*',
+        Authorization: `Bearer ${this.opts.bearer}`,
+        Accept: '*/*',
       };
       if (this.opts.cookies && this.opts.cookies.length > 0) {
         headers['Cookie'] = this.opts.cookies;

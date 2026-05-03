@@ -116,10 +116,7 @@ const MIME_BY_EXT: Record<string, string> = {
   '.eml': 'message/rfc822',
 };
 
-export async function run(
-  deps: SendMailDeps,
-  opts: SendMailOptions = {},
-): Promise<SendMailResult> {
+export async function run(deps: SendMailDeps, opts: SendMailOptions = {}): Promise<SendMailResult> {
   // -------- Validation --------
   const to = parseRecipients(opts.to);
   if (to.length === 0) {
@@ -135,9 +132,7 @@ export async function run(
   const hasHtml = typeof opts.html === 'string' && opts.html.length > 0;
   const hasText = typeof opts.text === 'string' && opts.text.length > 0;
   if (!hasHtml && !hasText) {
-    throw new UsageError(
-      'send-mail: at least one of --html <file> or --text <file> is required',
-    );
+    throw new UsageError('send-mail: at least one of --html <file> or --text <file> is required');
   }
 
   // -------- Body load --------
@@ -314,18 +309,13 @@ export async function run(
  *
  * Exported for unit testing.
  */
-export function composeWithSignature(
-  bodyHtml: string,
-  signatureHtml: string,
-): string {
+export function composeWithSignature(bodyHtml: string, signatureHtml: string): string {
   if (signatureHtml.length === 0) return bodyHtml;
   const sigBlock = `<br><br>${signatureHtml}`;
   const closeBodyMatch = bodyHtml.match(/<\/body\s*>/i);
   if (closeBodyMatch && typeof closeBodyMatch.index === 'number') {
     return (
-      bodyHtml.slice(0, closeBodyMatch.index) +
-      sigBlock +
-      bodyHtml.slice(closeBodyMatch.index)
+      bodyHtml.slice(0, closeBodyMatch.index) + sigBlock + bodyHtml.slice(closeBodyMatch.index)
     );
   }
   return bodyHtml + sigBlock;
@@ -356,9 +346,7 @@ function parseRecipients(input: string | string[] | undefined): string[] {
       const trimmed = part.trim();
       if (trimmed.length === 0) continue;
       if (!trimmed.includes('@')) {
-        throw new UsageError(
-          `send-mail: invalid recipient address (no '@'): ${trimmed}`,
-        );
+        throw new UsageError(`send-mail: invalid recipient address (no '@'): ${trimmed}`);
       }
       out.push(trimmed);
     }
@@ -396,9 +384,7 @@ async function readBodyFile(
     return buf.toString('utf-8');
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new UsageError(
-      `send-mail: ${flagName} file read failed (${filePath}): ${msg}`,
-    );
+    throw new UsageError(`send-mail: ${flagName} file read failed (${filePath}): ${msg}`);
   }
 }
 
@@ -411,9 +397,7 @@ async function loadAttachment(
     buf = await reader(filePath);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new UsageError(
-      `send-mail: --attach file read failed (${filePath}): ${msg}`,
-    );
+    throw new UsageError(`send-mail: --attach file read failed (${filePath}): ${msg}`);
   }
   const name = path.basename(filePath);
   const ext = path.extname(filePath).toLowerCase();
@@ -427,4 +411,3 @@ async function loadAttachment(
     Size: buf.length,
   };
 }
-

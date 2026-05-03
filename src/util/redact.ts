@@ -27,9 +27,7 @@ const REDACTED = '[REDACTED]';
  * The original object is not mutated. Keys are preserved with their original
  * casing so call-sites can still pretty-print them.
  */
-export function redactHeaders(
-  headers: Record<string, string>,
-): Record<string, string> {
+export function redactHeaders(headers: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(headers)) {
     const lower = k.toLowerCase();

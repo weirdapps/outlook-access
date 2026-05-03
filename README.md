@@ -74,7 +74,7 @@ Playwright profile dir.
 ### Browser (critical)
 
 - A **real Google Chrome or Microsoft Edge installation on your machine**.
-  Playwright launches your *installed* browser via the `channel` mechanism
+  Playwright launches your _installed_ browser via the `channel` mechanism
   (`chromium.launchPersistentContext({ channel: ... })`), it does **not**
   download its own Chromium build. You therefore do **not** need to run
   `npx playwright install`.
@@ -115,8 +115,8 @@ Playwright profile dir.
 
 ### Runtime (production)
 
-| Package | Version | Why |
-|---|---|---|
+| Package                                           | Version   | Why                                                   |
+| ------------------------------------------------- | --------- | ----------------------------------------------------- |
 | [`commander`](https://github.com/tj/commander.js) | `^14.0.3` | CLI parser — subcommands, option mixing, help output. |
 
 That is the entire runtime footprint. Everything else (HTTP, JSON parsing,
@@ -125,14 +125,14 @@ built-in `node:*` modules.
 
 ### Development / build / test
 
-| Package | Version | Why |
-|---|---|---|
-| [`typescript`](https://www.typescriptlang.org/) | `^6.0.3` | Language. Compiled to CommonJS into `dist/`. |
-| [`ts-node`](https://typestrong.org/ts-node/) | `^10.9.2` | Run `.ts` directly (`npm run cli` / `npx ts-node src/cli.ts`). |
-| [`@types/node`](https://www.npmjs.com/package/@types/node) | `^25.6.0` | Type definitions for Node core APIs. |
-| [`playwright`](https://playwright.dev/) | `^1.59.1` | Drives the headed Chrome window during `login` and captures the outbound Bearer token + cookies. |
-| [`@playwright/test`](https://playwright.dev/docs/intro) | `^1.59.1` | Test-runner companion (present as a dev-dep; no live browser tests run in CI). |
-| [`vitest`](https://vitest.dev/) | `^4.1.4` | Test framework for the 208 unit + integration tests in `test_scripts/`. |
+| Package                                                    | Version   | Why                                                                                              |
+| ---------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------ |
+| [`typescript`](https://www.typescriptlang.org/)            | `^6.0.3`  | Language. Compiled to CommonJS into `dist/`.                                                     |
+| [`ts-node`](https://typestrong.org/ts-node/)               | `^10.9.2` | Run `.ts` directly (`npm run cli` / `npx ts-node src/cli.ts`).                                   |
+| [`@types/node`](https://www.npmjs.com/package/@types/node) | `^25.6.0` | Type definitions for Node core APIs.                                                             |
+| [`playwright`](https://playwright.dev/)                    | `^1.59.1` | Drives the headed Chrome window during `login` and captures the outbound Bearer token + cookies. |
+| [`@playwright/test`](https://playwright.dev/docs/intro)    | `^1.59.1` | Test-runner companion (present as a dev-dep; no live browser tests run in CI).                   |
+| [`vitest`](https://vitest.dev/)                            | `^4.1.4`  | Test framework for the 208 unit + integration tests in `test_scripts/`.                          |
 
 ### External binaries you provide
 
@@ -214,11 +214,11 @@ outlook-cli auth-check
 Three runtime-plumbing settings exist. Each has a default, so **no
 configuration is required** for a basic install:
 
-| Setting | CLI flag | Env var | Default |
-|---|---|---|---|
-| Per-REST-call HTTP timeout | `--timeout <ms>` | `OUTLOOK_CLI_HTTP_TIMEOUT_MS` | `30000` (30 s) |
-| Max wait for interactive login | `--login-timeout <ms>` | `OUTLOOK_CLI_LOGIN_TIMEOUT_MS` | `300000` (5 min) |
-| Playwright Chrome channel | `--chrome-channel <name>` | `OUTLOOK_CLI_CHROME_CHANNEL` | `chrome` |
+| Setting                        | CLI flag                  | Env var                        | Default          |
+| ------------------------------ | ------------------------- | ------------------------------ | ---------------- |
+| Per-REST-call HTTP timeout     | `--timeout <ms>`          | `OUTLOOK_CLI_HTTP_TIMEOUT_MS`  | `30000` (30 s)   |
+| Max wait for interactive login | `--login-timeout <ms>`    | `OUTLOOK_CLI_LOGIN_TIMEOUT_MS` | `300000` (5 min) |
+| Playwright Chrome channel      | `--chrome-channel <name>` | `OUTLOOK_CLI_CHROME_CHANNEL`   | `chrome`         |
 
 Precedence: CLI flag > env var > default. A malformed flag or env value still
 throws `ConfigurationError` (exit 3); the default only covers the unset case.
@@ -231,15 +231,15 @@ Other (always-optional) flags are listed in `outlook-cli --help` and in
 
 ### Exit codes
 
-| Code | Meaning |
-|---|---|
-| `0` | Success |
-| `1` | Unexpected error |
-| `2` | Invalid usage / bad argv |
-| `3` | Configuration error (malformed flag or env var) |
-| `4` | Auth failure (expired/rejected session, user cancelled login, `--no-auto-reauth` with no cache) |
-| `5` | Upstream API error (non-401 HTTP error, timeout, network failure, pagination limit) |
-| `6` | IO error — includes folder collision without `--idempotent`, file collision without `--overwrite` |
+| Code | Meaning                                                                                           |
+| ---- | ------------------------------------------------------------------------------------------------- |
+| `0`  | Success                                                                                           |
+| `1`  | Unexpected error                                                                                  |
+| `2`  | Invalid usage / bad argv                                                                          |
+| `3`  | Configuration error (malformed flag or env var)                                                   |
+| `4`  | Auth failure (expired/rejected session, user cancelled login, `--no-auto-reauth` with no cache)   |
+| `5`  | Upstream API error (non-401 HTTP error, timeout, network failure, pagination limit)               |
+| `6`  | IO error — includes folder collision without `--idempotent`, file collision without `--overwrite` |
 
 ---
 

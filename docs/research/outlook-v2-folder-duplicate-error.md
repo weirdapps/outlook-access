@@ -171,8 +171,7 @@ export function isFolderExistsError(err: unknown): boolean {
   if (err.status !== 400 && err.status !== 409) return false;
 
   // ApiError.body is the parsed JSON response body (object | null).
-  const code: unknown = (err.body as { error?: { code?: unknown } })
-    ?.error?.code;
+  const code: unknown = (err.body as { error?: { code?: unknown } })?.error?.code;
   return code === 'ErrorFolderExists';
 }
 ```
@@ -198,8 +197,10 @@ try {
     const existing = await findChildByName(client, parentId, segment);
     if (!existing) {
       // Extremely unlikely race; surface as upstream error.
-      throw new UpstreamError('UPSTREAM_FOLDER_NOT_FOUND',
-        `Folder '${segment}' reported as existing but not found on re-list.`);
+      throw new UpstreamError(
+        'UPSTREAM_FOLDER_NOT_FOUND',
+        `Folder '${segment}' reported as existing but not found on re-list.`,
+      );
     }
     results.push({ segment, id: existing.Id, preExisting: true });
   } else {
@@ -212,12 +213,12 @@ try {
 
 ## Assumptions and Scope
 
-| Assumption | Confidence | Impact if Wrong |
-|---|---|--|
-| `error.code` is always `"ErrorFolderExists"` for duplicate-name POST regardless of HTTP status | HIGH | If some tenants use a different code (e.g. `ErrorItemSave`), the predicate misses them; the fallback is that the error surfaces as `UPSTREAM_HTTP_400` exit 5 rather than being swallowed under `--idempotent`. |
-| No tenant returns 201 silently for a duplicate | HIGH | If any tenant did, `--idempotent` would create a second folder with the same display name; the lookup-then-create flow is the correct mitigation. |
-| The message string embedding the folder name is not locale-stable | MEDIUM | If Microsoft standardizes the message, parsing it could be made reliable, but there is no reason to do so given the stable `code` field. |
-| Graph v1.0 and Outlook REST v2.0 share the same error body for this case | HIGH | Both are EWS-backed; all observed reports show the same `ErrorFolderExists` code on both surfaces. |
+| Assumption                                                                                     | Confidence | Impact if Wrong                                                                                                                                                                                                 |
+| ---------------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `error.code` is always `"ErrorFolderExists"` for duplicate-name POST regardless of HTTP status | HIGH       | If some tenants use a different code (e.g. `ErrorItemSave`), the predicate misses them; the fallback is that the error surfaces as `UPSTREAM_HTTP_400` exit 5 rather than being swallowed under `--idempotent`. |
+| No tenant returns 201 silently for a duplicate                                                 | HIGH       | If any tenant did, `--idempotent` would create a second folder with the same display name; the lookup-then-create flow is the correct mitigation.                                                               |
+| The message string embedding the folder name is not locale-stable                              | MEDIUM     | If Microsoft standardizes the message, parsing it could be made reliable, but there is no reason to do so given the stable `code` field.                                                                        |
+| Graph v1.0 and Outlook REST v2.0 share the same error body for this case                       | HIGH       | Both are EWS-backed; all observed reports show the same `ErrorFolderExists` code on both surfaces.                                                                                                              |
 
 ### Uncertainties
 
@@ -234,17 +235,17 @@ try {
 
 ## References
 
-| # | Source | URL | Information Gathered |
-|---|---|---|---|
-| 1 | Microsoft Docs — Graph `POST /me/mailFolders` | https://learn.microsoft.com/en-us/graph/api/user-post-mailfolders?view=graph-rest-1.0 | Official endpoint reference; documents 201 success only; no error codes listed for duplicate name |
-| 2 | Microsoft Docs — Graph error responses | https://learn.microsoft.com/en-us/graph/errors | Canonical OData error envelope shape; HTTP 409 defined as "conflict with current state"; HTTP 400 as "malformed/incorrect" |
-| 3 | Microsoft Docs — Outlook REST v2.0 Mail API | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/mail-rest-operations | Deprecated v2.0 reference; folder creation endpoint paths; error responses not enumerated |
-| 4 | Microsoft Docs — Exchange EWS ResponseCode reference | https://learn.microsoft.com/en-us/exchange/client-developer/web-service-reference/responsecode | Canonical list of EWS ServiceError codes; `ErrorFolderExists` definition confirmed ("A folder with the specified name already exists.") |
-| 5 | EwsEditor source — ResponseCodeHelper.cs | https://github.com/gautamsi/EwsEditor-FromDseph/blob/master/EWSEditor/Common/EwsHelpers/ResponseCodeHelper.cs | EWS managed API ServiceError enumeration mapping; confirms `ErrorFolderExists` string and description |
-| 6 | CloudM support article — ErrorFolderExists | https://support.cloudm.io/hc/en-us/articles/9116341921308-Error-ErrorFolderExists-When-Migrating-to-Microsoft-365-Exchange | Real-world migration error; shows exact JSON wire body including two-sentence message format |
-| 7 | Microsoft Q&A — search folders not listed | https://learn.microsoft.com/en-us/answers/questions/1189673/user-list-mailfolders-does-not-return-mail-search | Confirms hidden/search folders cause `ErrorFolderExists` without appearing in listing responses |
-| 8 | Microsoft Q&A — 409 on contact folder create | https://learn.microsoft.com/en-us/answers/questions/1663376/getting-409-conflict-trying-to-create-contact-fold | Community confirmation of 409 variant for contact folder (same backend); supports "both 400 and 409 must be handled" conclusion |
-| 9 | `docs/design/investigation-folders.md` (this project) | (local) | Motivation, open questions, and the B1 create-folder flow that this research supports |
+| #   | Source                                                | URL                                                                                                                        | Information Gathered                                                                                                                    |
+| --- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Microsoft Docs — Graph `POST /me/mailFolders`         | https://learn.microsoft.com/en-us/graph/api/user-post-mailfolders?view=graph-rest-1.0                                      | Official endpoint reference; documents 201 success only; no error codes listed for duplicate name                                       |
+| 2   | Microsoft Docs — Graph error responses                | https://learn.microsoft.com/en-us/graph/errors                                                                             | Canonical OData error envelope shape; HTTP 409 defined as "conflict with current state"; HTTP 400 as "malformed/incorrect"              |
+| 3   | Microsoft Docs — Outlook REST v2.0 Mail API           | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/mail-rest-operations             | Deprecated v2.0 reference; folder creation endpoint paths; error responses not enumerated                                               |
+| 4   | Microsoft Docs — Exchange EWS ResponseCode reference  | https://learn.microsoft.com/en-us/exchange/client-developer/web-service-reference/responsecode                             | Canonical list of EWS ServiceError codes; `ErrorFolderExists` definition confirmed ("A folder with the specified name already exists.") |
+| 5   | EwsEditor source — ResponseCodeHelper.cs              | https://github.com/gautamsi/EwsEditor-FromDseph/blob/master/EWSEditor/Common/EwsHelpers/ResponseCodeHelper.cs              | EWS managed API ServiceError enumeration mapping; confirms `ErrorFolderExists` string and description                                   |
+| 6   | CloudM support article — ErrorFolderExists            | https://support.cloudm.io/hc/en-us/articles/9116341921308-Error-ErrorFolderExists-When-Migrating-to-Microsoft-365-Exchange | Real-world migration error; shows exact JSON wire body including two-sentence message format                                            |
+| 7   | Microsoft Q&A — search folders not listed             | https://learn.microsoft.com/en-us/answers/questions/1189673/user-list-mailfolders-does-not-return-mail-search              | Confirms hidden/search folders cause `ErrorFolderExists` without appearing in listing responses                                         |
+| 8   | Microsoft Q&A — 409 on contact folder create          | https://learn.microsoft.com/en-us/answers/questions/1663376/getting-409-conflict-trying-to-create-contact-fold             | Community confirmation of 409 variant for contact folder (same backend); supports "both 400 and 409 must be handled" conclusion         |
+| 9   | `docs/design/investigation-folders.md` (this project) | (local)                                                                                                                    | Motivation, open questions, and the B1 create-folder flow that this research supports                                                   |
 
 ### Recommended for Deep Reading
 

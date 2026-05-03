@@ -32,7 +32,9 @@ import { MAX_PATH_SEGMENTS } from '../src/folders/types';
  * Build a FolderSummary with sensible defaults. Tests override only the
  * fields they care about.
  */
-function folder(partial: Partial<FolderSummary> & { Id: string; DisplayName: string }): FolderSummary {
+function folder(
+  partial: Partial<FolderSummary> & { Id: string; DisplayName: string },
+): FolderSummary {
   return {
     ChildFolderCount: 0,
     UnreadItemCount: 0,
@@ -46,9 +48,7 @@ function folder(partial: Partial<FolderSummary> & { Id: string; DisplayName: str
  * Build a fake OutlookClient. Only the three folder methods consumed by
  * resolver + ensurePath are stubbed; everything else is left undefined.
  */
-function makeFakeClient(
-  overrides: Partial<OutlookClient> = {},
-): OutlookClient {
+function makeFakeClient(overrides: Partial<OutlookClient> = {}): OutlookClient {
   const fallback = vi.fn(async () => {
     throw new Error('fake client: method not stubbed');
   });
@@ -135,16 +135,16 @@ describe('parseFolderSpec', () => {
 
   it('(9) dangling "\\" at end of a path → UsageError (FOLDER_PATH_INVALID) from resolver', async () => {
     const client = makeFakeClient();
-    await expect(
-      resolveFolder(client, { kind: 'path', value: 'foo\\' }),
-    ).rejects.toBeInstanceOf(UsageError);
+    await expect(resolveFolder(client, { kind: 'path', value: 'foo\\' })).rejects.toBeInstanceOf(
+      UsageError,
+    );
   });
 
   it('(10) unknown "\\x" escape in a path → UsageError (FOLDER_PATH_INVALID) from resolver', async () => {
     const client = makeFakeClient();
-    await expect(
-      resolveFolder(client, { kind: 'path', value: 'foo\\x' }),
-    ).rejects.toBeInstanceOf(UsageError);
+    await expect(resolveFolder(client, { kind: 'path', value: 'foo\\x' })).rejects.toBeInstanceOf(
+      UsageError,
+    );
   });
 
   it('(11) leading "/" in a path → UsageError (FOLDER_PATH_INVALID)', async () => {
@@ -163,9 +163,9 @@ describe('parseFolderSpec', () => {
 
   it('(13) "//" in a path → UsageError (FOLDER_PATH_INVALID)', async () => {
     const client = makeFakeClient();
-    await expect(
-      resolveFolder(client, { kind: 'path', value: 'a//b' }),
-    ).rejects.toBeInstanceOf(UsageError);
+    await expect(resolveFolder(client, { kind: 'path', value: 'a//b' })).rejects.toBeInstanceOf(
+      UsageError,
+    );
   });
 
   it('(14) exceeding MAX_PATH_SEGMENTS (17 segments > 16 cap) → UsageError (FOLDER_PATH_INVALID)', async () => {
@@ -173,9 +173,9 @@ describe('parseFolderSpec', () => {
     // Build a path with 17 segments.
     const segCount = MAX_PATH_SEGMENTS + 1;
     const longPath = Array.from({ length: segCount }, (_v, i) => `s${i}`).join('/');
-    await expect(
-      resolveFolder(client, { kind: 'path', value: longPath }),
-    ).rejects.toBeInstanceOf(UsageError);
+    await expect(resolveFolder(client, { kind: 'path', value: longPath })).rejects.toBeInstanceOf(
+      UsageError,
+    );
   });
 });
 
@@ -475,13 +475,10 @@ describe('resolveFolder', () => {
 
     it('(9) enforces MAX_PATH_SEGMENTS cap (already covered in parseFolderSpec, but from path kind too)', async () => {
       const client = makeFakeClient();
-      const longPath = Array.from(
-        { length: MAX_PATH_SEGMENTS + 1 },
-        (_v, i) => `s${i}`,
-      ).join('/');
-      await expect(
-        resolveFolder(client, { kind: 'path', value: longPath }),
-      ).rejects.toBeInstanceOf(UsageError);
+      const longPath = Array.from({ length: MAX_PATH_SEGMENTS + 1 }, (_v, i) => `s${i}`).join('/');
+      await expect(resolveFolder(client, { kind: 'path', value: longPath })).rejects.toBeInstanceOf(
+        UsageError,
+      );
     });
 
     it('(10) case-insensitive matching across decomposed vs composed Unicode', async () => {
@@ -574,7 +571,9 @@ describe('ensurePath', () => {
       throw new Error(`unexpected listFolders(${parentId})`);
     });
     const createFolder = vi.fn(async () => {
-      throw new Error('createFolder must NOT be called — parent is missing and createParents is false');
+      throw new Error(
+        'createFolder must NOT be called — parent is missing and createParents is false',
+      );
     });
 
     const client = makeFakeClient({
@@ -590,8 +589,7 @@ describe('ensurePath', () => {
       }),
     ).rejects.toSatisfy((err: unknown) => {
       return (
-        err instanceof UsageError &&
-        /FOLDER_MISSING_PARENT/.test(String((err as Error).message))
+        err instanceof UsageError && /FOLDER_MISSING_PARENT/.test(String((err as Error).message))
       );
     });
     expect(createFolder).not.toHaveBeenCalled();
@@ -703,8 +701,7 @@ describe('ensurePath', () => {
       }),
     ).rejects.toSatisfy((err: unknown) => {
       return (
-        err instanceof CollisionError &&
-        (err as CollisionError).code === 'FOLDER_ALREADY_EXISTS'
+        err instanceof CollisionError && (err as CollisionError).code === 'FOLDER_ALREADY_EXISTS'
       );
     });
     expect(createFolder).not.toHaveBeenCalled();
@@ -752,9 +749,7 @@ describe('ensurePath', () => {
     const getFolder = vi.fn(async (idOrAlias: string) => {
       if (idOrAlias === 'Inbox') return inboxFolder;
       // An attempt to hit msgfolderroot here is the failure mode we guard against.
-      throw new Error(
-        `ensurePath with --parent Inbox must not call getFolder("${idOrAlias}")`,
-      );
+      throw new Error(`ensurePath with --parent Inbox must not call getFolder("${idOrAlias}")`);
     });
     const listFolders = vi.fn(async (parentId: string) => {
       if (parentId === 'inbox-id') return []; // Projects missing → create it.

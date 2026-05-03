@@ -90,12 +90,16 @@ describe('get-thread', () => {
     expect(result.count).toBe(2);
     expect(result.messages.length).toBe(2);
     // First call must be the tight $select lookup.
-    const [path, query] = (client.get as ReturnType<typeof vi.fn>).mock.calls[0] as [string, Record<string, string>];
+    const [path, query] = (client.get as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      Record<string, string>,
+    ];
     expect(path).toContain('/api/v2.0/me/messages/');
     expect(query.$select).toBe('Id,ConversationId');
     // Second call goes to listMessagesByConversation.
     expect(client.listMessagesByConversation).toHaveBeenCalledTimes(1);
-    const [convId, opts] = (client.listMessagesByConversation as ReturnType<typeof vi.fn>).mock.calls[0] as [string, { orderBy?: string; select?: string[] }];
+    const [convId, opts] = (client.listMessagesByConversation as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, { orderBy?: string; select?: string[] }];
     expect(convId).toBe('CONV-XYZ');
     expect(opts.orderBy).toBe('ReceivedDateTime asc');
     // Default body = text, so Body + BodyPreview are in the $select list.
@@ -125,7 +129,8 @@ describe('get-thread', () => {
     const { deps, client } = makeDeps();
     (client.listMessagesByConversation as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
     await run(deps, 'conv:CID', { order: 'desc' });
-    const [, opts] = (client.listMessagesByConversation as ReturnType<typeof vi.fn>).mock.calls[0] as [string, { orderBy?: string }];
+    const [, opts] = (client.listMessagesByConversation as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, { orderBy?: string }];
     expect(opts.orderBy).toBe('ReceivedDateTime desc');
   });
 
@@ -133,7 +138,8 @@ describe('get-thread', () => {
     const { deps, client } = makeDeps();
     (client.listMessagesByConversation as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
     await run(deps, 'conv:CID', { body: 'none' });
-    const [, opts] = (client.listMessagesByConversation as ReturnType<typeof vi.fn>).mock.calls[0] as [string, { select?: string[] }];
+    const [, opts] = (client.listMessagesByConversation as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, { select?: string[] }];
     expect(opts.select).not.toContain('Body');
     expect(opts.select).not.toContain('BodyPreview');
   });

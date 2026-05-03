@@ -1,10 +1,12 @@
 # `outlook-cli send-mail` design spec — DECISIONS RESOLVED
 
 > **Status:** RESOLVED 2026-04-22. Promoted to two implementation plans:
+>
 > - **B1 (core send):** `docs/superpowers/plans/2026-04-22-send-mail-b1-core.md`
 > - **B2 (reply/forward/signature):** to be written after B1 ships
 >
 > Decision log (final):
+>
 > - **D1 Body format:** B — `--html <file>` and/or `--text <file>` accepted
 > - **D2 Attachments:** C — file paths + inline `cid:` + SharePoint refs (B2)
 > - **D3 Recipients:** A primary + B fallback (comma string + repeatable `--to`)
@@ -23,6 +25,7 @@
 **Why now:** Phase A (cherry-pick of upstream v1.2.0+v1.3.0) is done. The fork is the only place these features can land — upstream BikS keeps `outlook-cli` read-only by design. Our use case requires send (compliance: every outbound mail CCs `dimitrios.plessas@nbg.gr`; reply automation needs send capability without GUI Outlook running).
 
 **Architecture (assumed; revisit if decisions invalidate it):**
+
 - New file `src/commands/send-mail.ts` — input parsing, body building, attachment loading, dispatch.
 - New method `OutlookClient.sendMail(payload)` — POSTs to `/api/v2.0/me/sendmail` (immediate send) or `/api/v2.0/me/messages` then `/send` (draft-then-send) using the same Bearer + auto-reauth machinery as reads.
 - Reuses error taxonomy (`UsageError` exit 2, `UpstreamError` exit 5, `AuthError` exit 4).
@@ -145,15 +148,15 @@ Once Decisions 1-8 are made, the spec promotes to a plan with these tasks:
 
 ## Estimated size
 
-| Component | LOC (with tests) |
-|---|---|
-| `OutlookClient.sendMail` + types | ~120 |
-| `src/commands/send-mail.ts` | ~150 |
-| `src/cli.ts` registration | ~40 |
-| Body-redaction extension | ~30 |
-| Tests (mocks) | ~250 |
-| Smoke tests (manual, doc only) | — |
-| **Total** | **~590 LOC** |
+| Component                        | LOC (with tests) |
+| -------------------------------- | ---------------- |
+| `OutlookClient.sendMail` + types | ~120             |
+| `src/commands/send-mail.ts`      | ~150             |
+| `src/cli.ts` registration        | ~40              |
+| Body-redaction extension         | ~30              |
+| Tests (mocks)                    | ~250             |
+| Smoke tests (manual, doc only)   | —                |
+| **Total**                        | **~590 LOC**     |
 
 Comparable to Phase A's `get-thread` + `--just-count` work (~600 LOC merged). Single sitting if decisions are clear.
 

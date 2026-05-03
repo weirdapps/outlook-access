@@ -14,11 +14,7 @@ import * as listMail from '../src/commands/list-mail';
 import { UsageError } from '../src/commands/list-mail';
 import type { CliConfig } from '../src/config/config';
 import type { OutlookClient } from '../src/http/outlook-client';
-import type {
-  FolderSummary,
-  MessageSummary,
-  ODataListResponse,
-} from '../src/http/types';
+import type { FolderSummary, MessageSummary, ODataListResponse } from '../src/http/types';
 import type { SessionFile } from '../src/session/schema';
 
 // ---------------------------------------------------------------------------
@@ -26,8 +22,7 @@ import type { SessionFile } from '../src/session/schema';
 // ---------------------------------------------------------------------------
 
 const FUTURE_ISO = '2099-04-21T12:00:00.000Z';
-const JWT_SHAPED_TOKEN =
-  'aaaaaaaaaa.bbbbbbbbbb.cccccccccc';
+const JWT_SHAPED_TOKEN = 'aaaaaaaaaa.bbbbbbbbbb.cccccccccc';
 
 function buildFakeSession(): SessionFile {
   return {
@@ -140,34 +135,31 @@ function makeStubClient(): StubClient {
       throw new Error('stub: client.moveMessage not configured for this test');
     }),
     listMessagesInFolder: vi.fn(async () => {
-      throw new Error(
-        'stub: client.listMessagesInFolder not configured for this test',
-      );
+      throw new Error('stub: client.listMessagesInFolder not configured for this test');
     }),
     listMessagesInFolderAll: vi.fn(async () => {
-      throw new Error(
-        'stub: client.listMessagesInFolderAll not configured for this test',
-      );
+      throw new Error('stub: client.listMessagesInFolderAll not configured for this test');
     }),
   };
   return stub as unknown as StubClient;
 }
 
-function makeDeps(overrides: {
-  config?: CliConfig;
-  client?: StubClient;
-  loadSession?: (p: string) => Promise<SessionFile | null>;
-  saveSession?: (p: string, s: SessionFile) => Promise<void>;
-  doAuthCapture?: () => Promise<SessionFile>;
-} = {}): { deps: listMail.ListMailDeps; client: StubClient } {
+function makeDeps(
+  overrides: {
+    config?: CliConfig;
+    client?: StubClient;
+    loadSession?: (p: string) => Promise<SessionFile | null>;
+    saveSession?: (p: string, s: SessionFile) => Promise<void>;
+    doAuthCapture?: () => Promise<SessionFile>;
+  } = {},
+): { deps: listMail.ListMailDeps; client: StubClient } {
   const client = overrides.client ?? makeStubClient();
   const config = overrides.config ?? buildFakeConfig();
   const session = buildFakeSession();
   const deps: listMail.ListMailDeps = {
     config,
     sessionPath: config.sessionFilePath,
-    loadSession:
-      overrides.loadSession ?? (async () => session),
+    loadSession: overrides.loadSession ?? (async () => session),
     saveSession:
       overrides.saveSession ??
       (async () => {
@@ -405,16 +397,16 @@ describe('list-mail folder flag extension (Phase 7)', () => {
 
   it('(8) mutex: --folder X + --folder-id Y → UsageError (exit 2)', async () => {
     const { deps, client } = makeDeps();
-    await expect(
-      listMail.run(deps, { folder: 'Inbox', folderId: 'AAMk-raw' }),
-    ).rejects.toSatisfy((err: unknown) => {
-      return (
-        err instanceof UsageError &&
-        err.code === 'BAD_USAGE' &&
-        err.exitCode === 2 &&
-        /mutually exclusive/i.test(err.message)
-      );
-    });
+    await expect(listMail.run(deps, { folder: 'Inbox', folderId: 'AAMk-raw' })).rejects.toSatisfy(
+      (err: unknown) => {
+        return (
+          err instanceof UsageError &&
+          err.code === 'BAD_USAGE' &&
+          err.exitCode === 2 &&
+          /mutually exclusive/i.test(err.message)
+        );
+      },
+    );
     // No client calls should have been made — the mutex check is pre-REST.
     expect(client.get).not.toHaveBeenCalled();
     expect(client.listMessagesInFolder).not.toHaveBeenCalled();
@@ -444,16 +436,16 @@ describe('list-mail folder flag extension (Phase 7)', () => {
 
   it('(10) mutex: --folder-parent without --folder → UsageError (exit 2)', async () => {
     const { deps, client } = makeDeps();
-    await expect(
-      listMail.run(deps, { folderParent: 'Inbox' }),
-    ).rejects.toSatisfy((err: unknown) => {
-      return (
-        err instanceof UsageError &&
-        err.code === 'BAD_USAGE' &&
-        err.exitCode === 2 &&
-        /--folder-parent requires --folder/i.test(err.message)
-      );
-    });
+    await expect(listMail.run(deps, { folderParent: 'Inbox' })).rejects.toSatisfy(
+      (err: unknown) => {
+        return (
+          err instanceof UsageError &&
+          err.code === 'BAD_USAGE' &&
+          err.exitCode === 2 &&
+          /--folder-parent requires --folder/i.test(err.message)
+        );
+      },
+    );
     expect(client.get).not.toHaveBeenCalled();
     expect(client.listMessagesInFolder).not.toHaveBeenCalled();
   });
@@ -464,12 +456,12 @@ describe('list-mail folder flag extension (Phase 7)', () => {
 
   it('(11) --top out of range still UsageError (cap raised to 1000 in v1.2.0)', async () => {
     const { deps, client } = makeDeps();
-    await expect(
-      listMail.run(deps, { top: 0, folderId: 'AAMk-raw' }),
-    ).rejects.toBeInstanceOf(UsageError);
-    await expect(
-      listMail.run(deps, { top: 1001, folder: 'Inbox' }),
-    ).rejects.toBeInstanceOf(UsageError);
+    await expect(listMail.run(deps, { top: 0, folderId: 'AAMk-raw' })).rejects.toBeInstanceOf(
+      UsageError,
+    );
+    await expect(listMail.run(deps, { top: 1001, folder: 'Inbox' })).rejects.toBeInstanceOf(
+      UsageError,
+    );
     // None of the listing methods should be invoked after a bad --top.
     expect(client.get).not.toHaveBeenCalled();
     expect(client.listMessagesInFolder).not.toHaveBeenCalled();

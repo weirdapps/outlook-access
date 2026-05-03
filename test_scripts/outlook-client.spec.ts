@@ -7,11 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createOutlookClient } from '../src/http/outlook-client';
-import {
-  ApiError,
-  AuthError,
-  NetworkError,
-} from '../src/http/errors';
+import { ApiError, AuthError, NetworkError } from '../src/http/errors';
 import type { Cookie, SessionFile } from '../src/session/schema';
 
 // ---------------------------------------------------------------------------
@@ -22,8 +18,7 @@ import type { Cookie, SessionFile } from '../src/session/schema';
  * A JWT-shaped token used for validation. NOT scanned by `redactString`
  * because it's well under the 100-char threshold.
  */
-const JWT_SHAPED_TOKEN =
-  'aaaaaaaaaa.bbbbbbbbbb.cccccccccc';
+const JWT_SHAPED_TOKEN = 'aaaaaaaaaa.bbbbbbbbbb.cccccccccc';
 
 /**
  * 100+ char base64url-looking token. `redactString` DOES scrub runs of this
@@ -35,12 +30,9 @@ const JWT_SHAPED_TOKEN =
  * token below is used only for the redaction test where we stub it into a
  * response body rather than a session.
  */
-const LONG_REDACTABLE_TOKEN =
-  'A'.repeat(50) + 'B'.repeat(50) + 'C'.repeat(30) + 'test-bearer-XXXX';
+const LONG_REDACTABLE_TOKEN = 'A'.repeat(50) + 'B'.repeat(50) + 'C'.repeat(30) + 'test-bearer-XXXX';
 
-function buildFakeSession(
-  overrides: Partial<SessionFile> = {},
-): SessionFile {
+function buildFakeSession(overrides: Partial<SessionFile> = {}): SessionFile {
   const base: SessionFile = {
     version: 1,
     capturedAt: '2026-04-21T12:00:00.000Z',
@@ -116,9 +108,7 @@ describe('createOutlookClient.get', () => {
   });
 
   it('(1) 200 path returns parsed JSON and builds correct headers', async () => {
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 200, body: { value: [] } }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 200, body: { value: [] } }));
 
     const session = buildFakeSession();
     const client = createOutlookClient({
@@ -128,9 +118,7 @@ describe('createOutlookClient.get', () => {
       onReauthNeeded: async () => session,
     });
 
-    const result = await client.get<{ value: unknown[] }>(
-      '/api/v2.0/me/messages',
-    );
+    const result = await client.get<{ value: unknown[] }>('/api/v2.0/me/messages');
 
     expect(result).toEqual({ value: [] });
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -142,23 +130,15 @@ describe('createOutlookClient.get', () => {
     expect(callUrl).toBe('https://outlook.office.com/api/v2.0/me/messages');
     expect(callInit.method).toBe('GET');
     expect(callInit.headers.Authorization).toBe(`Bearer ${JWT_SHAPED_TOKEN}`);
-    expect(callInit.headers['X-AnchorMailbox']).toBe(
-      'PUID:1234567890@tenant-id-abc',
-    );
+    expect(callInit.headers['X-AnchorMailbox']).toBe('PUID:1234567890@tenant-id-abc');
     expect(callInit.headers.Accept).toBe('application/json');
-    expect(callInit.headers.Cookie).toBe(
-      'SessionCookie=outlook-cookie-value',
-    );
+    expect(callInit.headers.Cookie).toBe('SessionCookie=outlook-cookie-value');
   });
 
   it('(2) 401 with auto-reauth retries and returns success', async () => {
     fetchMock
-      .mockResolvedValueOnce(
-        makeResponse({ status: 401, bodyText: 'unauthorized' }),
-      )
-      .mockResolvedValueOnce(
-        makeResponse({ status: 200, body: { value: [{ id: 'm1' }] } }),
-      );
+      .mockResolvedValueOnce(makeResponse({ status: 401, bodyText: 'unauthorized' }))
+      .mockResolvedValueOnce(makeResponse({ status: 200, body: { value: [{ id: 'm1' }] } }));
 
     const originalSession = buildFakeSession();
     const newSession = buildFakeSession({
@@ -177,26 +157,19 @@ describe('createOutlookClient.get', () => {
       onReauthNeeded,
     });
 
-    const result = await client.get<{ value: unknown[] }>(
-      '/api/v2.0/me/messages',
-    );
+    const result = await client.get<{ value: unknown[] }>('/api/v2.0/me/messages');
 
     expect(result).toEqual({ value: [{ id: 'm1' }] });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(onReauthNeeded).toHaveBeenCalledTimes(1);
 
     // Second fetch must use the NEW bearer token.
-    const secondCall = fetchMock.mock.calls[1] as [
-      string,
-      { headers: Record<string, string> },
-    ];
+    const secondCall = fetchMock.mock.calls[1] as [string, { headers: Record<string, string> }];
     expect(secondCall[1].headers.Authorization).toBe('Bearer new.new.new');
   });
 
   it('(3) 401 with noAutoReauth throws AuthError and does NOT call reauth', async () => {
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 401, bodyText: 'unauthorized' }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 401, bodyText: 'unauthorized' }));
 
     const onReauthNeeded = vi.fn(async () => buildFakeSession());
     const client = createOutlookClient({
@@ -206,15 +179,11 @@ describe('createOutlookClient.get', () => {
       onReauthNeeded,
     });
 
-    await expect(client.get('/api/v2.0/me/messages')).rejects.toSatisfy(
-      (err: unknown) => {
-        return (
-          err instanceof AuthError &&
-          err.code === 'AUTH_NO_REAUTH' &&
-          err.reason === 'NO_AUTO_REAUTH'
-        );
-      },
-    );
+    await expect(client.get('/api/v2.0/me/messages')).rejects.toSatisfy((err: unknown) => {
+      return (
+        err instanceof AuthError && err.code === 'AUTH_NO_REAUTH' && err.reason === 'NO_AUTO_REAUTH'
+      );
+    });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(onReauthNeeded).not.toHaveBeenCalled();
@@ -222,12 +191,8 @@ describe('createOutlookClient.get', () => {
 
   it('(4) 401 twice (retry fails) throws AuthError with AFTER_RETRY reason', async () => {
     fetchMock
-      .mockResolvedValueOnce(
-        makeResponse({ status: 401, bodyText: 'unauthorized #1' }),
-      )
-      .mockResolvedValueOnce(
-        makeResponse({ status: 401, bodyText: 'unauthorized #2' }),
-      );
+      .mockResolvedValueOnce(makeResponse({ status: 401, bodyText: 'unauthorized #1' }))
+      .mockResolvedValueOnce(makeResponse({ status: 401, bodyText: 'unauthorized #2' }));
 
     const onReauthNeeded = vi.fn(async () => buildFakeSession());
     const client = createOutlookClient({
@@ -237,24 +202,18 @@ describe('createOutlookClient.get', () => {
       onReauthNeeded,
     });
 
-    await expect(client.get('/api/v2.0/me/messages')).rejects.toSatisfy(
-      (err: unknown) => {
-        return (
-          err instanceof AuthError &&
-          err.reason === 'AFTER_RETRY' &&
-          err.code === 'AUTH_REJECTED'
-        );
-      },
-    );
+    await expect(client.get('/api/v2.0/me/messages')).rejects.toSatisfy((err: unknown) => {
+      return (
+        err instanceof AuthError && err.reason === 'AFTER_RETRY' && err.code === 'AUTH_REJECTED'
+      );
+    });
 
     expect(onReauthNeeded).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('(5) 404 → ApiError with code NOT_FOUND', async () => {
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 404, bodyText: 'not found' }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 404, bodyText: 'not found' }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -263,15 +222,9 @@ describe('createOutlookClient.get', () => {
       onReauthNeeded: async () => buildFakeSession(),
     });
 
-    await expect(client.get('/api/v2.0/me/messages/xyz')).rejects.toSatisfy(
-      (err: unknown) => {
-        return (
-          err instanceof ApiError &&
-          err.code === 'NOT_FOUND' &&
-          err.httpStatus === 404
-        );
-      },
-    );
+    await expect(client.get('/api/v2.0/me/messages/xyz')).rejects.toSatisfy((err: unknown) => {
+      return err instanceof ApiError && err.code === 'NOT_FOUND' && err.httpStatus === 404;
+    });
   });
 
   it('(6) 429 with Retry-After header → ApiError RATE_LIMITED', async () => {
@@ -290,22 +243,18 @@ describe('createOutlookClient.get', () => {
       onReauthNeeded: async () => buildFakeSession(),
     });
 
-    await expect(client.get('/api/v2.0/me/messages')).rejects.toSatisfy(
-      (err: unknown) => {
-        return (
-          err instanceof ApiError &&
-          err.code === 'RATE_LIMITED' &&
-          err.httpStatus === 429 &&
-          err.message.includes('Retry-After: 60')
-        );
-      },
-    );
+    await expect(client.get('/api/v2.0/me/messages')).rejects.toSatisfy((err: unknown) => {
+      return (
+        err instanceof ApiError &&
+        err.code === 'RATE_LIMITED' &&
+        err.httpStatus === 429 &&
+        err.message.includes('Retry-After: 60')
+      );
+    });
   });
 
   it('(7) 500 → ApiError with code SERVER_ERROR', async () => {
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 500, bodyText: 'kaboom' }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 500, bodyText: 'kaboom' }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -314,15 +263,9 @@ describe('createOutlookClient.get', () => {
       onReauthNeeded: async () => buildFakeSession(),
     });
 
-    await expect(client.get('/api/v2.0/me/messages')).rejects.toSatisfy(
-      (err: unknown) => {
-        return (
-          err instanceof ApiError &&
-          err.code === 'SERVER_ERROR' &&
-          err.httpStatus === 500
-        );
-      },
-    );
+    await expect(client.get('/api/v2.0/me/messages')).rejects.toSatisfy((err: unknown) => {
+      return err instanceof ApiError && err.code === 'SERVER_ERROR' && err.httpStatus === 500;
+    });
   });
 
   it('(8) Network error (TypeError) → NetworkError with timedOut=false', async () => {
@@ -335,15 +278,9 @@ describe('createOutlookClient.get', () => {
       onReauthNeeded: async () => buildFakeSession(),
     });
 
-    await expect(client.get('/api/v2.0/me/messages')).rejects.toSatisfy(
-      (err: unknown) => {
-        return (
-          err instanceof NetworkError &&
-          err.timedOut === false &&
-          err.code === 'NETWORK'
-        );
-      },
-    );
+    await expect(client.get('/api/v2.0/me/messages')).rejects.toSatisfy((err: unknown) => {
+      return err instanceof NetworkError && err.timedOut === false && err.code === 'NETWORK';
+    });
   });
 
   it('(9) AbortError → NetworkError with timedOut=true', async () => {
@@ -358,11 +295,9 @@ describe('createOutlookClient.get', () => {
       onReauthNeeded: async () => buildFakeSession(),
     });
 
-    await expect(client.get('/api/v2.0/me/messages')).rejects.toSatisfy(
-      (err: unknown) => {
-        return err instanceof NetworkError && err.timedOut === true;
-      },
-    );
+    await expect(client.get('/api/v2.0/me/messages')).rejects.toSatisfy((err: unknown) => {
+      return err instanceof NetworkError && err.timedOut === true;
+    });
   });
 
   it('(10) redaction: long base64-looking tokens echoed in error bodies are scrubbed', async () => {
@@ -401,9 +336,7 @@ describe('createOutlookClient.get', () => {
   });
 
   it('(11) cookie domain filtering: only outlook.office.com cookies are sent', async () => {
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 200, body: { value: [] } }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 200, body: { value: [] } }));
 
     const cookies: Cookie[] = [
       {
@@ -458,10 +391,7 @@ describe('createOutlookClient.get', () => {
 
     await client.get('/api/v2.0/me/messages');
 
-    const call = fetchMock.mock.calls[0] as [
-      string,
-      { headers: Record<string, string> },
-    ];
+    const call = fetchMock.mock.calls[0] as [string, { headers: Record<string, string> }];
     const cookieHeader = call[1].headers.Cookie ?? '';
     expect(cookieHeader).toContain('OutlookOne=ok-1');
     expect(cookieHeader).toContain('OutlookTwo=ok-2');
@@ -477,15 +407,9 @@ describe('createOutlookClient.get', () => {
     //   call#1 retry: 200
     //   call#2: 200       -> MUST use the refreshed session (new token/cookie)
     fetchMock
-      .mockResolvedValueOnce(
-        makeResponse({ status: 401, bodyText: 'unauth' }),
-      )
-      .mockResolvedValueOnce(
-        makeResponse({ status: 200, body: { value: [] } }),
-      )
-      .mockResolvedValueOnce(
-        makeResponse({ status: 200, body: { value: [] } }),
-      );
+      .mockResolvedValueOnce(makeResponse({ status: 401, bodyText: 'unauth' }))
+      .mockResolvedValueOnce(makeResponse({ status: 200, body: { value: [] } }))
+      .mockResolvedValueOnce(makeResponse({ status: 200, body: { value: [] } }));
 
     const originalSession = buildFakeSession({
       cookies: [
@@ -536,10 +460,7 @@ describe('createOutlookClient.get', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
 
-    const thirdCall = fetchMock.mock.calls[2] as [
-      string,
-      { headers: Record<string, string> },
-    ];
+    const thirdCall = fetchMock.mock.calls[2] as [string, { headers: Record<string, string> }];
     expect(thirdCall[1].headers.Authorization).toBe('Bearer fresh.fresh.fresh');
     expect(thirdCall[1].headers.Cookie).toBe('NewCookie=new-val');
     expect(thirdCall[1].headers.Cookie).not.toContain('OldCookie');

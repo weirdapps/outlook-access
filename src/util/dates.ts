@@ -14,9 +14,7 @@
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-export type TimestampParseResult =
-  | { ok: true; iso: string }
-  | { ok: false; reason: string };
+export type TimestampParseResult = { ok: true; iso: string } | { ok: false; reason: string };
 
 /**
  * Parse a keyword / ISO8601 timestamp into an ISO8601 UTC string.

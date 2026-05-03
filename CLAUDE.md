@@ -29,19 +29,19 @@
 - When I ask you to create tools in the context of a project everything must be in Typescript.
 - Every tool you develop must be documented in the project's Claude.md file
 - The documentation must be in the following format:
-<toolName>
-    <objective>
-        what the tool does
-    </objective>
-    <command>
-        the exact command to run
-    </command>
-    <info>
-        detailed description of the tool
-        command line parameters and their description
-        examples of usage
-    </info>
-</toolName>
+  <toolName>
+  <objective>
+  what the tool does
+  </objective>
+  <command>
+  the exact command to run
+  </command>
+  <info>
+  detailed description of the tool
+  command line parameters and their description
+  examples of usage
+  </info>
+  </toolName>
 
 - Every time I ask you to do something that requires the creation of a code script, I want you to examine the tools already implemented in the scope of the project to detect if the code you plan to write, fits to the scope of the tool.
 - If so, I want you to implement the code as an extension of the tool, otherwise I want you to build a generic and abstract version of the code as a tool, which will be part of the toolset of the project.
@@ -58,7 +58,7 @@
 
 - You must never create fallback solutions for configuration settings. In every case a configuration setting is not provided you must raise the appropriate exception. You must never substitute the missing config value with a default or a fallback value.
 - If I ask you to make an exception to the configuration setting rule, you must write this exception in the projects memory file, before you implement it.
-</structure-and-conventions>
+  </structure-and-conventions>
 
 ## Project-specific exceptions to global rules
 
@@ -365,5 +365,5 @@ Implementation landed in `src/config/config.ts` (`DEFAULTS` constant +
         - A PID-based advisory lock at `$HOME/.outlook-cli/.browser.lock`
           prevents two concurrent login flows from racing on the profile dir.
     </info>
-</outlook-cli>
 
+</outlook-cli>

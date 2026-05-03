@@ -33,12 +33,7 @@ import type { OutlookClient } from '../http/outlook-client';
 import type { FolderSummary } from '../http/types';
 import type { SessionFile } from '../session/schema';
 
-import {
-  ensurePath,
-  normalizeSegment,
-  parseFolderSpec,
-  resolveFolder,
-} from '../folders/resolver';
+import { ensurePath, normalizeSegment, parseFolderSpec, resolveFolder } from '../folders/resolver';
 import type {
   CreateFolderResult,
   CreateFolderSegment,
@@ -98,9 +93,7 @@ export async function run(
   // the user cannot "create" an id, and well-known aliases cannot be created.
   const posSpec = parseFolderSpec(path);
   if (posSpec.kind === 'id') {
-    throw new UsageError(
-      "create-folder: <path> cannot be a raw id (got 'id:...')",
-    );
+    throw new UsageError("create-folder: <path> cannot be a raw id (got 'id:...')");
   }
   if (posSpec.kind === 'wellKnown') {
     throw new UsageError(
@@ -147,9 +140,7 @@ async function runSingleName(
 ): Promise<CreateFolderResult> {
   // Resolve the parent anchor. Default: MsgFolderRoot (ADR-15).
   const parentInput =
-    typeof opts.parent === 'string' && opts.parent.length > 0
-      ? opts.parent
-      : 'MsgFolderRoot';
+    typeof opts.parent === 'string' && opts.parent.length > 0 ? opts.parent : 'MsgFolderRoot';
   const parentSpec: FolderSpec = parseFolderSpec(parentInput);
   const parent: ResolvedFolder = await resolveFolder(client, parentSpec);
 
@@ -161,10 +152,7 @@ async function runSingleName(
       : leafName;
 
   // §10.7 validation: forbid creating a well-known alias at the root.
-  if (
-    isWellKnownAliasName(displayName) &&
-    isMsgFolderRootAnchor(parent, parentSpec)
-  ) {
+  if (isWellKnownAliasName(displayName) && isMsgFolderRootAnchor(parent, parentSpec)) {
     throw new UsageError(
       `create-folder: cannot create a folder named '${displayName}' at the ` +
         `mailbox root (well-known alias is reserved).`,
@@ -179,11 +167,7 @@ async function runSingleName(
       // Idempotent recovery: re-list the parent and locate the existing
       // folder by DisplayName. Authoritative because the POST collision
       // confirmed the server-side state.
-      const existing = await lookupChildByDisplayName(
-        client,
-        parent.Id,
-        displayName,
-      );
+      const existing = await lookupChildByDisplayName(client, parent.Id, displayName);
       if (existing === null) {
         // Race-window / hidden-folder edge case — the POST reported a
         // collision but the re-list cannot locate the sibling. Surface the
@@ -235,12 +219,9 @@ async function runNestedPath(
 ): Promise<CreateFolderResult> {
   // Resolve the anchor (§10.7 `--parent`; default MsgFolderRoot).
   const parentInput =
-    typeof opts.parent === 'string' && opts.parent.length > 0
-      ? opts.parent
-      : 'MsgFolderRoot';
+    typeof opts.parent === 'string' && opts.parent.length > 0 ? opts.parent : 'MsgFolderRoot';
   const anchorSpec: FolderSpec = parseFolderSpec(parentInput);
-  const anchorIsRoot =
-    anchorSpec.kind === 'wellKnown' && anchorSpec.value === 'MsgFolderRoot';
+  const anchorIsRoot = anchorSpec.kind === 'wellKnown' && anchorSpec.value === 'MsgFolderRoot';
 
   // §10.7 validation: reject a path whose LAST segment is a well-known
   // alias ONLY when the anchor is MsgFolderRoot — otherwise `Inbox/X/Inbox`
@@ -330,10 +311,7 @@ async function tryResolveExistingPath(
   try {
     return await resolveFolder(client, spec);
   } catch (err) {
-    if (
-      err instanceof UpstreamError &&
-      err.code === 'UPSTREAM_FOLDER_NOT_FOUND'
-    ) {
+    if (err instanceof UpstreamError && err.code === 'UPSTREAM_FOLDER_NOT_FOUND') {
       return null;
     }
     throw err;
@@ -354,9 +332,7 @@ async function lookupChildByDisplayName(
   const children = await client.listFolders(parentId);
   const normalized = normalizeSegment(target);
   const matches = children.filter(
-    (c) =>
-      typeof c.DisplayName === 'string' &&
-      normalizeSegment(c.DisplayName) === normalized,
+    (c) => typeof c.DisplayName === 'string' && normalizeSegment(c.DisplayName) === normalized,
   );
   if (matches.length === 0) return null;
   if (matches.length > 1) {
@@ -387,10 +363,7 @@ function isWellKnownAliasName(name: string): boolean {
  * True iff the resolved parent is (or was supplied as) `MsgFolderRoot`. Used
  * for the "cannot create Inbox at root" validation.
  */
-function isMsgFolderRootAnchor(
-  parent: ResolvedFolder,
-  parentSpec: FolderSpec,
-): boolean {
+function isMsgFolderRootAnchor(parent: ResolvedFolder, parentSpec: FolderSpec): boolean {
   if (parentSpec.kind === 'wellKnown' && parentSpec.value === 'MsgFolderRoot') {
     return true;
   }
@@ -444,9 +417,7 @@ function splitPath(input: string): string[] {
     const c = input[i];
     if (c === '\\') {
       if (i + 1 >= input.length) {
-        throw new UsageError(
-          'create-folder: dangling escape at end of path (FOLDER_PATH_INVALID)',
-        );
+        throw new UsageError('create-folder: dangling escape at end of path (FOLDER_PATH_INVALID)');
       }
       const next = input[i + 1];
       if (next === '/') {
@@ -456,15 +427,11 @@ function splitPath(input: string): string[] {
         current += '\\';
         i += 2;
       } else {
-        throw new UsageError(
-          `create-folder: unknown escape '\\${next}' (FOLDER_PATH_INVALID)`,
-        );
+        throw new UsageError(`create-folder: unknown escape '\\${next}' (FOLDER_PATH_INVALID)`);
       }
     } else if (c === '/') {
       if (current === '') {
-        throw new UsageError(
-          'create-folder: empty segment (FOLDER_PATH_INVALID)',
-        );
+        throw new UsageError('create-folder: empty segment (FOLDER_PATH_INVALID)');
       }
       segments.push(current);
       current = '';
@@ -475,9 +442,7 @@ function splitPath(input: string): string[] {
     }
   }
   if (current === '') {
-    throw new UsageError(
-      'create-folder: empty segment (FOLDER_PATH_INVALID)',
-    );
+    throw new UsageError('create-folder: empty segment (FOLDER_PATH_INVALID)');
   }
   segments.push(current);
   return segments;

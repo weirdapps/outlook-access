@@ -37,22 +37,22 @@ Content-type: application/json
 
 The `mailFolder` resource type referenced from that sentence lists the following modern well-known aliases:
 
-| Alias | Description |
-|-------|-------------|
-| `archive` | One-Click Archive folder (NOT Exchange In-Place Archive) |
-| `clutter` | Clutter folder |
-| `deleteditems` | Deleted Items |
-| `drafts` | Drafts |
-| `inbox` | Inbox |
-| `junkemail` | Junk Email |
-| `msgfolderroot` | Top of Information Store |
-| `outbox` | Outbox |
-| `recoverableitemsdeletions` | Soft-deleted items |
-| `sentitems` | Sent Items |
-| `syncissues`, `conflicts`, `localfailures`, `serverfailures` | Sync folders |
-| `conversationhistory` | Skype IM history |
-| `scheduled` | Scheduled messages |
-| `searchfolders` | Parent of search folders |
+| Alias                                                        | Description                                              |
+| ------------------------------------------------------------ | -------------------------------------------------------- |
+| `archive`                                                    | One-Click Archive folder (NOT Exchange In-Place Archive) |
+| `clutter`                                                    | Clutter folder                                           |
+| `deleteditems`                                               | Deleted Items                                            |
+| `drafts`                                                     | Drafts                                                   |
+| `inbox`                                                      | Inbox                                                    |
+| `junkemail`                                                  | Junk Email                                               |
+| `msgfolderroot`                                              | Top of Information Store                                 |
+| `outbox`                                                     | Outbox                                                   |
+| `recoverableitemsdeletions`                                  | Soft-deleted items                                       |
+| `sentitems`                                                  | Sent Items                                               |
+| `syncissues`, `conflicts`, `localfailures`, `serverfailures` | Sync folders                                             |
+| `conversationhistory`                                        | Skype IM history                                         |
+| `scheduled`                                                  | Scheduled messages                                       |
+| `searchfolders`                                              | Parent of search folders                                 |
 
 Source: [Graph v1.0 mailFolder resource type](https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0)
 
@@ -113,12 +113,12 @@ Source: [Graph v1.0 — Mail API Overview](https://learn.microsoft.com/en-us/gra
 
 ### Decision table
 
-| Call site | Alias in URL path | Alias in POST body |
-|-----------|------------------|-------------------|
-| `GET /MailFolders/{alias}/messages` | **Safe — use directly** | n/a |
-| `GET /MailFolders/{alias}/childfolders` | **Safe — use directly** | n/a |
-| `POST /MailFolders/{alias}/childfolders` | **Safe — use directly** | n/a |
-| `POST /messages/{id}/move` body `DestinationId` | n/a | **Uncertain — resolve first** |
+| Call site                                       | Alias in URL path       | Alias in POST body            |
+| ----------------------------------------------- | ----------------------- | ----------------------------- |
+| `GET /MailFolders/{alias}/messages`             | **Safe — use directly** | n/a                           |
+| `GET /MailFolders/{alias}/childfolders`         | **Safe — use directly** | n/a                           |
+| `POST /MailFolders/{alias}/childfolders`        | **Safe — use directly** | n/a                           |
+| `POST /messages/{id}/move` body `DestinationId` | n/a                     | **Uncertain — resolve first** |
 
 ### Why resolve-first for `/move`
 
@@ -132,8 +132,14 @@ Source: [Graph v1.0 — Mail API Overview](https://learn.microsoft.com/en-us/gra
 // Well-known aliases accepted in the Outlook REST v2.0 URL path (confirmed working).
 // PascalCase matches the existing list-mail convention on the v2.0 surface.
 const WELL_KNOWN_ALIASES = new Set([
-  'Inbox', 'SentItems', 'Drafts', 'DeletedItems',
-  'Archive', 'JunkEmail', 'Outbox', 'MsgFolderRoot',
+  'Inbox',
+  'SentItems',
+  'Drafts',
+  'DeletedItems',
+  'Archive',
+  'JunkEmail',
+  'Outbox',
+  'MsgFolderRoot',
   'RecoverableItemsDeletions',
 ]);
 
@@ -145,10 +151,7 @@ const WELL_KNOWN_ALIASES = new Set([
  *   and returns the Id field from the response.
  * - Otherwise assumes it is a display-name path and delegates to the folder resolver.
  */
-async function resolveDestinationId(
-  client: OutlookClient,
-  destination: string,
-): Promise<string> {
+async function resolveDestinationId(client: OutlookClient, destination: string): Promise<string> {
   // Fast path: raw opaque ID — pass straight through.
   // Outlook IDs are long base64url strings; well-known names are short ASCII tokens.
   if (destination.length > 64 && !WELL_KNOWN_ALIASES.has(destination)) {
@@ -176,6 +179,7 @@ const moved = await client.post<{ DestinationId: string }, MessageSummary>(
 ```
 
 **Key properties of this pattern:**
+
 - Aliases always incur one extra `GET` call, which is cheap relative to the risk of a tenant-side rejection.
 - Raw opaque IDs bypass resolution entirely — no overhead for the common scripted case.
 - If Microsoft confirms alias pass-through works on the v2.0 `/move` body in a future live test, the `WELL_KNOWN_ALIASES.has(destination)` branch can be removed and aliases can be passed directly.
@@ -184,25 +188,25 @@ const moved = await client.post<{ DestinationId: string }, MessageSummary>(
 
 ## Assumptions & Scope
 
-| Assumption | Confidence | Impact if Wrong |
-|------------|------------|-----------------|
-| Graph v1.0 and Outlook REST v2.0 share identical alias resolution in the POST body | MEDIUM | If v2.0 rejects `Archive` in `DestinationId` while Graph accepts it, the resolve-first pattern is the correct fallback — no code change needed |
-| The four-alias list from the retired v2.0 docs reflects real tenant behavior, not just doc gaps | LOW | If all aliases were always accepted, resolve-first adds one unnecessary GET per move — acceptable overhead |
-| `archive` well-known alias refers to the One-Click Archive folder, not Exchange In-Place Archive | HIGH | In-Place Archive is a separate mailbox; if targeted, expect `ErrorItemNotFound` regardless of alias vs. ID |
-| URL-path alias acceptance is confirmed for `/MailFolders/{alias}/childfolders` and `/messages` | HIGH | Already working in production code for the subset tested (`Inbox`, `SentItems`, `Drafts`, `DeletedItems`, `Archive`) |
+| Assumption                                                                                       | Confidence | Impact if Wrong                                                                                                                                |
+| ------------------------------------------------------------------------------------------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Graph v1.0 and Outlook REST v2.0 share identical alias resolution in the POST body               | MEDIUM     | If v2.0 rejects `Archive` in `DestinationId` while Graph accepts it, the resolve-first pattern is the correct fallback — no code change needed |
+| The four-alias list from the retired v2.0 docs reflects real tenant behavior, not just doc gaps  | LOW        | If all aliases were always accepted, resolve-first adds one unnecessary GET per move — acceptable overhead                                     |
+| `archive` well-known alias refers to the One-Click Archive folder, not Exchange In-Place Archive | HIGH       | In-Place Archive is a separate mailbox; if targeted, expect `ErrorItemNotFound` regardless of alias vs. ID                                     |
+| URL-path alias acceptance is confirmed for `/MailFolders/{alias}/childfolders` and `/messages`   | HIGH       | Already working in production code for the subset tested (`Inbox`, `SentItems`, `Drafts`, `DeletedItems`, `Archive`)                           |
 
 ---
 
 ## References
 
-| # | Source | URL | Information Gathered |
-|---|--------|-----|---------------------|
-| 1 | Microsoft Graph v1.0 — message: move | https://learn.microsoft.com/en-us/graph/api/message-move?view=graph-rest-1.0 | Definitive language: `destinationId` accepts "a well-known folder name"; example shows `deleteditems` alias in POST body |
-| 2 | Microsoft Graph v1.0 — mailFolder resource type | https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0 | Full modern well-known alias table; confirms `archive`, `junkemail`, `outbox`, and others |
-| 3 | Microsoft Graph v1.0 — POST childFolders | https://learn.microsoft.com/en-us/graph/api/mailfolder-post-childfolders?view=graph-rest-1.0 | Explicit statement that `{id}` in URL path accepts well-known folder names |
-| 4 | Microsoft Graph v1.0 — list child folders | https://learn.microsoft.com/en-us/graph/api/mailfolder-list-childfolders?view=graph-rest-1.0 | `{id}` URL path description; `includeHiddenFolders` parameter behavior |
-| 5 | Microsoft Graph v1.0 — list messages | https://learn.microsoft.com/en-us/graph/api/mailfolder-list-messages?view=graph-rest-1.0 | `{id}` in URL path for `/messages` |
-| 6 | Microsoft Graph v1.0 — mail API overview | https://learn.microsoft.com/en-us/graph/api/resources/mail-api-overview?view=graph-rest-1.0 | Explicit `GET /me/mailFolders('SentItems')/messages` example; confirms URL-path aliases |
-| 7 | OfficeDev/office-js GitHub issue #145 (2018) | https://github.com/OfficeDev/office-js/issues/145 | Quotes retired v2.0 docs verbatim: `DestinationId` accepts only `Inbox`, `Drafts`, `SentItems`, `DeletedItems` — omits `Archive` and `JunkEmail` |
-| 8 | microsoftgraph/microsoft-graph-docs-contrib — message-move.md | https://github.com/microsoftgraph/microsoft-graph-docs-contrib/blob/main/api-reference/v1.0/api/message-move.md | Source of truth for Graph v1.0 message move; same language as the rendered docs |
-| 9 | microsoftgraph/msgraph-sdk-php issue #285 | https://github.com/microsoftgraph/msgraph-sdk-php/issues/285 | Empirical report: moving to Exchange In-Place Archive returns `ErrorItemNotFound`; primary mailbox `archive` unaffected |
+| #   | Source                                                        | URL                                                                                                             | Information Gathered                                                                                                                             |
+| --- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Microsoft Graph v1.0 — message: move                          | https://learn.microsoft.com/en-us/graph/api/message-move?view=graph-rest-1.0                                    | Definitive language: `destinationId` accepts "a well-known folder name"; example shows `deleteditems` alias in POST body                         |
+| 2   | Microsoft Graph v1.0 — mailFolder resource type               | https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0                            | Full modern well-known alias table; confirms `archive`, `junkemail`, `outbox`, and others                                                        |
+| 3   | Microsoft Graph v1.0 — POST childFolders                      | https://learn.microsoft.com/en-us/graph/api/mailfolder-post-childfolders?view=graph-rest-1.0                    | Explicit statement that `{id}` in URL path accepts well-known folder names                                                                       |
+| 4   | Microsoft Graph v1.0 — list child folders                     | https://learn.microsoft.com/en-us/graph/api/mailfolder-list-childfolders?view=graph-rest-1.0                    | `{id}` URL path description; `includeHiddenFolders` parameter behavior                                                                           |
+| 5   | Microsoft Graph v1.0 — list messages                          | https://learn.microsoft.com/en-us/graph/api/mailfolder-list-messages?view=graph-rest-1.0                        | `{id}` in URL path for `/messages`                                                                                                               |
+| 6   | Microsoft Graph v1.0 — mail API overview                      | https://learn.microsoft.com/en-us/graph/api/resources/mail-api-overview?view=graph-rest-1.0                     | Explicit `GET /me/mailFolders('SentItems')/messages` example; confirms URL-path aliases                                                          |
+| 7   | OfficeDev/office-js GitHub issue #145 (2018)                  | https://github.com/OfficeDev/office-js/issues/145                                                               | Quotes retired v2.0 docs verbatim: `DestinationId` accepts only `Inbox`, `Drafts`, `SentItems`, `DeletedItems` — omits `Archive` and `JunkEmail` |
+| 8   | microsoftgraph/microsoft-graph-docs-contrib — message-move.md | https://github.com/microsoftgraph/microsoft-graph-docs-contrib/blob/main/api-reference/v1.0/api/message-move.md | Source of truth for Graph v1.0 message move; same language as the rendered docs                                                                  |
+| 9   | microsoftgraph/msgraph-sdk-php issue #285                     | https://github.com/microsoftgraph/msgraph-sdk-php/issues/285                                                    | Empirical report: moving to Exchange In-Place Archive returns `ErrorItemNotFound`; primary mailbox `archive` unaffected                          |

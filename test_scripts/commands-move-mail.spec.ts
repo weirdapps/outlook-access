@@ -145,16 +145,14 @@ describe('move-mail command', () => {
       throw new Error(`unexpected getFolder(${idOrAlias})`);
     });
 
-    const moveMessage = vi.fn(
-      async (messageId: string, destinationFolderId: string) => {
-        log.entries.push({
-          kind: 'moveMessage',
-          sourceId: messageId,
-          destinationId: destinationFolderId,
-        });
-        return buildMoveMessageResponse(`${messageId}-NEW`);
-      },
-    );
+    const moveMessage = vi.fn(async (messageId: string, destinationFolderId: string) => {
+      log.entries.push({
+        kind: 'moveMessage',
+        sourceId: messageId,
+        destinationId: destinationFolderId,
+      });
+      return buildMoveMessageResponse(`${messageId}-NEW`);
+    });
 
     const deps = buildDeps({ getFolder, moveMessage });
 
@@ -177,9 +175,7 @@ describe('move-mail command', () => {
     });
 
     // Result shape sanity.
-    expect(result.moved).toEqual([
-      { sourceId: 'msg-1', newId: 'msg-1-NEW' },
-    ]);
+    expect(result.moved).toEqual([{ sourceId: 'msg-1', newId: 'msg-1-NEW' }]);
     expect(result.failed).toEqual([]);
     expect(result.summary).toEqual({ requested: 1, moved: 1, failed: 0 });
   });
@@ -196,16 +192,14 @@ describe('move-mail command', () => {
       return inboxFolder();
     });
 
-    const moveMessage = vi.fn(
-      async (messageId: string, destinationFolderId: string) => {
-        log.entries.push({
-          kind: 'moveMessage',
-          sourceId: messageId,
-          destinationId: destinationFolderId,
-        });
-        return buildMoveMessageResponse(`${messageId}-NEW`);
-      },
-    );
+    const moveMessage = vi.fn(async (messageId: string, destinationFolderId: string) => {
+      log.entries.push({
+        kind: 'moveMessage',
+        sourceId: messageId,
+        destinationId: destinationFolderId,
+      });
+      return buildMoveMessageResponse(`${messageId}-NEW`);
+    });
 
     const deps = buildDeps({ getFolder, moveMessage });
 
@@ -316,16 +310,12 @@ describe('move-mail command', () => {
 
   it('(5) missing --to raises UsageError', async () => {
     const deps = buildDeps({});
-    await expect(runMoveMail(deps, ['m1'], {})).rejects.toBeInstanceOf(
-      UsageError,
-    );
+    await expect(runMoveMail(deps, ['m1'], {})).rejects.toBeInstanceOf(UsageError);
   });
 
   it('(6) empty messageIds array raises UsageError', async () => {
     const deps = buildDeps({});
-    await expect(
-      runMoveMail(deps, [], { to: 'Inbox' }),
-    ).rejects.toBeInstanceOf(UsageError);
+    await expect(runMoveMail(deps, [], { to: 'Inbox' })).rejects.toBeInstanceOf(UsageError);
   });
 
   // -------------------------------------------------------------------------

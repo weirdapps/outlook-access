@@ -13,14 +13,15 @@ describe('SharepointClient', () => {
   });
 
   it('attaches Bearer + Cookie headers to GET', async () => {
-    const fetchMock = vi.fn(async () =>
-      new Response(new Uint8Array([1, 2, 3, 4, 5, 6]), {
-        status: 200,
-        headers: {
-          'content-type': 'application/octet-stream',
-          'content-length': '6',
-        },
-      }),
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(new Uint8Array([1, 2, 3, 4, 5, 6]), {
+          status: 200,
+          headers: {
+            'content-type': 'application/octet-stream',
+            'content-length': '6',
+          },
+        }),
     );
     global.fetch = fetchMock as unknown as typeof fetch;
 
@@ -35,8 +36,8 @@ describe('SharepointClient', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('https://nbg.sharepoint.com/path/file.pdf');
     expect((init as RequestInit).headers).toMatchObject({
-      'Authorization': 'Bearer redacted-bearer',
-      'Cookie': 'rtFa=a; FedAuth=b',
+      Authorization: 'Bearer redacted-bearer',
+      Cookie: 'rtFa=a; FedAuth=b',
     });
     expect(result.bytes.length).toBe(6);
     expect(result.size).toBe(6);
@@ -46,7 +47,11 @@ describe('SharepointClient', () => {
     global.fetch = vi.fn(async () => new Response('', { status: 404 })) as unknown as typeof fetch;
     const client = new SharepointClient({ bearer: 'x', cookies: '', timeoutMs: 30_000 });
     let err: unknown;
-    try { await client.getBinary('https://x.sharepoint.com/missing'); } catch (e) { err = e; }
+    try {
+      await client.getBinary('https://x.sharepoint.com/missing');
+    } catch (e) {
+      err = e;
+    }
     expect(err).toBeInstanceOf(SharepointHttpError);
     expect((err as SharepointHttpError).status).toBe(404);
   });
@@ -54,16 +59,18 @@ describe('SharepointClient', () => {
   it('throws SharepointHttpError on 401', async () => {
     global.fetch = vi.fn(async () => new Response('', { status: 401 })) as unknown as typeof fetch;
     const client = new SharepointClient({ bearer: 'x', cookies: '', timeoutMs: 30_000 });
-    await expect(client.getBinary('https://x.sharepoint.com/file'))
-      .rejects.toThrow(SharepointHttpError);
+    await expect(client.getBinary('https://x.sharepoint.com/file')).rejects.toThrow(
+      SharepointHttpError,
+    );
   });
 
   it('parses filename from Content-Disposition (quoted)', async () => {
-    global.fetch = vi.fn(async () =>
-      new Response('hi', {
-        status: 200,
-        headers: { 'content-disposition': 'attachment; filename="report.pdf"' },
-      }),
+    global.fetch = vi.fn(
+      async () =>
+        new Response('hi', {
+          status: 200,
+          headers: { 'content-disposition': 'attachment; filename="report.pdf"' },
+        }),
     ) as unknown as typeof fetch;
     const client = new SharepointClient({ bearer: 'x', cookies: '', timeoutMs: 30_000 });
     const result = await client.getBinary('https://x.sharepoint.com/r');
@@ -71,13 +78,14 @@ describe('SharepointClient', () => {
   });
 
   it('parses filename from Content-Disposition (RFC 5987 UTF-8)', async () => {
-    global.fetch = vi.fn(async () =>
-      new Response('hi', {
-        status: 200,
-        headers: {
-          'content-disposition': "attachment; filename*=UTF-8''Q1%20Report.pdf",
-        },
-      }),
+    global.fetch = vi.fn(
+      async () =>
+        new Response('hi', {
+          status: 200,
+          headers: {
+            'content-disposition': "attachment; filename*=UTF-8''Q1%20Report.pdf",
+          },
+        }),
     ) as unknown as typeof fetch;
     const client = new SharepointClient({ bearer: 'x', cookies: '', timeoutMs: 30_000 });
     const result = await client.getBinary('https://x.sharepoint.com/r');

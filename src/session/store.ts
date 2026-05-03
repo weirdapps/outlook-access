@@ -22,9 +22,7 @@ export const EXPIRY_SKEW_MS = 60_000;
  *
  * Throws IoError on filesystem errors other than ENOENT.
  */
-export async function loadSession(
-  filePath: string,
-): Promise<SessionFile | null> {
+export async function loadSession(filePath: string): Promise<SessionFile | null> {
   const parsed = await readJsonFile<unknown>(filePath);
   if (parsed === null) {
     return null;
@@ -47,10 +45,7 @@ export async function loadSession(
  *
  * @throws IoError("IO_SESSION_WRITE") on any filesystem error.
  */
-export async function saveSession(
-  filePath: string,
-  s: SessionFile,
-): Promise<void> {
+export async function saveSession(filePath: string, s: SessionFile): Promise<void> {
   // atomicWriteJson (with parentDirMode: 0o700) creates the parent directory
   // with mode 0o700 and defensively chmods it. We additionally pre-create the
   // directory here so that a later chmod-only failure (e.g. on Windows) still

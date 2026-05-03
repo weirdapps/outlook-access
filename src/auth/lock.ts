@@ -18,9 +18,7 @@ import * as nodePath from 'node:path';
  * @throws Error('another outlook-cli instance holds the lock: ' + path)
  *         when a live process already owns the lock.
  */
-export async function acquireLock(
-  path: string,
-): Promise<() => Promise<void>> {
+export async function acquireLock(path: string): Promise<() => Promise<void>> {
   // Ensure the parent directory exists (mode 0o700 for privacy). First-run
   // case: $HOME/.outlook-cli/ may not exist yet.
   fs.mkdirSync(nodePath.dirname(path), { recursive: true, mode: 0o700 });
@@ -37,9 +35,7 @@ export async function acquireLock(
     const existingPid = readLockPid(path);
 
     if (existingPid !== null && isProcessAlive(existingPid)) {
-      throw new Error(
-        'another outlook-cli instance holds the lock: ' + path,
-      );
+      throw new Error('another outlook-cli instance holds the lock: ' + path);
     }
 
     // Stale (or unreadable) lock — remove and retry exactly once.
@@ -53,9 +49,7 @@ export async function acquireLock(
       fd = tryOpen();
     } catch (err2) {
       if (isEexist(err2)) {
-        throw new Error(
-          'another outlook-cli instance holds the lock: ' + path,
-        );
+        throw new Error('another outlook-cli instance holds the lock: ' + path);
       }
       throw err2;
     }

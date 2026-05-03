@@ -109,13 +109,7 @@ export interface ItemAttachment extends AttachmentBase {
 export interface ReferenceAttachment extends AttachmentBase {
   '@odata.type': '#Microsoft.OutlookServices.ReferenceAttachment';
   SourceUrl: string;
-  ProviderType:
-    | 'oneDriveBusiness'
-    | 'oneDriveConsumer'
-    | 'dropbox'
-    | 'box'
-    | 'google'
-    | 'other';
+  ProviderType: 'oneDriveBusiness' | 'oneDriveConsumer' | 'dropbox' | 'box' | 'google' | 'other';
   ThumbnailUrl: string | null;
   PreviewUrl: string | null;
   Permission: 'Edit' | 'View';

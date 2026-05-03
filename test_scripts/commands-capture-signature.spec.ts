@@ -2,11 +2,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 
-import {
-  run,
-  extractSignature,
-  UsageError,
-} from '../src/commands/capture-signature';
+import { run, extractSignature, UsageError } from '../src/commands/capture-signature';
 import type { OutlookClient } from '../src/http/outlook-client';
 import type { SessionFile } from '../src/session/schema';
 import type { CliConfig } from '../src/config/config';
@@ -45,7 +41,9 @@ const SESSION: SessionFile = {
 function makeDeps(latestId: string | null, bodyHtml: string) {
   const client = {
     listMessagesInFolder: vi.fn(async () =>
-      latestId ? [{ Id: latestId, Subject: 'last sent', SentDateTime: '2026-04-21T10:00:00Z' }] : [],
+      latestId
+        ? [{ Id: latestId, Subject: 'last sent', SentDateTime: '2026-04-21T10:00:00Z' }]
+        : [],
     ),
     getMessage: vi.fn(async () => ({
       Id: latestId ?? 'X',
@@ -168,17 +166,11 @@ describe('capture-signature command', () => {
     const { deps, writeFile } = makeDeps('AAMk-1', '<div id="Signature">x</div>');
     const result = await run(deps, { out: '/tmp/custom-sig.html' });
     expect(result.path).toBe('/tmp/custom-sig.html');
-    expect(writeFile).toHaveBeenCalledWith(
-      '/tmp/custom-sig.html',
-      expect.any(String),
-    );
+    expect(writeFile).toHaveBeenCalledWith('/tmp/custom-sig.html', expect.any(String));
   });
 
   it('honors --from-message override (skips listMessagesInFolder)', async () => {
-    const { deps, client } = makeDeps(
-      'AAMk-latest',
-      '<div id="Signature">x</div>',
-    );
+    const { deps, client } = makeDeps('AAMk-latest', '<div id="Signature">x</div>');
     await run(deps, { fromMessage: 'AAMk-explicit' });
     expect(client.listMessagesInFolder).not.toHaveBeenCalled();
     expect(client.getMessage).toHaveBeenCalledWith('AAMk-explicit', expect.any(Object));

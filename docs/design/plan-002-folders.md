@@ -73,7 +73,7 @@ the plan proceeds as written.
   No new exit-code values.
 - **G6.** Update `CLAUDE.md` `<outlook-cli>` block with per-subcommand entries.
 - **G7.** Update `project-design.md` + `project-functions.MD` + `Issues - Pending
-  Items.md`.
+Items.md`.
 
 ### Non-goals (from `refined-request-folders.md §3`, verbatim)
 
@@ -222,13 +222,13 @@ Parallelization, Acceptance-criteria coverage, and Verification steps.
   - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/folders/types.ts`
     - **Exports**:
       - `FolderSpec` (discriminated: `{ kind: 'wellknown' | 'path' | 'id',
-        value: string, parent?: FolderSpec }`).
+value: string, parent?: FolderSpec }`).
       - `ResolvedFolder` (`FolderSummary & { Path: string; ResolvedVia:
-        'wellknown'|'path'|'id' }`).
+'wellknown'|'path'|'id' }`).
       - `CreateFolderResult` (`{ created: CreateSegment[]; leaf:
-        CreatedSegment; idempotent: boolean }` + nested segment shape).
+CreatedSegment; idempotent: boolean }` + nested segment shape).
       - `MoveMailResult` (`{ destination: MoveDestination; moved: MoveEntry[];
-        failed: FailedEntry[]; summary: { requested, moved, failed } }`).
+failed: FailedEntry[]; summary: { requested, moved, failed } }`).
       - `WELL_KNOWN_ALIASES: readonly string[]` (frozen list from refined
         §6.2, PascalCase matching v2.0 URL conventions).
       - `MAX_PATH_SEGMENTS = 16`, `MAX_FOLDER_PAGES = 50`,
@@ -236,7 +236,7 @@ Parallelization, Acceptance-criteria coverage, and Verification steps.
         `DEFAULT_LIST_FOLDERS_TOP = 100`.
 - **Dependencies.** none (fresh types). Runs first.
 - **Parallel with.** P2.
-- **Acceptance-criteria covered.** none directly; gating for AC-*.
+- **Acceptance-criteria covered.** none directly; gating for AC-\*.
 - **Verification.**
   - `npx tsc --noEmit` passes.
   - `grep -n "FolderSummary" src/http/types.ts` returns one export.
@@ -252,7 +252,7 @@ Parallelization, Acceptance-criteria coverage, and Verification steps.
 - **Files modified**:
   - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/config/errors.ts`
     - **New class**: `CollisionError extends OutlookCliError { exitCode = 6;
-      code: string; path?: string; parentId?: string; }` — mirrors `IoError`
+code: string; path?: string; parentId?: string; }` — mirrors `IoError`
       structure but with its own `instanceof` discriminator.
     - **No changes** to `ConfigurationError`, `AuthError`, `UpstreamError`,
       `IoError` class bodies. `UsageError` / `UpstreamError` `code` fields
@@ -283,9 +283,9 @@ Parallelization, Acceptance-criteria coverage, and Verification steps.
   - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/http/outlook-client.ts`
     - **Interface change** (`OutlookClient`):
       - **Add**: `post<TBody, TRes>(path: string, body: TBody, query?:
-        Record<string, QueryValue>): Promise<TRes>`.
+Record<string, QueryValue>): Promise<TRes>`.
       - **Add**: `listAll<T>(path: string, query?: Record<string, QueryValue>,
-        opts?: { maxPages?: number; top?: number }): Promise<T[]>`.
+opts?: { maxPages?: number; top?: number }): Promise<T[]>`.
       - `get<T>(...)` unchanged.
     - **Implementation change**:
       - Refactor private `doGet` → `doRequest(method, path, body?, query?)` —
@@ -297,7 +297,7 @@ Parallelization, Acceptance-criteria coverage, and Verification steps.
         `method === 'POST' | 'PATCH'`. Keep `Accept: application/json`,
         `Authorization`, `X-AnchorMailbox`, `Cookie` untouched.
       - `listAll<T>` per the snippet in `outlook-v2-folder-pagination-filter.md
-        §5` — first `GET` uses caller query + `$top` default
+§5` — first `GET` uses caller query + `$top` default
         (`DEFAULT_LIST_TOP = 250`), subsequent pages follow
         `@odata.nextLink` **verbatim** (no query re-merge).
       - Off-host guard: reject any `@odata.nextLink` whose hostname is not
@@ -340,10 +340,10 @@ Parallelization, Acceptance-criteria coverage, and Verification steps.
         thin wrapper over `client.listAll<FolderSummary>` for
         `/me/MailFolders/{parentId}/childfolders`. Default `$select`:
         `Id,DisplayName,ParentFolderId,ChildFolderCount,UnreadItemCount,
-        TotalItemCount,WellKnownName,CreatedDateTime,IsHidden`. Honors
+TotalItemCount,WellKnownName,CreatedDateTime,IsHidden`. Honors
         `includeHidden` via `includeHiddenFolders=true` query param.
       - `resolveFolder(client, spec: FolderSpec, opts: { caseSensitive?,
-        includeHidden?, firstMatch? }): Promise<ResolvedFolder>` — the
+includeHidden?, firstMatch? }): Promise<ResolvedFolder>` — the
         path-walk workhorse. Contract:
         - `spec.kind === 'id'` → one `GET /me/MailFolders/{id}`; map 404 →
           `UpstreamError('UPSTREAM_FOLDER_NOT_FOUND', ...)`.
@@ -358,17 +358,15 @@ Parallelization, Acceptance-criteria coverage, and Verification steps.
           unless `firstMatch` — then sort by `CreatedDateTime asc, Id asc`
           per OQ-2).
       - `createFolderPath(client, { anchorId, segments, createParents,
-        idempotent }): Promise<CreateFolderResult>` — for each segment:
+idempotent }): Promise<CreateFolderResult>` — for each segment:
         (1) lookup under current parent;
         (2) if present → advance with `PreExisting: true`;
         (3) if not and not leaf and not `createParents` → raise
-            `UsageError('FOLDER_MISSING_PARENT', ...)`;
+        `UsageError('FOLDER_MISSING_PARENT', ...)`;
         (4) else `client.post<FolderCreateRequest, FolderSummary>`;
-        (5) on `ApiError` where `isFolderExistsError(err)` is true:
-            - if `idempotent` → re-list children, locate by DisplayName,
-              advance with `PreExisting: true`.
-            - else raise `CollisionError('FOLDER_ALREADY_EXISTS',
-              segmentPath, parentId)`.
+        (5) on `ApiError` where `isFolderExistsError(err)` is true: - if `idempotent` → re-list children, locate by DisplayName,
+        advance with `PreExisting: true`. - else raise `CollisionError('FOLDER_ALREADY_EXISTS',
+      segmentPath, parentId)`.
       - `isFolderExistsError(err): boolean` — `instanceof ApiError` +
         (status 400 OR 409) + `err.body?.error?.code === 'ErrorFolderExists'`
         (per `outlook-v2-folder-duplicate-error.md §4.1`).
@@ -399,7 +397,7 @@ own file — zero file overlap (see §5 Parallel-safety matrix).
   - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/list-folders.ts`
     - **Exports**:
       - `ListFoldersDeps` / `ListFoldersOptions` / `run(deps, opts):
-        Promise<FolderSummary[]>`.
+Promise<FolderSummary[]>`.
       - Options: `parent?: string` (well-known / path / `id:...`, default
         `MsgFolderRoot`), `recursive: boolean`, `includeHidden: boolean`,
         `top?: number` (default 100, range 1..250; validated — raises
@@ -412,7 +410,7 @@ own file — zero file overlap (see §5 Parallel-safety matrix).
       `MAX_FOLDERS_VISITED = 5000` (exceeded → raises
       `UpstreamError('UPSTREAM_PAGINATION_LIMIT', ...)`).
       Wraps every `client.listAll` call in `try { ... } catch (err) {
-      throw mapHttpError(err); }`.
+throw mapHttpError(err); }`.
 - **Dependencies.** P1-P4.
 - **Parallel with.** P5b, P5c, P5d, P5e.
 - **Acceptance-criteria covered.** AC-LISTFOLDERS-ROOT, AC-LISTFOLDERS-CHILDREN.
@@ -426,9 +424,9 @@ own file — zero file overlap (see §5 Parallel-safety matrix).
 - **File created**:
   - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/find-folder.ts`
     - Exports `FindFolderDeps` / `FindFolderOptions` / `run(deps, query,
-      opts): Promise<ResolvedFolder>`.
+opts): Promise<ResolvedFolder>`.
     - Options: `parent?: string`, `caseSensitive: boolean`, `includeHidden:
-      boolean`, `firstMatch: boolean`.
+boolean`, `firstMatch: boolean`.
     - Positional `<query>` — missing → `UsageError('BAD_USAGE', ...)`.
     - `id:` prefix detection → `FolderSpec { kind: 'id' }`; else alias →
       `kind: 'wellknown'`; else path → `parseFolderPath` + `kind: 'path'`.
@@ -448,9 +446,9 @@ own file — zero file overlap (see §5 Parallel-safety matrix).
 - **File created**:
   - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/create-folder.ts`
     - Exports `CreateFolderDeps` / `CreateFolderOptions` / `run(deps, path,
-      opts): Promise<CreateFolderResult>`.
+opts): Promise<CreateFolderResult>`.
     - Options: `parent?: string`, `createParents: boolean`, `idempotent:
-      boolean`, `displayName?: string` (override the last segment's
+boolean`, `displayName?: string` (override the last segment's
       DisplayName).
     - Positional `<path>` — missing → `UsageError('BAD_USAGE', ...)`.
     - Flow: resolve parent → `parseFolderPath` → `resolver.createFolderPath`.
@@ -475,7 +473,7 @@ own file — zero file overlap (see §5 Parallel-safety matrix).
 - **File created**:
   - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/move-mail.ts`
     - Exports `MoveMailDeps` / `MoveMailOptions` / `run(deps, id?, opts):
-      Promise<MoveMailResult>`.
+Promise<MoveMailResult>`.
     - Options: `to?: string` (well-known or path), `toId?: string` (raw id),
       `toParent?: string`, `idsFrom?: string` (path, or `-` for stdin),
       `continueOnError: boolean`, `stopAt: number` (default 1000, range
@@ -494,13 +492,13 @@ own file — zero file overlap (see §5 Parallel-safety matrix).
          through the resolver (short-circuits to the alias string for
          `GET /MailFolders/{alias}` → returns raw `Id`), per OQ-4.
       2. For each source id (one or many): `client.post<MoveMessageRequest,
-         { Id: string }>('/me/messages/{srcId}/move', { DestinationId:
-         destId })`. On success push `{ sourceId, newId }` to `moved[]`.
+{ Id: string }>('/me/messages/{srcId}/move', { DestinationId:
+destId })`. On success push `{ sourceId, newId }` to `moved[]`.
          On `ApiError`:
          - if `--continue-on-error` → push to `failed[]` + continue.
          - else throw `mapHttpError(err)`.
       3. Assemble `MoveMailResult` with `summary: { requested, moved,
-         failed }`.
+failed }`.
     - Exit-code semantics per refined §5.4: partial failure under
       `--continue-on-error` still surfaces exit 5 (done in P6 by
       re-throwing the last `UpstreamError` after emission — the payload
@@ -522,7 +520,7 @@ own file — zero file overlap (see §5 Parallel-safety matrix).
 - **File modified**:
   - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/list-mail.ts`
     - **ListMailOptions change**: add `folderId?: string`, `folderParent?:
-      string`.
+string`.
     - **`ALLOWED_FOLDERS`** (line 37) — keep as-is; re-interpret as
       "fast-path alias list" (no resolver hop). Extend the per-`--folder`
       validation (currently at line 73) to:
@@ -534,7 +532,7 @@ own file — zero file overlap (see §5 Parallel-safety matrix).
         (`JunkEmail`, `Outbox`, `MsgFolderRoot`, `RecoverableItemsDeletions`)
         → fast path with that alias.
       - Else → `resolver.resolveFolder(FolderSpec { kind: 'path', value,
-        parent: opts.folderParent })` → use `.Id`.
+parent: opts.folderParent })` → use `.Id`.
     - **Everything else unchanged** (`$orderby`, `$select`, `--top`, table
       output).
     - **`ensureSession` / `mapHttpError` / `UsageError`** — unchanged, still
@@ -583,12 +581,12 @@ own file — zero file overlap (see §5 Parallel-safety matrix).
         `--to-parent`, `--ids-from`, `--continue-on-error`, `--stop-at`,
         `--first-match` → calls `move-mail.run`, passes `MOVE_MAIL_COLUMNS`.
     - **`list-mail` block**: add `--folder-id <id>`, `--folder-parent
-      <name-or-path>` options to the existing registration.
+<name-or-path>` options to the existing registration.
     - **`formatErrorJson`** (line 297) — add `if (err instanceof
-      CollisionError) return { error: { code: err.code, path: err.path,
-      parentId: err.parentId, message: err.message } };`.
+CollisionError) return { error: { code: err.code, path: err.path,
+parentId: err.parentId, message: err.message } };`.
     - **`exitCodeFor`** (line 359) — add `if (err instanceof CollisionError)
-      return 6;` before the `OutlookCliError` fallback.
+return 6;` before the `OutlookCliError` fallback.
     - **Partial-move exit-5 handling**: `move-mail.run` returns a
       `MoveMailResult` and, when `--continue-on-error` observed failures,
       sets `result.__partialFailure = true` (non-exported sentinel) — the
@@ -648,7 +646,7 @@ own file — zero file overlap (see §5 Parallel-safety matrix).
   in P8).
 - **Verification.**
   - `grep -c "<list-folders>\|<find-folder>\|<create-folder>\|<move-mail>"
-    CLAUDE.md` returns 4.
+CLAUDE.md` returns 4.
   - `grep -n "FR-008\|FR-009\|FR-010\|FR-011" docs/design/project-functions.MD`
     returns four hits.
   - `grep -n "src/folders/" docs/design/project-design.md` returns at
@@ -724,20 +722,20 @@ each unit writes to. A `W` means "this unit writes (creates or modifies) the
 file"; blank means "read-only or untouched". Two units can run concurrently
 iff the intersection of their `W` columns is empty.
 
-| Unit | src/http/types.ts | src/folders/types.ts | src/config/errors.ts | src/http/outlook-client.ts | src/folders/resolver.ts | src/commands/list-folders.ts | src/commands/find-folder.ts | src/commands/create-folder.ts | src/commands/move-mail.ts | src/commands/list-mail.ts | src/cli.ts | CLAUDE.md | docs/design/project-design.md | docs/design/project-functions.MD | Issues - Pending Items.md | test_scripts/unit/*.spec.ts | test_scripts/ac-folders-*.ts |
-|------|-------------------|---------------------|---------------------|---------------------------|------------------------|-----------------------------|----------------------------|------------------------------|---------------------------|--------------------------|-----------|-----------|------------------------------|---------------------------------|---------------------------|----------------------------|-----------------------------|
-| P1   | W                 | W                   |                     |                           |                        |                             |                            |                              |                           |                          |           |           |                              |                                 |                           |                            |                             |
-| P2   |                   |                     | W                   |                           |                        |                             |                            |                              |                           |                          |           |           |                              |                                 |                           |                            |                             |
-| P3   |                   |                     |                     | W                         |                        |                             |                            |                              |                           |                          |           |           |                              |                                 |                           |                            |                             |
-| P4   |                   |                     |                     |                           | W                      |                             |                            |                              |                           |                          |           |           |                              |                                 |                           |                            |                             |
-| P5a  |                   |                     |                     |                           |                        | W                           |                            |                              |                           |                          |           |           |                              |                                 |                           |                            |                             |
-| P5b  |                   |                     |                     |                           |                        |                             | W                          |                              |                           |                          |           |           |                              |                                 |                           |                            |                             |
-| P5c  |                   |                     |                     |                           |                        |                             |                            | W                            |                           |                          |           |           |                              |                                 |                           |                            |                             |
-| P5d  |                   |                     |                     |                           |                        |                             |                            |                              | W                         |                          |           |           |                              |                                 |                           |                            |                             |
-| P5e  |                   |                     |                     |                           |                        |                             |                            |                              |                           | W                        |           |           |                              |                                 |                           |                            |                             |
-| P6   |                   |                     |                     |                           |                        |                             |                            |                              |                           |                          | W         |           |                              |                                 |                           |                            |                             |
-| P7   |                   |                     |                     |                           |                        |                             |                            |                              |                           |                          |           | W         | W                            | W                               | W                         |                            |                             |
-| P8   |                   |                     |                     |                           |                        |                             |                            |                              |                           |                          |           |           |                              |                                 |                           | W                          | W                           |
+| Unit | src/http/types.ts | src/folders/types.ts | src/config/errors.ts | src/http/outlook-client.ts | src/folders/resolver.ts | src/commands/list-folders.ts | src/commands/find-folder.ts | src/commands/create-folder.ts | src/commands/move-mail.ts | src/commands/list-mail.ts | src/cli.ts | CLAUDE.md | docs/design/project-design.md | docs/design/project-functions.MD | Issues - Pending Items.md | test_scripts/unit/\*.spec.ts | test_scripts/ac-folders-\*.ts |
+| ---- | ----------------- | -------------------- | -------------------- | -------------------------- | ----------------------- | ---------------------------- | --------------------------- | ----------------------------- | ------------------------- | ------------------------- | ---------- | --------- | ----------------------------- | -------------------------------- | ------------------------- | ---------------------------- | ----------------------------- |
+| P1   | W                 | W                    |                      |                            |                         |                              |                             |                               |                           |                           |            |           |                               |                                  |                           |                              |                               |
+| P2   |                   |                      | W                    |                            |                         |                              |                             |                               |                           |                           |            |           |                               |                                  |                           |                              |                               |
+| P3   |                   |                      |                      | W                          |                         |                              |                             |                               |                           |                           |            |           |                               |                                  |                           |                              |                               |
+| P4   |                   |                      |                      |                            | W                       |                              |                             |                               |                           |                           |            |           |                               |                                  |                           |                              |                               |
+| P5a  |                   |                      |                      |                            |                         | W                            |                             |                               |                           |                           |            |           |                               |                                  |                           |                              |                               |
+| P5b  |                   |                      |                      |                            |                         |                              | W                           |                               |                           |                           |            |           |                               |                                  |                           |                              |                               |
+| P5c  |                   |                      |                      |                            |                         |                              |                             | W                             |                           |                           |            |           |                               |                                  |                           |                              |                               |
+| P5d  |                   |                      |                      |                            |                         |                              |                             |                               | W                         |                           |            |           |                               |                                  |                           |                              |                               |
+| P5e  |                   |                      |                      |                            |                         |                              |                             |                               |                           | W                         |            |           |                               |                                  |                           |                              |                               |
+| P6   |                   |                      |                      |                            |                         |                              |                             |                               |                           |                           | W          |           |                               |                                  |                           |                              |                               |
+| P7   |                   |                      |                      |                            |                         |                              |                             |                               |                           |                           |            | W         | W                             | W                                | W                         |                              |                               |
+| P8   |                   |                      |                      |                            |                         |                              |                             |                               |                           |                           |            |           |                               |                                  |                           | W                            | W                             |
 
 **Orchestration plan**:
 
@@ -806,23 +804,23 @@ real Outlook behaviour (most of §11). Bucket:
 Each risk maps to a specific phase with a mitigation step. Derived from
 `investigation-folders.md §5` + the three research notes.
 
-| # | Risk | Phase | Action |
-|---|---|---|---|
-| R1 | `ErrorFolderExists` returned as 400 on some tenants, 409 on others | P4 | `isFolderExistsError` predicate inspects `err.body.error.code === 'ErrorFolderExists'` AND (status 400 OR 409). Per `outlook-v2-folder-duplicate-error.md §4.1`. |
-| R2 | `DestinationId` alias rejection on v2.0 `/move` | P5d | **Always** resolve aliases to raw ids before `POST /move` (OQ-4). One extra `GET /MailFolders/{alias}` per move; acceptable cost. |
-| R3 | `@odata.nextLink` redirected off-host (defense in depth) | P3 | `listAll<T>` validates `new URL(link).hostname === 'outlook.office.com'`; raises `ApiError('PAGINATION_OFF_HOST', ...)`. |
-| R4 | Recursive `list-folders` walks blows past safety cap | P3 + P5a | Per-collection cap `MAX_FOLDER_PAGES = 50`; whole-tree cap `MAX_FOLDERS_VISITED = 5000`. Both raise `UpstreamError('UPSTREAM_PAGINATION_LIMIT', ...)` with actionable message. |
-| R5 | Race window between lookup-then-create (concurrent `create-folder` runs) | P4 | Under `--idempotent`, on 400/409+ErrorFolderExists re-list the parent's children to recover the existing id — do not trust `POST` response on the collision path. |
-| R6 | Move endpoint returns new id → scripts chain old id | P5d + P6 | `MoveMailResult.moved[]` explicitly surfaces `{ sourceId, newId }` pair. Documented in CLAUDE.md `<move-mail>` block. |
-| R7 | Partial failure in batch move absorbed into exit 0 | P5d + P6 | `--continue-on-error` + any `failed[]` entries → exit 5. The `UpstreamError` is raised by cli.ts wrapper **after** `emitResult` (so the payload is still emitted). |
-| R8 | Folder DisplayName has raw `/` — user forgets to escape | P4 | `parseFolderPath` documents the escape rule; resolver raises `UPSTREAM_FOLDER_NOT_FOUND` on the wrong segment (accurate, not misleading). |
-| R9 | Ambiguous path silently resolves to one match under `--first-match` | P4 + P5b/d | `--first-match` flag documented as a foot-gun in CLAUDE.md. Default behaviour (exit 2 on ambiguity) is the safe path. |
-| R10 | Well-known alias shadowed by a user folder at the root | P4 | Resolver hard-codes "well-known wins at root" (refined §6.2). User must pass `--parent MsgFolderRoot --first-match` to reach the shadowed user folder. |
-| R11 | Hidden folder collides with create (invisible in pre-create list) | P4 | `createFolderPath` treats 400/409+ErrorFolderExists as authoritative even when pre-create list missed it. `--idempotent` recovers via re-list of all (including `includeHiddenFolders=true`) children. |
-| R12 | Bearer expires mid-recursive-walk | P3 | 401-retry-once envelope in `doRequest` transparently recovers on the failing page request; subsequent pages use the refreshed token (mutable session). Verified by unit test in P8. |
-| R13 | Token / cookie value leak in error body snippets | P3 | `throwForResponse` already runs bodies through `truncateAndRedactBody` (unchanged). Folder code does not bypass it. AC-NO-SECRET-LEAK-FOLDERS asserts. |
-| R14 | Move response body empty / `Id` missing on some tenant | P5d | Treat empty `Id` in response as `UpstreamError('UPSTREAM_HTTP_200', 'move response missing new id')`; entry lands in `failed[]` under `--continue-on-error`. |
-| R15 | Follow-up rename / delete requests slip in accidentally | all | NG1 / NG2 enforced by scope: no `PATCH` or `DELETE` helper added to `OutlookClient` in this plan. |
+| #   | Risk                                                                     | Phase      | Action                                                                                                                                                                                                 |
+| --- | ------------------------------------------------------------------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | `ErrorFolderExists` returned as 400 on some tenants, 409 on others       | P4         | `isFolderExistsError` predicate inspects `err.body.error.code === 'ErrorFolderExists'` AND (status 400 OR 409). Per `outlook-v2-folder-duplicate-error.md §4.1`.                                       |
+| R2  | `DestinationId` alias rejection on v2.0 `/move`                          | P5d        | **Always** resolve aliases to raw ids before `POST /move` (OQ-4). One extra `GET /MailFolders/{alias}` per move; acceptable cost.                                                                      |
+| R3  | `@odata.nextLink` redirected off-host (defense in depth)                 | P3         | `listAll<T>` validates `new URL(link).hostname === 'outlook.office.com'`; raises `ApiError('PAGINATION_OFF_HOST', ...)`.                                                                               |
+| R4  | Recursive `list-folders` walks blows past safety cap                     | P3 + P5a   | Per-collection cap `MAX_FOLDER_PAGES = 50`; whole-tree cap `MAX_FOLDERS_VISITED = 5000`. Both raise `UpstreamError('UPSTREAM_PAGINATION_LIMIT', ...)` with actionable message.                         |
+| R5  | Race window between lookup-then-create (concurrent `create-folder` runs) | P4         | Under `--idempotent`, on 400/409+ErrorFolderExists re-list the parent's children to recover the existing id — do not trust `POST` response on the collision path.                                      |
+| R6  | Move endpoint returns new id → scripts chain old id                      | P5d + P6   | `MoveMailResult.moved[]` explicitly surfaces `{ sourceId, newId }` pair. Documented in CLAUDE.md `<move-mail>` block.                                                                                  |
+| R7  | Partial failure in batch move absorbed into exit 0                       | P5d + P6   | `--continue-on-error` + any `failed[]` entries → exit 5. The `UpstreamError` is raised by cli.ts wrapper **after** `emitResult` (so the payload is still emitted).                                     |
+| R8  | Folder DisplayName has raw `/` — user forgets to escape                  | P4         | `parseFolderPath` documents the escape rule; resolver raises `UPSTREAM_FOLDER_NOT_FOUND` on the wrong segment (accurate, not misleading).                                                              |
+| R9  | Ambiguous path silently resolves to one match under `--first-match`      | P4 + P5b/d | `--first-match` flag documented as a foot-gun in CLAUDE.md. Default behaviour (exit 2 on ambiguity) is the safe path.                                                                                  |
+| R10 | Well-known alias shadowed by a user folder at the root                   | P4         | Resolver hard-codes "well-known wins at root" (refined §6.2). User must pass `--parent MsgFolderRoot --first-match` to reach the shadowed user folder.                                                 |
+| R11 | Hidden folder collides with create (invisible in pre-create list)        | P4         | `createFolderPath` treats 400/409+ErrorFolderExists as authoritative even when pre-create list missed it. `--idempotent` recovers via re-list of all (including `includeHiddenFolders=true`) children. |
+| R12 | Bearer expires mid-recursive-walk                                        | P3         | 401-retry-once envelope in `doRequest` transparently recovers on the failing page request; subsequent pages use the refreshed token (mutable session). Verified by unit test in P8.                    |
+| R13 | Token / cookie value leak in error body snippets                         | P3         | `throwForResponse` already runs bodies through `truncateAndRedactBody` (unchanged). Folder code does not bypass it. AC-NO-SECRET-LEAK-FOLDERS asserts.                                                 |
+| R14 | Move response body empty / `Id` missing on some tenant                   | P5d        | Treat empty `Id` in response as `UpstreamError('UPSTREAM_HTTP_200', 'move response missing new id')`; entry lands in `failed[]` under `--continue-on-error`.                                           |
+| R15 | Follow-up rename / delete requests slip in accidentally                  | all        | NG1 / NG2 enforced by scope: no `PATCH` or `DELETE` helper added to `OutlookClient` in this plan.                                                                                                      |
 
 ---
 
@@ -833,7 +831,7 @@ Claude can execute the following at each phase boundary:
 ### Compile-time
 
 - `cd /Users/giorgosmarinos/aiwork/coding-platform/outlook-tool && npx tsc
-  --noEmit` — must return exit 0 at every phase boundary.
+--noEmit` — must return exit 0 at every phase boundary.
 
 ### Unit tests
 
@@ -842,7 +840,7 @@ Claude can execute the following at each phase boundary:
   `listAll` specs).
 - At P4 boundary: `npm test -- folders-resolver` passes.
 - At P5 boundary: `npm test -- list-folders find-folder create-folder
-  move-mail list-mail-folder-id` passes.
+move-mail list-mail-folder-id` passes.
 
 ### Build
 
@@ -871,19 +869,19 @@ Recommended order for a manual smoke pass:
 7. `outlook-cli move-mail <any-inbox-message-id> --to "<smoke-folder>"` →
    exit 0, `moved[0].newId != moved[0].sourceId`.
 8. `outlook-cli --log-file /tmp/outlook-cli-smoke.log list-folders
-   --recursive --table` — the log file must not contain `Bearer ` or
+--recursive --table` — the log file must not contain `Bearer ` or
    `Cookie:` (AC-NO-SECRET-LEAK-FOLDERS).
 
 ### Documentation grep checks
 
 - `grep -c "<list-folders>\|<find-folder>\|<create-folder>\|<move-mail>"
-  CLAUDE.md` → `4`.
+CLAUDE.md` → `4`.
 - `grep -n "FR-008\|FR-009\|FR-010\|FR-011"
-  docs/design/project-functions.MD` → four hits.
+docs/design/project-functions.MD` → four hits.
 - `grep -n "src/folders/resolver.ts"
-  docs/design/project-design.md` → at least one hit.
+docs/design/project-design.md` → at least one hit.
 - `grep -n "CollisionError\|FOLDER_ALREADY_EXISTS"
-  src/config/errors.ts src/cli.ts` → hits in both files.
+src/config/errors.ts src/cli.ts` → hits in both files.
 
 ---
 

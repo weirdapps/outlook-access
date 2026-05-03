@@ -161,10 +161,24 @@ Accept: application/json
 {
   "@odata.context": "https://outlook.office.com/api/v2.0/$metadata#Me/MailFolders",
   "value": [
-    { "Id": "AAMkAGI...Inbox",  "DisplayName": "Inbox",   "ParentFolderId": "AAMkAGI...root",
-      "ChildFolderCount": 3, "UnreadItemCount": 12, "TotalItemCount": 402, "WellKnownName": "inbox" },
-    { "Id": "AAMkAGI...Sent",   "DisplayName": "Sent Items", "ParentFolderId": "AAMkAGI...root",
-      "ChildFolderCount": 0, "UnreadItemCount": 0,  "TotalItemCount": 58,  "WellKnownName": "sentitems" }
+    {
+      "Id": "AAMkAGI...Inbox",
+      "DisplayName": "Inbox",
+      "ParentFolderId": "AAMkAGI...root",
+      "ChildFolderCount": 3,
+      "UnreadItemCount": 12,
+      "TotalItemCount": 402,
+      "WellKnownName": "inbox"
+    },
+    {
+      "Id": "AAMkAGI...Sent",
+      "DisplayName": "Sent Items",
+      "ParentFolderId": "AAMkAGI...root",
+      "ChildFolderCount": 0,
+      "UnreadItemCount": 0,
+      "TotalItemCount": 58,
+      "WellKnownName": "sentitems"
+    }
   ],
   "@odata.nextLink": "https://outlook.office.com/api/v2.0/me/MailFolders?$top=100&$skip=100&$select=..."
 }
@@ -298,8 +312,8 @@ message resource with a **new** `Id`.
     mapping explicitly. Refined spec §5.4 mandates the `{sourceId, newId}`
     pair per move — that's the required mitigation.
   - No native `$batch` support in v2.0 (refined NG4): N messages = N requests
-    + N round-trips. The partial-failure shape (`moved[] / failed[] /
-    summary`) mirrors `download-attachments`.
+    - N round-trips. The partial-failure shape (`moved[] / failed[] /
+summary`) mirrors `download-attachments`.
 - **Failure modes**
   - Source message already moved by another client → 404 on source id. Maps
     to `UPSTREAM_HTTP_404` exit 5 (or absorbed into `failed[]` under
@@ -472,7 +486,7 @@ Justification (why this set, not the alternatives):
    `resolveFolder` or `createFolderPath`; no duplicate logic.
 
 3. **Surfaces the new-id mapping for move explicitly.** The `moved[] /
-   failed[] / summary` shape is the direct mitigation for the "scripts chain
+failed[] / summary` shape is the direct mitigation for the "scripts chain
    old id to new id" footgun. It's also the exact blueprint already used by
    `download-attachments` (`saved[] / skipped[]`), so the formatter and
    failure-accumulation code patterns carry over.
@@ -514,7 +528,7 @@ Risks the implementer must actively handle:
    §7) is a per-folder-children bound, not a whole-tree bound. A pathological
    tree could still fan out hundreds of `GET`s. The command must warn in
    stderr after, say, 500 total requests, and surface a fatal
-   `UPSTREAM_PAGINATION_LIMIT` if a *single* level exceeds 50 pages. Keep
+   `UPSTREAM_PAGINATION_LIMIT` if a _single_ level exceeds 50 pages. Keep
    the tree fan-out visible.
 
 5. **Secrets in error bodies.** `POST /MailFolders` / `POST /move` echo request
@@ -555,7 +569,7 @@ Reasoning:
   `JSON.stringify(body)`. The existing `buildHeaders` returns a fresh object
   per request, so adding `Content-Type` only on POST is safe.
 - `listAll<T>(path, query?)` issues the first `GET` with `query`, then for
-  each subsequent page it follows the *full* URL in `@odata.nextLink` (which
+  each subsequent page it follows the _full_ URL in `@odata.nextLink` (which
   already contains `$skip` / `$skiptoken`, so we do NOT re-apply `query`). A
   page counter gates the 50-cap; on overflow it throws
   `ApiError{code: 'PAGINATION_LIMIT'}` which `mapHttpError` maps to
@@ -593,7 +607,7 @@ Reasoning:
 - `resolveFolder` takes the same `OutlookClient` that commands already own;
   no extra wiring.
 - Every resolver path that detects "not found" throws `UpstreamError{code:
-  'UPSTREAM_FOLDER_NOT_FOUND'}`. Every path that detects "ambiguity" throws
+'UPSTREAM_FOLDER_NOT_FOUND'}`. Every path that detects "ambiguity" throws
   `UsageError{code: 'FOLDER_AMBIGUOUS'}` (unless `firstMatch` is set). Both
   mapping rules are refined spec §10.
 
@@ -606,11 +620,11 @@ Reasoning:
 
 - The refined spec §13 open question asks whether to route folder collisions
   through `IoError` or a new class. A new class is cleaner because the cause
-  is *not* filesystem IO (the existing exit-6 path) and because new callers
+  is _not_ filesystem IO (the existing exit-6 path) and because new callers
   (`cli.ts formatErrorJson` / `exitCodeFor`) gain a discriminated
   `instanceof CollisionError` branch with no ambiguity.
 - One-line addition to `exitCodeFor` (`if (err instanceof CollisionError)
-  return 6`) and `formatErrorJson` (serialize `{code, path?, ...}`).
+return 6`) and `formatErrorJson` (serialize `{code, path?, ...}`).
 - If the plan phase decides against a new class, the fallback is `IoError`
   with a folder-specific code. Both preserve exit 6.
 
@@ -663,7 +677,7 @@ constants in `cli.ts` next to `LIST_MAIL_COLUMNS`:
 - `LIST_FOLDERS_COLUMNS` — `Path | Unread | Total | Children | Id` (no
   `maxWidth` on `Id`).
 - `CREATE_FOLDER_COLUMNS` — applied to `result.created`: `Path | Id |
-  PreExisting`.
+PreExisting`.
 - `MOVE_MAIL_COLUMNS` — `Source Id | New Id | Status | Error`.
 
 `find-folder` returns a single object; the current `emitResult` in `cli.ts`
@@ -676,15 +690,15 @@ spec's "two-line key/value" table for `find-folder` becomes critical.
 Additions per refined spec §10 (no new exit codes, new codes on existing
 classes):
 
-| Class                      | New code                          | Exit |
-| -------------------------- | --------------------------------- | ---- |
-| `UsageError`               | `FOLDER_AMBIGUOUS`                | 2    |
-| `UsageError`               | `FOLDER_MISSING_PARENT`           | 2    |
-| `UsageError`               | `FOLDER_PATH_INVALID`             | 2    |
-| `UpstreamError`            | `UPSTREAM_FOLDER_NOT_FOUND`       | 5    |
-| `UpstreamError`            | `UPSTREAM_FOLDER_AMBIGUOUS`       | 5    |
-| `UpstreamError`            | `UPSTREAM_PAGINATION_LIMIT`       | 5    |
-| `CollisionError` (new)     | `FOLDER_ALREADY_EXISTS`           | 6    |
+| Class                  | New code                    | Exit |
+| ---------------------- | --------------------------- | ---- |
+| `UsageError`           | `FOLDER_AMBIGUOUS`          | 2    |
+| `UsageError`           | `FOLDER_MISSING_PARENT`     | 2    |
+| `UsageError`           | `FOLDER_PATH_INVALID`       | 2    |
+| `UpstreamError`        | `UPSTREAM_FOLDER_NOT_FOUND` | 5    |
+| `UpstreamError`        | `UPSTREAM_FOLDER_AMBIGUOUS` | 5    |
+| `UpstreamError`        | `UPSTREAM_PAGINATION_LIMIT` | 5    |
+| `CollisionError` (new) | `FOLDER_ALREADY_EXISTS`     | 6    |
 
 `AuthError` and `IoError` unchanged.
 
@@ -702,9 +716,9 @@ redact rules are needed.
 Two edits:
 
 1. `formatErrorJson` (`src/cli.ts:297`) — add an `if (err instanceof
-   CollisionError)` branch that serializes `{code, path?, parentId?}`.
+CollisionError)` branch that serializes `{code, path?, parentId?}`.
 2. `exitCodeFor` (`src/cli.ts:359`) — add `if (err instanceof
-   CollisionError) return 6`.
+CollisionError) return 6`.
 
 Both are single-line additions; the existing `OutlookCliError` fallback
 already covers `exitCode` for unknown subclasses but explicit branches make
@@ -714,20 +728,20 @@ the JSON shape deterministic.
 
 ## 5. Risk register
 
-| Risk                                                                                       | Likelihood | Impact | Mitigation                                                                                                                             |
-| ------------------------------------------------------------------------------------------ | ---------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Outlook returns **400** (not 409) on duplicate-name create                                 | Medium     | Medium | Inspect upstream OData `code` string (`ErrorFolderExists`) on both 400 and 409; map both to `FOLDER_ALREADY_EXISTS` when `--idempotent`. Research topic §6.2. |
-| `/move` `DestinationId` rejects a well-known alias on some tenant                          | Low-Medium | Low    | Default: resolve alias → id client-side before calling `/move`. Only use alias pass-through when an explicit `--raw-alias` flag is set (not part of v1).        |
-| `@odata.nextLink` points off-host after a redirect                                          | Very Low   | High   | Reject `nextLink` that is not `https://outlook.office.com/...`; raise `UPSTREAM_PAGINATION_LIMIT` with explanatory message.                                  |
-| Recursive walk hits 429 mid-tree                                                           | Medium     | Low    | Existing `mapHttpError` surfaces `UPSTREAM_HTTP_429` with `Retry-After`. No auto-retry in v1 (consistent with rest of tool). User re-runs.                  |
-| Folder DisplayName contains a raw `/` that the user forgot to escape                        | Medium     | Medium | Resolver raises `UPSTREAM_FOLDER_NOT_FOUND` on the wrong segment; help text on `find-folder` lists the escape rules. AC-PATH-ESCAPE covers the happy path.   |
-| Ambiguous path matches both a user folder and a well-known alias at the root               | Low        | Medium | Spec §6.2 pins "well-known wins at root"; user must pass `--parent MsgFolderRoot --first-match` to reach a shadowed user folder.                            |
-| `POST /move` succeeds but the response body is empty (tenant variant)                       | Very Low   | Medium | Treat an empty/absent `Id` in the response as `UPSTREAM_HTTP_<status>` with message "move response missing new id"; scripts see `failed[]` not `moved[]`.    |
-| Pagination cap hit on a legitimate huge tree                                                | Low        | Low    | `UPSTREAM_PAGINATION_LIMIT` exit 5 with an actionable message ("use `--parent <sub-folder>` to walk a smaller subtree"). Documented in help text.            |
-| Concurrent `create-folder` runs collide on the same leaf                                    | Very Low   | Low    | 409/400 branch re-lists and returns the existing id under `--idempotent`; without `--idempotent`, the user sees an accurate collision error (desired).      |
-| Bearer token expires mid-recursive-walk                                                    | Low        | Medium | Existing 401-retry-once envelope handles it transparently; the current call is retried after re-auth, subsequent pages use the new token (mutable session). |
-| Hidden-by-default folders leak when `$select` lacks `IsHidden`                             | Low        | Low    | Always include `IsHidden` in the default `$select`; resolver filters at the materialization boundary unless `--include-hidden` is set.                      |
-| `--first-match` silently hides the "real" target                                           | Low        | Medium | Flag is documented as a foot-gun; tests include `AC-FOLDER-AMBIGUOUS` without `--first-match` to ensure exit 2 is the default.                              |
+| Risk                                                                         | Likelihood | Impact | Mitigation                                                                                                                                                    |
+| ---------------------------------------------------------------------------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Outlook returns **400** (not 409) on duplicate-name create                   | Medium     | Medium | Inspect upstream OData `code` string (`ErrorFolderExists`) on both 400 and 409; map both to `FOLDER_ALREADY_EXISTS` when `--idempotent`. Research topic §6.2. |
+| `/move` `DestinationId` rejects a well-known alias on some tenant            | Low-Medium | Low    | Default: resolve alias → id client-side before calling `/move`. Only use alias pass-through when an explicit `--raw-alias` flag is set (not part of v1).      |
+| `@odata.nextLink` points off-host after a redirect                           | Very Low   | High   | Reject `nextLink` that is not `https://outlook.office.com/...`; raise `UPSTREAM_PAGINATION_LIMIT` with explanatory message.                                   |
+| Recursive walk hits 429 mid-tree                                             | Medium     | Low    | Existing `mapHttpError` surfaces `UPSTREAM_HTTP_429` with `Retry-After`. No auto-retry in v1 (consistent with rest of tool). User re-runs.                    |
+| Folder DisplayName contains a raw `/` that the user forgot to escape         | Medium     | Medium | Resolver raises `UPSTREAM_FOLDER_NOT_FOUND` on the wrong segment; help text on `find-folder` lists the escape rules. AC-PATH-ESCAPE covers the happy path.    |
+| Ambiguous path matches both a user folder and a well-known alias at the root | Low        | Medium | Spec §6.2 pins "well-known wins at root"; user must pass `--parent MsgFolderRoot --first-match` to reach a shadowed user folder.                              |
+| `POST /move` succeeds but the response body is empty (tenant variant)        | Very Low   | Medium | Treat an empty/absent `Id` in the response as `UPSTREAM_HTTP_<status>` with message "move response missing new id"; scripts see `failed[]` not `moved[]`.     |
+| Pagination cap hit on a legitimate huge tree                                 | Low        | Low    | `UPSTREAM_PAGINATION_LIMIT` exit 5 with an actionable message ("use `--parent <sub-folder>` to walk a smaller subtree"). Documented in help text.             |
+| Concurrent `create-folder` runs collide on the same leaf                     | Very Low   | Low    | 409/400 branch re-lists and returns the existing id under `--idempotent`; without `--idempotent`, the user sees an accurate collision error (desired).        |
+| Bearer token expires mid-recursive-walk                                      | Low        | Medium | Existing 401-retry-once envelope handles it transparently; the current call is retried after re-auth, subsequent pages use the new token (mutable session).   |
+| Hidden-by-default folders leak when `$select` lacks `IsHidden`               | Low        | Low    | Always include `IsHidden` in the default `$select`; resolver filters at the materialization boundary unless `--include-hidden` is set.                        |
+| `--first-match` silently hides the "real" target                             | Low        | Medium | Flag is documented as a foot-gun; tests include `AC-FOLDER-AMBIGUOUS` without `--first-match` to ensure exit 2 is the default.                                |
 
 ---
 
@@ -754,7 +768,7 @@ tenant plus cross-checking Microsoft docs.
     `DeletedItems`; `Archive` / `JunkEmail` / `Outbox` may or may not be
     accepted — tenant-dependent).
   - Microsoft Graph equivalent (`POST /me/messages/{id}/move
-    {"destinationId":"archive"}` lowercased on Graph) for cross-reference.
+{"destinationId":"archive"}` lowercased on Graph) for cross-reference.
 - **Depth**: Overview (one empirical call + one doc cross-ref is enough).
 - **Relevance**: Determines whether §4.2's `resolveFolder` is unconditionally
   called for every `--to` value, or short-circuits when the value is an alias.
@@ -791,8 +805,8 @@ tenant plus cross-checking Microsoft docs.
   `listAll<T>` helper is cheap and avoids a class of subtle bugs.
 - **Focus**:
   - Live probe: `GET /api/v2.0/me/MailFolders?$top=2` against an account with
-    >2 top-level folders. Inspect `@odata.nextLink` — is it `...?$top=2&$skip=2`?
-    `...?$skiptoken=...`? Something else?
+    > 2 top-level folders. Inspect `@odata.nextLink` — is it `...?$top=2&$skip=2`?
+    > `...?$skiptoken=...`? Something else?
   - Follow the link verbatim (no query rewriting) and confirm the next page
     advances correctly.
   - Test with `$top=1` (boundary) and with `$top=100` (request page larger
@@ -806,7 +820,7 @@ tenant plus cross-checking Microsoft docs.
 - **Relevance**: Determines the exact loop shape of `listAll<T>`. If
   `@odata.nextLink` is always self-contained (the common case), the helper
   is trivial: `while (url) { page = GET url; yield page.value; url =
-  page['@odata.nextLink'] }`. If the tenant returns `$skiptoken`-based
+page['@odata.nextLink'] }`. If the tenant returns `$skiptoken`-based
   cursors that require the caller to remember `$top`, the helper needs to
   preserve the original query bag. This topic is the single gating item for
   `list-folders --recursive`.
@@ -834,16 +848,16 @@ tenant plus cross-checking Microsoft docs.
 
 ## References
 
-| # | Source                                                                                              | URL                                                                                                                     | What was learned                                                                                                                                                 |
-| - | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 | Microsoft Docs — Outlook Mail REST v2.0 — folders                                                   | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/mail-rest-operations          | Endpoint paths for `/me/MailFolders`, `/me/MailFolders/{id}/childfolders`, `POST` body shape `{"DisplayName": "..."}`, well-known alias tokens accepted in the URL path. |
-| 2 | Microsoft Docs — Outlook REST v2 — Move message                                                     | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/message-rest-operations       | `POST /me/messages/{id}/move` body shape `{"DestinationId": "..."}`, response returns the moved message with a NEW `Id`, alias acceptance in `DestinationId` (historical; research topic §6.1 needed to confirm current tenant behaviour). |
-| 3 | Microsoft Graph — Create MailFolder (schema-equivalent)                                             | https://learn.microsoft.com/en-us/graph/api/user-post-mailfolders?view=graph-rest-1.0                                    | Collision error code `ErrorFolderExists` on duplicate-name create; error body shape `{ "error": { "code": "...", "message": "..." } }`. Graph equivalent cross-referenced because v2.0 docs are sparse on the error body. |
-| 4 | Microsoft Graph — Move message (schema-equivalent)                                                  | https://learn.microsoft.com/en-us/graph/api/message-move?view=graph-rest-1.0                                             | Confirms the "new id after move" semantics on Graph; v2.0 behaviour is identical. Used to corroborate refined spec §5.4 `moved[{sourceId,newId}]` requirement. |
-| 5 | Microsoft Graph — MailFolder list children                                                          | https://learn.microsoft.com/en-us/graph/api/mailfolder-list-childfolders?view=graph-rest-1.0                             | `$top` / `@odata.nextLink` paging shape on `/childFolders`. Pinning v2.0 parity is research topic §6.3. |
-| 6 | OData v4 Specification — nextLink                                                                   | https://docs.oasis-open.org/odata/odata/v4.01/os/part1-protocol/odata-v4.01-os-part1-protocol.html#sec_ServerDrivenPaging | `@odata.nextLink` is an absolute URL that the client must follow verbatim; generic OData behaviour used to anchor the expected paging semantics. |
-| 7 | `codebase-scan-folders.md` (this project)                                                           | `docs/reference/codebase-scan-folders.md`                                                                               | Exact plug-in points: `src/cli.ts:486-507` (list-mail registration), `src/commands/list-mail.ts:37-104` (resolver integration site), `src/http/outlook-client.ts:80-117` (401 envelope + generalize to `doRequest`). |
-| 8 | `investigation-outlook-cli.md` (this project)                                                       | `docs/design/investigation-outlook-cli.md`                                                                              | Calibration for tone, structure, risk-register shape, technical-research-guidance shape, error-code taxonomy used here. |
+| #   | Source                                                  | URL                                                                                                                       | What was learned                                                                                                                                                                                                                           |
+| --- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Microsoft Docs — Outlook Mail REST v2.0 — folders       | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/mail-rest-operations            | Endpoint paths for `/me/MailFolders`, `/me/MailFolders/{id}/childfolders`, `POST` body shape `{"DisplayName": "..."}`, well-known alias tokens accepted in the URL path.                                                                   |
+| 2   | Microsoft Docs — Outlook REST v2 — Move message         | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/message-rest-operations         | `POST /me/messages/{id}/move` body shape `{"DestinationId": "..."}`, response returns the moved message with a NEW `Id`, alias acceptance in `DestinationId` (historical; research topic §6.1 needed to confirm current tenant behaviour). |
+| 3   | Microsoft Graph — Create MailFolder (schema-equivalent) | https://learn.microsoft.com/en-us/graph/api/user-post-mailfolders?view=graph-rest-1.0                                     | Collision error code `ErrorFolderExists` on duplicate-name create; error body shape `{ "error": { "code": "...", "message": "..." } }`. Graph equivalent cross-referenced because v2.0 docs are sparse on the error body.                  |
+| 4   | Microsoft Graph — Move message (schema-equivalent)      | https://learn.microsoft.com/en-us/graph/api/message-move?view=graph-rest-1.0                                              | Confirms the "new id after move" semantics on Graph; v2.0 behaviour is identical. Used to corroborate refined spec §5.4 `moved[{sourceId,newId}]` requirement.                                                                             |
+| 5   | Microsoft Graph — MailFolder list children              | https://learn.microsoft.com/en-us/graph/api/mailfolder-list-childfolders?view=graph-rest-1.0                              | `$top` / `@odata.nextLink` paging shape on `/childFolders`. Pinning v2.0 parity is research topic §6.3.                                                                                                                                    |
+| 6   | OData v4 Specification — nextLink                       | https://docs.oasis-open.org/odata/odata/v4.01/os/part1-protocol/odata-v4.01-os-part1-protocol.html#sec_ServerDrivenPaging | `@odata.nextLink` is an absolute URL that the client must follow verbatim; generic OData behaviour used to anchor the expected paging semantics.                                                                                           |
+| 7   | `codebase-scan-folders.md` (this project)               | `docs/reference/codebase-scan-folders.md`                                                                                 | Exact plug-in points: `src/cli.ts:486-507` (list-mail registration), `src/commands/list-mail.ts:37-104` (resolver integration site), `src/http/outlook-client.ts:80-117` (401 envelope + generalize to `doRequest`).                       |
+| 8   | `investigation-outlook-cli.md` (this project)           | `docs/design/investigation-outlook-cli.md`                                                                                | Calibration for tone, structure, risk-register shape, technical-research-guidance shape, error-code taxonomy used here.                                                                                                                    |
 
 ## Original Request
 

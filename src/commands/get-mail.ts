@@ -5,11 +5,7 @@
 
 import type { CliConfig } from '../config/config';
 import type { OutlookClient } from '../http/outlook-client';
-import type {
-  AttachmentSummary,
-  Message,
-  ODataListResponse,
-} from '../http/types';
+import type { AttachmentSummary, Message, ODataListResponse } from '../http/types';
 import type { SessionFile } from '../session/schema';
 
 import { ensureSession, mapHttpError, UsageError } from './list-mail';

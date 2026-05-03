@@ -106,9 +106,7 @@ export async function run(
   const hasHtml = typeof opts.html === 'string' && opts.html.length > 0;
   const hasText = typeof opts.text === 'string' && opts.text.length > 0;
   if (!hasHtml && !hasText) {
-    throw new UsageError(
-      `${kind}: at least one of --html <file> or --text <file> is required`,
-    );
+    throw new UsageError(`${kind}: at least one of --html <file> or --text <file> is required`);
   }
 
   // -------- User body --------
@@ -236,23 +234,17 @@ export async function run(
   if (opts.ccSelf !== false) {
     const selfUpn = session.account?.upn;
     if (typeof selfUpn === 'string' && selfUpn.length > 0) {
-      const existingCc = kind === 'forward'
-        ? (patch.CcRecipients ?? [])
-        : (draft.CcRecipients ?? []);
+      const existingCc =
+        kind === 'forward' ? (patch.CcRecipients ?? []) : (draft.CcRecipients ?? []);
       const lower = selfUpn.toLowerCase();
-      const alreadyInCc = existingCc.some(
-        (r) => r.EmailAddress.Address.toLowerCase() === lower,
-      );
+      const alreadyInCc = existingCc.some((r) => r.EmailAddress.Address.toLowerCase() === lower);
       if (alreadyInCc) {
         // Preserve existing CC list in the patch so other patched fields
         // don't accidentally clear it (PATCH semantics: omitted = unchanged,
         // present = replace).
         patch.CcRecipients = existingCc;
       } else {
-        patch.CcRecipients = [
-          ...existingCc,
-          { EmailAddress: { Address: selfUpn } },
-        ];
+        patch.CcRecipients = [...existingCc, { EmailAddress: { Address: selfUpn } }];
       }
     }
   }
@@ -361,20 +353,14 @@ export function composeReplyBody(
   userBodyHtml: string,
   signatureHtml: string,
 ): string {
-  const sigBlock = signatureHtml.length > 0
-    ? `\n<br><br>${signatureHtml}`
-    : '';
+  const sigBlock = signatureHtml.length > 0 ? `\n<br><br>${signatureHtml}` : '';
   const userBlock = `${userBodyHtml}${sigBlock}\n<br>`;
 
   // Look for <body ...> tag
   const bodyMatch = quotedDraftHtml.match(/<body\b[^>]*>/i);
   if (bodyMatch && typeof bodyMatch.index === 'number') {
     const bodyTagEnd = bodyMatch.index + bodyMatch[0].length;
-    return (
-      quotedDraftHtml.slice(0, bodyTagEnd) +
-      userBlock +
-      quotedDraftHtml.slice(bodyTagEnd)
-    );
+    return quotedDraftHtml.slice(0, bodyTagEnd) + userBlock + quotedDraftHtml.slice(bodyTagEnd);
   }
 
   // No <body> tag — prepend.
@@ -410,9 +396,7 @@ async function readBodyFile(
     return buf.toString('utf-8');
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new UsageError(
-      `${kind}: ${flagName} file read failed (${filePath}): ${msg}`,
-    );
+    throw new UsageError(`${kind}: ${flagName} file read failed (${filePath}): ${msg}`);
   }
 }
 

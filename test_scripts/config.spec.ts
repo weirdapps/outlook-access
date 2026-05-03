@@ -120,25 +120,19 @@ describe('loadConfig', () => {
   it('rejects negative integers for mandatory timeouts', () => {
     process.env[ENV.LOGIN_TIMEOUT_MS] = '60000';
     process.env[ENV.CHROME_CHANNEL] = 'chrome';
-    expect(() => loadConfig({ httpTimeoutMs: -100 })).toThrowError(
-      ConfigurationError,
-    );
+    expect(() => loadConfig({ httpTimeoutMs: -100 })).toThrowError(ConfigurationError);
   });
 
   it('rejects zero for mandatory timeouts', () => {
     process.env[ENV.LOGIN_TIMEOUT_MS] = '60000';
     process.env[ENV.CHROME_CHANNEL] = 'chrome';
-    expect(() => loadConfig({ httpTimeoutMs: 0 })).toThrowError(
-      ConfigurationError,
-    );
+    expect(() => loadConfig({ httpTimeoutMs: 0 })).toThrowError(ConfigurationError);
   });
 
   it('rejects NaN via CLI flag (not a finite integer)', () => {
     process.env[ENV.LOGIN_TIMEOUT_MS] = '60000';
     process.env[ENV.CHROME_CHANNEL] = 'chrome';
-    expect(() => loadConfig({ httpTimeoutMs: Number.NaN })).toThrowError(
-      ConfigurationError,
-    );
+    expect(() => loadConfig({ httpTimeoutMs: Number.NaN })).toThrowError(ConfigurationError);
   });
 
   it('populates optional fields with defaults when nothing overrides them', () => {
@@ -148,13 +142,9 @@ describe('loadConfig', () => {
 
     const cfg = loadConfig({});
     expect(typeof cfg.sessionFilePath).toBe('string');
-    expect(cfg.sessionFilePath.endsWith('/.outlook-cli/session.json')).toBe(
-      true,
-    );
+    expect(cfg.sessionFilePath.endsWith('/.outlook-cli/session.json')).toBe(true);
     expect(typeof cfg.profileDir).toBe('string');
-    expect(cfg.profileDir.endsWith('/.outlook-cli/playwright-profile')).toBe(
-      true,
-    );
+    expect(cfg.profileDir.endsWith('/.outlook-cli/playwright-profile')).toBe(true);
     expect(typeof cfg.tz).toBe('string');
     expect(cfg.tz.length).toBeGreaterThan(0);
     expect(cfg.outputMode).toBe('json');
@@ -179,11 +169,7 @@ describe('loadConfig', () => {
     process.env[ENV.HTTP_TIMEOUT_MS] = '5000';
     process.env[ENV.LOGIN_TIMEOUT_MS] = '60000';
     process.env[ENV.CHROME_CHANNEL] = 'chrome';
-    expect(() => loadConfig({ listMailTop: 0 })).toThrowError(
-      ConfigurationError,
-    );
-    expect(() => loadConfig({ listMailTop: 1001 })).toThrowError(
-      ConfigurationError,
-    );
+    expect(() => loadConfig({ listMailTop: 0 })).toThrowError(ConfigurationError);
+    expect(() => loadConfig({ listMailTop: 1001 })).toThrowError(ConfigurationError);
   });
 });

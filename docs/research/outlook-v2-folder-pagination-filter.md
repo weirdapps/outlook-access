@@ -11,17 +11,17 @@ Motivation: sizing `MAX_FOLDER_PAGES` / `MAX_FOLDERS_VISITED` caps and designing
 
 ## 1. TL;DR Parameter Table
 
-| Parameter / Feature | Supported? | Default | Max | Notes |
-|---|---|---|---|---|
-| `@odata.nextLink` in response | **Yes** | — | — | Absolute URL; emitted only when more pages exist |
-| `$top` (client page-size hint) | **Yes** | **10** | **~1000** (practical) | Server may honour a lower cap silently; see §3 |
-| `$skip` (offset) | **Yes** | — | — | Outlook/Mail APIs use `$skip`-based nextLinks, not `$skiptoken` |
-| `$select` | **Yes** | All fields | — | Always use; reduces payload to ~120-200 bytes per folder |
-| `$filter=DisplayName eq '...'` | **Yes (v2.0 schema marks it Filterable)** | — | — | Works in practice but tenant-to-tenant reliability is medium; see §4 |
-| `$filter=startswith(DisplayName,'...')` | **Yes** (OData standard function, same field) | — | — | Same caveats as `eq` |
-| `includeHiddenFolders=true` | **Yes** | false | — | Custom query param, not OData; use alongside `$filter` |
-| `$orderby` | **Yes** | undefined | — | Supported on filterable scalar fields |
-| `$count` | **Yes** | — | — | Append `/$count` or `?$count=true` |
+| Parameter / Feature                     | Supported?                                    | Default    | Max                   | Notes                                                                |
+| --------------------------------------- | --------------------------------------------- | ---------- | --------------------- | -------------------------------------------------------------------- |
+| `@odata.nextLink` in response           | **Yes**                                       | —          | —                     | Absolute URL; emitted only when more pages exist                     |
+| `$top` (client page-size hint)          | **Yes**                                       | **10**     | **~1000** (practical) | Server may honour a lower cap silently; see §3                       |
+| `$skip` (offset)                        | **Yes**                                       | —          | —                     | Outlook/Mail APIs use `$skip`-based nextLinks, not `$skiptoken`      |
+| `$select`                               | **Yes**                                       | All fields | —                     | Always use; reduces payload to ~120-200 bytes per folder             |
+| `$filter=DisplayName eq '...'`          | **Yes (v2.0 schema marks it Filterable)**     | —          | —                     | Works in practice but tenant-to-tenant reliability is medium; see §4 |
+| `$filter=startswith(DisplayName,'...')` | **Yes** (OData standard function, same field) | —          | —                     | Same caveats as `eq`                                                 |
+| `includeHiddenFolders=true`             | **Yes**                                       | false      | —                     | Custom query param, not OData; use alongside `$filter`               |
+| `$orderby`                              | **Yes**                                       | undefined  | —                     | Supported on filterable scalar fields                                |
+| `$count`                                | **Yes**                                       | —          | —                     | Append `/$count` or `?$count=true`                                   |
 
 **Bottom line**: `@odata.nextLink` is cursor-style with a `$skip` offset baked in; follow
 it verbatim. `$filter=DisplayName eq 'X'` is schema-supported but must be treated as an
@@ -56,8 +56,8 @@ When the last page is returned `@odata.nextLink` is **absent** (not present as `
    of the next request.
 
 2. **`$skip`-based (not `$skiptoken`)** — the Microsoft Graph documentation explicitly
-   states: *"Some Microsoft Graph APIs, like Outlook Mail and Calendars (message, event,
-   and calendar), use `$skip` to implement paging."* This contrasts with directory objects
+   states: _"Some Microsoft Graph APIs, like Outlook Mail and Calendars (message, event,
+   and calendar), use `$skip` to implement paging."_ This contrasts with directory objects
    (users, groups) which use `$skiptoken`. For Mail folder collections the offset integer
    in `@odata.nextLink` is a plain `$skip=N` value.
 
@@ -112,7 +112,7 @@ practice:
 - **Safe practical cap**: use `$top=250` as a conservative default. This avoids any
   undocumented per-tenant limit, keeps response payloads manageable (250 × ~200 bytes =
   ~50 KB), and reduces the number of calls for most real-world mailboxes (few users have
-  >250 direct children at a single level).
+  > 250 direct children at a single level).
 - If a tenant silently ignores `$top` and returns fewer items, the `@odata.nextLink`
   mechanism compensates automatically — the loop continues regardless.
 
@@ -143,14 +143,14 @@ Next pages:  GET https://outlook.office.com/api/v2.0/me/MailFolders/{id}/childfo
 The official v2.0 resource schema table for `MailFolder` explicitly marks `DisplayName`
 as **Filterable: Yes**:
 
-| Property | Type | Writable? | Filterable? |
-|---|---|---|---|
-| DisplayName | String | Yes | **Yes** |
-| ChildFolderCount | Int32 | No | Yes |
-| TotalItemCount | Int32 | No | Yes |
-| UnreadItemCount | Int32 | No | Yes |
-| Id | String | No | **No** |
-| ParentFolderId | String | No | **No** |
+| Property         | Type   | Writable? | Filterable? |
+| ---------------- | ------ | --------- | ----------- |
+| DisplayName      | String | Yes       | **Yes**     |
+| ChildFolderCount | Int32  | No        | Yes         |
+| TotalItemCount   | Int32  | No        | Yes         |
+| UnreadItemCount  | Int32  | No        | Yes         |
+| Id               | String | No        | **No**      |
+| ParentFolderId   | String | No        | **No**      |
 
 So the wire syntax is legal:
 
@@ -318,7 +318,7 @@ async listAll<T>(
 async function listChildren(
   client: OutlookClient,
   parentId: string,
-  opts: { top?: number; includeHidden?: boolean }
+  opts: { top?: number; includeHidden?: boolean },
 ): Promise<FolderSummary[]> {
   const query: Record<string, string> = {
     $select: 'Id,DisplayName,ParentFolderId,ChildFolderCount,UnreadItemCount,TotalItemCount',
@@ -330,7 +330,7 @@ async function listChildren(
   return client.listAll<FolderSummary>(
     `/me/MailFolders/${encodeURIComponent(parentId)}/childfolders`,
     query,
-    { top: opts.top ?? 250, maxPages: 50 }
+    { top: opts.top ?? 250, maxPages: 50 },
   );
 }
 ```
@@ -339,12 +339,12 @@ async function listChildren(
 
 ## 6. Recommended Caps
 
-| Cap | Recommended Value | Rationale |
-|---|---|---|
-| `$top` per page | **250** | Balances payload size (~50 KB/page) vs. round-trips. Safely below the practical 1000 limit. Server may return fewer; `@odata.nextLink` compensates. |
-| `maxPages` per collection (`MAX_FOLDER_PAGES`) | **50** | Bounds a single `listChildren` call to at most 50 × 250 = 12,500 folders at one level. No real mailbox has that many direct children; the cap stops runaway loops on pathological data. Maps to `UPSTREAM_PAGINATION_LIMIT` (exit 5) with an actionable message. |
-| Max total nodes visited during a recursive walk (`MAX_FOLDERS_VISITED`) | **5,000** | Across all levels of a `list-folders --recursive` tree walk. Each node costs one membership in the results array; at ~200 bytes/node this is ~1 MB of in-memory data. Exceeding this raises `UPSTREAM_PAGINATION_LIMIT` exit 5 with guidance to use `--parent` to narrow scope. |
-| Max path depth (`MAX_PATH_SEGMENTS`) | **16** | Already specified in `investigation-folders.md §4.2`. Bounds recursive resolver depth. |
+| Cap                                                                     | Recommended Value | Rationale                                                                                                                                                                                                                                                                       |
+| ----------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `$top` per page                                                         | **250**           | Balances payload size (~50 KB/page) vs. round-trips. Safely below the practical 1000 limit. Server may return fewer; `@odata.nextLink` compensates.                                                                                                                             |
+| `maxPages` per collection (`MAX_FOLDER_PAGES`)                          | **50**            | Bounds a single `listChildren` call to at most 50 × 250 = 12,500 folders at one level. No real mailbox has that many direct children; the cap stops runaway loops on pathological data. Maps to `UPSTREAM_PAGINATION_LIMIT` (exit 5) with an actionable message.                |
+| Max total nodes visited during a recursive walk (`MAX_FOLDERS_VISITED`) | **5,000**         | Across all levels of a `list-folders --recursive` tree walk. Each node costs one membership in the results array; at ~200 bytes/node this is ~1 MB of in-memory data. Exceeding this raises `UPSTREAM_PAGINATION_LIMIT` exit 5 with guidance to use `--parent` to narrow scope. |
+| Max path depth (`MAX_PATH_SEGMENTS`)                                    | **16**            | Already specified in `investigation-folders.md §4.2`. Bounds recursive resolver depth.                                                                                                                                                                                          |
 
 ### Sizing reasoning
 
@@ -361,14 +361,14 @@ async function listChildren(
 
 ## Assumptions & Scope
 
-| Assumption | Confidence | Impact if Wrong |
-|---|---|---|
-| v2.0 and Graph share the same Exchange Online paging backend | HIGH | No impact in practice; investigation-folders.md already scopes to v2.0 only |
-| Default page size for `mailFolders` is 10 | HIGH | Graph docs explicitly state "default page size (10 items)"; v2.0 inherits the same backend |
-| `@odata.nextLink` uses `$skip` (not `$skiptoken`) for Mail folder collections | HIGH | MS Graph docs explicitly call this out for "Outlook Mail and Calendars". If wrong, the helper's "follow verbatim" strategy still works — it just parses a different query param |
-| `DisplayName` is filterable (server-side `$filter`) | MEDIUM | Schema marks it Yes; real-world tenant reliability varies. Client-side fallback is primary strategy regardless |
-| Max `$top` for `childfolders` is effectively ~1000 | MEDIUM | Not officially documented for folders (only for messages). Using 250 keeps a safe margin |
-| `@odata.nextLink` is always absolute and on `outlook.office.com` | HIGH | OData spec mandates absolute URLs; investigation already mandates host validation |
+| Assumption                                                                    | Confidence | Impact if Wrong                                                                                                                                                                 |
+| ----------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v2.0 and Graph share the same Exchange Online paging backend                  | HIGH       | No impact in practice; investigation-folders.md already scopes to v2.0 only                                                                                                     |
+| Default page size for `mailFolders` is 10                                     | HIGH       | Graph docs explicitly state "default page size (10 items)"; v2.0 inherits the same backend                                                                                      |
+| `@odata.nextLink` uses `$skip` (not `$skiptoken`) for Mail folder collections | HIGH       | MS Graph docs explicitly call this out for "Outlook Mail and Calendars". If wrong, the helper's "follow verbatim" strategy still works — it just parses a different query param |
+| `DisplayName` is filterable (server-side `$filter`)                           | MEDIUM     | Schema marks it Yes; real-world tenant reliability varies. Client-side fallback is primary strategy regardless                                                                  |
+| Max `$top` for `childfolders` is effectively ~1000                            | MEDIUM     | Not officially documented for folders (only for messages). Using 250 keeps a safe margin                                                                                        |
+| `@odata.nextLink` is always absolute and on `outlook.office.com`              | HIGH       | OData spec mandates absolute URLs; investigation already mandates host validation                                                                                               |
 
 ### Explicitly out of scope
 
@@ -381,18 +381,18 @@ async function listChildren(
 
 ## References
 
-| # | Source | URL | Information Gathered |
-|---|---|---|---|
-| 1 | Microsoft Graph — List mailFolders | https://learn.microsoft.com/en-us/graph/api/user-list-mailfolders?view=graph-rest-1.0 | **Confirmed default page size = 10 items** (explicit tip in docs); `@odata.nextLink` emitted when collection > default page size; `includeHiddenFolders` query param |
-| 2 | Microsoft Graph — List childFolders | https://learn.microsoft.com/en-us/graph/api/mailfolder-list-childfolders?view=graph-rest-1.0 | Endpoint shape, `includeHiddenFolders`, OData query params supported, response shape with `isHidden` field |
-| 3 | Microsoft Graph — MailFolder resource | https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0 | Full well-known folder name list (archive, clutter, conflicts, conversationhistory, deleteditems, drafts, inbox, junkemail, localfailures, msgfolderroot, outbox, recoverableitemsdeletions, scheduled, searchfolders, sentitems, serverfailures, syncissues) |
-| 4 | Microsoft Graph — Paging | https://learn.microsoft.com/en-us/graph/paging | **Confirmed `$skip` (not `$skiptoken`) for Outlook Mail/Calendar APIs** explicitly; `@odata.nextLink` must be followed verbatim; DirectoryPageTokenNotFoundException error pattern for retry-token misuse |
-| 5 | Microsoft Graph — Query parameters | https://learn.microsoft.com/en-us/graph/query-parameters?view=graph-rest-1.0 | `$top`, `$skip`, `$filter`, `$select` syntax; single-quote escaping rule for `$filter` string values (`O''Brien`) |
-| 6 | Microsoft Graph docs-contrib — Paging with $skip | https://github.com/microsoftgraph/microsoft-graph-docs-contrib/blob/main/concepts/query-parameters.md | Code snippet context confirming `$skip` paging for Outlook mail/calendar; skipToken used by directory objects only |
-| 7 | Outlook REST v2.0 — MailFolder resource schema | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/complex-types-for-mail-contacts-calendar#FolderResource | **`DisplayName` Filterable: Yes**; `ChildFolderCount`, `TotalItemCount`, `UnreadItemCount` also filterable; `Id` and `ParentFolderId` are NOT filterable |
-| 8 | Outlook REST v2.0 — Mail operations | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/mail-rest-operations | Folder operations surface; well-known alias list for v2.0 (`Inbox`, `Drafts`, `SentItems`, `DeletedItems`); sample response showing `@odata.nextLink` with `$skip` |
-| 9 | OData v4 spec — Server-Driven Paging | https://docs.oasis-open.org/odata/odata/v4.01/os/part1-protocol/odata-v4.01-os-part1-protocol.html#sec_ServerDrivenPaging | `@odata.nextLink` is an absolute URL the client follows verbatim; server controls the cursor |
-| 10 | investigation-folders.md (this project) | docs/design/investigation-folders.md | Research motivation (§6 Topic 3); sample `@odata.nextLink` showing `$top=100&$skip=100` format confirmed independently |
+| #   | Source                                           | URL                                                                                                                                               | Information Gathered                                                                                                                                                                                                                                          |
+| --- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Microsoft Graph — List mailFolders               | https://learn.microsoft.com/en-us/graph/api/user-list-mailfolders?view=graph-rest-1.0                                                             | **Confirmed default page size = 10 items** (explicit tip in docs); `@odata.nextLink` emitted when collection > default page size; `includeHiddenFolders` query param                                                                                          |
+| 2   | Microsoft Graph — List childFolders              | https://learn.microsoft.com/en-us/graph/api/mailfolder-list-childfolders?view=graph-rest-1.0                                                      | Endpoint shape, `includeHiddenFolders`, OData query params supported, response shape with `isHidden` field                                                                                                                                                    |
+| 3   | Microsoft Graph — MailFolder resource            | https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0                                                              | Full well-known folder name list (archive, clutter, conflicts, conversationhistory, deleteditems, drafts, inbox, junkemail, localfailures, msgfolderroot, outbox, recoverableitemsdeletions, scheduled, searchfolders, sentitems, serverfailures, syncissues) |
+| 4   | Microsoft Graph — Paging                         | https://learn.microsoft.com/en-us/graph/paging                                                                                                    | **Confirmed `$skip` (not `$skiptoken`) for Outlook Mail/Calendar APIs** explicitly; `@odata.nextLink` must be followed verbatim; DirectoryPageTokenNotFoundException error pattern for retry-token misuse                                                     |
+| 5   | Microsoft Graph — Query parameters               | https://learn.microsoft.com/en-us/graph/query-parameters?view=graph-rest-1.0                                                                      | `$top`, `$skip`, `$filter`, `$select` syntax; single-quote escaping rule for `$filter` string values (`O''Brien`)                                                                                                                                             |
+| 6   | Microsoft Graph docs-contrib — Paging with $skip | https://github.com/microsoftgraph/microsoft-graph-docs-contrib/blob/main/concepts/query-parameters.md                                             | Code snippet context confirming `$skip` paging for Outlook mail/calendar; skipToken used by directory objects only                                                                                                                                            |
+| 7   | Outlook REST v2.0 — MailFolder resource schema   | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/complex-types-for-mail-contacts-calendar#FolderResource | **`DisplayName` Filterable: Yes**; `ChildFolderCount`, `TotalItemCount`, `UnreadItemCount` also filterable; `Id` and `ParentFolderId` are NOT filterable                                                                                                      |
+| 8   | Outlook REST v2.0 — Mail operations              | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/mail-rest-operations                                    | Folder operations surface; well-known alias list for v2.0 (`Inbox`, `Drafts`, `SentItems`, `DeletedItems`); sample response showing `@odata.nextLink` with `$skip`                                                                                            |
+| 9   | OData v4 spec — Server-Driven Paging             | https://docs.oasis-open.org/odata/odata/v4.01/os/part1-protocol/odata-v4.01-os-part1-protocol.html#sec_ServerDrivenPaging                         | `@odata.nextLink` is an absolute URL the client follows verbatim; server controls the cursor                                                                                                                                                                  |
+| 10  | investigation-folders.md (this project)          | docs/design/investigation-folders.md                                                                                                              | Research motivation (§6 Topic 3); sample `@odata.nextLink` showing `$top=100&$skip=100` format confirmed independently                                                                                                                                        |
 
 ### Recommended for Deep Reading
 

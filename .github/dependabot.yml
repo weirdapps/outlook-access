@@ -1,35 +1,35 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "UTC"
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'UTC'
     open-pull-requests-limit: 5
     commit-message:
-      prefix: "deps"
+      prefix: 'deps'
     labels:
-      - "dependencies"
-      - "npm"
+      - 'dependencies'
+      - 'npm'
     groups:
       minor-and-patch:
         patterns:
-          - "*"
+          - '*'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "monthly"
-      time: "09:00"
-      timezone: "UTC"
+      interval: 'monthly'
+      time: '09:00'
+      timezone: 'UTC'
     open-pull-requests-limit: 5
     commit-message:
-      prefix: "ci"
+      prefix: 'ci'
     labels:
-      - "dependencies"
-      - "github-actions"
+      - 'dependencies'
+      - 'github-actions'

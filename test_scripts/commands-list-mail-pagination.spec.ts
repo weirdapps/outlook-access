@@ -26,32 +26,55 @@ function buildFakeSession(): SessionFile {
     capturedAt: '2026-04-21T12:00:00.000Z',
     account: { upn: 'a@b.com', puid: '1', tenantId: 't' },
     bearer: {
-      token: JWT_SHAPED_TOKEN, expiresAt: FUTURE_ISO,
-      audience: 'https://outlook.office.com', scopes: ['Mail.Read'],
+      token: JWT_SHAPED_TOKEN,
+      expiresAt: FUTURE_ISO,
+      audience: 'https://outlook.office.com',
+      scopes: ['Mail.Read'],
     },
-    cookies: [{
-      name: 'C', value: 'v', domain: '.outlook.office.com', path: '/',
-      expires: -1, httpOnly: true, secure: true, sameSite: 'None',
-    }],
+    cookies: [
+      {
+        name: 'C',
+        value: 'v',
+        domain: '.outlook.office.com',
+        path: '/',
+        expires: -1,
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None',
+      },
+    ],
     anchorMailbox: 'PUID:1@t',
   };
 }
 
 function buildFakeConfig(): CliConfig {
   return {
-    httpTimeoutMs: 30_000, loginTimeoutMs: 300_000, chromeChannel: 'chrome',
-    sessionFilePath: '/tmp/x', profileDir: '/tmp/p', tz: 'UTC',
-    outputMode: 'json', listMailTop: 10, listMailFolder: 'Inbox',
-    bodyMode: 'text', calFrom: 'now', calTo: 'now + 7d',
-    quiet: true, noAutoReauth: false,
+    httpTimeoutMs: 30_000,
+    loginTimeoutMs: 300_000,
+    chromeChannel: 'chrome',
+    sessionFilePath: '/tmp/x',
+    profileDir: '/tmp/p',
+    tz: 'UTC',
+    outputMode: 'json',
+    listMailTop: 10,
+    listMailFolder: 'Inbox',
+    bodyMode: 'text',
+    calFrom: 'now',
+    calTo: 'now + 7d',
+    quiet: true,
+    noAutoReauth: false,
   };
 }
 
 function makeMessage(id: string): MessageSummary {
   return {
-    Id: id, Subject: 'x', From: { EmailAddress: { Name: 'n', Address: 'a@b' } },
-    ReceivedDateTime: '2026-04-22T00:00:00Z', HasAttachments: false,
-    IsRead: false, WebLink: 'https://example.com',
+    Id: id,
+    Subject: 'x',
+    From: { EmailAddress: { Name: 'n', Address: 'a@b' } },
+    ReceivedDateTime: '2026-04-22T00:00:00Z',
+    HasAttachments: false,
+    IsRead: false,
+    WebLink: 'https://example.com',
   } as unknown as MessageSummary;
 }
 
@@ -84,7 +107,9 @@ function makeDeps(client: StubClient): listMail.ListMailDeps {
     sessionPath: '/tmp/x',
     loadSession: async () => session,
     saveSession: async () => {},
-    doAuthCapture: async () => { throw new Error('not used'); },
+    doAuthCapture: async () => {
+      throw new Error('not used');
+    },
     createClient: () => client,
   };
 }
@@ -149,41 +174,44 @@ describe('list-mail --since / --until / --all / --max', () => {
       truncated: true,
     });
     await listMail.run(makeDeps(client), { all: true, max: 1 });
-    const stderrCall = stderr.mock.calls.find((c) =>
-      String(c[0]).includes('max_results_reached'),
-    );
+    const stderrCall = stderr.mock.calls.find((c) => String(c[0]).includes('max_results_reached'));
     expect(stderrCall).toBeDefined();
     stderr.mockRestore();
   });
 
   it('rejects --max < 1', async () => {
     const client = makeClient();
-    await expect(listMail.run(makeDeps(client), { all: true, max: 0 }))
-      .rejects.toThrow(UsageError);
-    await expect(listMail.run(makeDeps(client), { all: true, max: 0 }))
-      .rejects.toThrow(/positive integer/);
+    await expect(listMail.run(makeDeps(client), { all: true, max: 0 })).rejects.toThrow(UsageError);
+    await expect(listMail.run(makeDeps(client), { all: true, max: 0 })).rejects.toThrow(
+      /positive integer/,
+    );
   });
 
   it('rejects --max > 100000', async () => {
     const client = makeClient();
-    await expect(listMail.run(makeDeps(client), { all: true, max: 100_001 }))
-      .rejects.toThrow(/cannot exceed 100000/);
+    await expect(listMail.run(makeDeps(client), { all: true, max: 100_001 })).rejects.toThrow(
+      /cannot exceed 100000/,
+    );
   });
 
   it('rejects --since with malformed timestamp', async () => {
     const client = makeClient();
-    await expect(listMail.run(makeDeps(client), { since: 'yesterday' }))
-      .rejects.toThrow(UsageError);
-    await expect(listMail.run(makeDeps(client), { since: 'yesterday' }))
-      .rejects.toThrow(/ISO-8601/);
+    await expect(listMail.run(makeDeps(client), { since: 'yesterday' })).rejects.toThrow(
+      UsageError,
+    );
+    await expect(listMail.run(makeDeps(client), { since: 'yesterday' })).rejects.toThrow(
+      /ISO-8601/,
+    );
   });
 
   it('rejects since >= until', async () => {
     const client = makeClient();
-    await expect(listMail.run(makeDeps(client), {
-      since: '2026-04-23T00:00:00Z',
-      until: '2026-04-22T00:00:00Z',
-    })).rejects.toThrow(/earlier than/);
+    await expect(
+      listMail.run(makeDeps(client), {
+        since: '2026-04-23T00:00:00Z',
+        until: '2026-04-22T00:00:00Z',
+      }),
+    ).rejects.toThrow(/earlier than/);
   });
 
   it('does not invoke listMessagesInFolderAll when --all is false', async () => {

@@ -1,7 +1,7 @@
 # Outlook REST v2 Attachments — Implementation Reference
 
-Research date: 2026-04-21  
-Author: Technical Research Agent  
+Research date: 2026-04-21
+Author: Technical Research Agent
 Scope: `outlook.office.com/api/v2.0` attachment endpoints — shapes, download semantics, filename safety, error mapping.
 
 ---
@@ -35,6 +35,7 @@ Accept: application/json
 ```
 
 This is the reliable path for reading `ContentBytes`. It returns the full shape for whichever subtype matched. The detail call is always required before decoding because:
+
 - The list endpoint may omit `ContentBytes` for larger files.
 - The list endpoint's `ContentBytes` field is the one most likely to be `null` silently for attachments larger than ~3 MB (binary), which is approximately 4 MB base64-encoded.
 
@@ -63,11 +64,11 @@ This returns the nested `Item` object (Subject, Body, Sender, etc.) but does not
 
 The v2.0 Outlook REST API uses the following exact string values as the `@odata.type` discriminator. These differ from Microsoft Graph which uses `microsoft.graph.*` namespace:
 
-| Attachment Kind | v2.0 `@odata.type` | Graph `@odata.type` |
-|---|---|---|
-| File | `#Microsoft.OutlookServices.FileAttachment` | `#microsoft.graph.fileAttachment` |
-| Item | `#Microsoft.OutlookServices.ItemAttachment` | `#microsoft.graph.itemAttachment` |
-| Reference | `#Microsoft.OutlookServices.ReferenceAttachment` | `#microsoft.graph.referenceAttachment` |
+| Attachment Kind | v2.0 `@odata.type`                               | Graph `@odata.type`                    |
+| --------------- | ------------------------------------------------ | -------------------------------------- |
+| File            | `#Microsoft.OutlookServices.FileAttachment`      | `#microsoft.graph.fileAttachment`      |
+| Item            | `#Microsoft.OutlookServices.ItemAttachment`      | `#microsoft.graph.itemAttachment`      |
+| Reference       | `#Microsoft.OutlookServices.ReferenceAttachment` | `#microsoft.graph.referenceAttachment` |
 
 The leading `#` is part of the literal string value. Code that compares `@odata.type` must include the `#`.
 
@@ -116,19 +117,19 @@ The leading `#` is part of the literal string value. Code that compares `@odata.
 
 **Field-by-field explanation:**
 
-| Field | Type | Notes |
-|---|---|---|
-| `@odata.type` | string | Discriminator. Always `#Microsoft.OutlookServices.FileAttachment`. |
-| `@odata.id` | string | Fully qualified self-link. Usable as a fetch URL. |
-| `Id` | string | Opaque attachment identifier. Stable within the session; use for per-attachment GET. |
-| `LastModifiedDateTime` | ISO 8601 string | UTC. Suitable for display; not needed for download. |
-| `Name` | string | Display name — **not** a safe filesystem path. See Section 5. |
-| `ContentType` | string | MIME type. May be `application/octet-stream` even if the file is clearly a PDF. Do not trust for extension inference. |
-| `Size` | number (Int32) | Declared size in bytes of the raw (binary) content. The base64 encoding in `ContentBytes` is ~33% larger. |
-| `IsInline` | boolean | `true` for inline images embedded in HTML bodies (e.g. logo images in email signatures). Default CLI behavior: skip. |
-| `ContentId` | string or null | CID used in MIME parts to reference inline attachments from HTML body (`cid:` scheme). Usually non-null when `IsInline` is true. |
-| `ContentLocation` | string or null | Rarely populated. A URL hint from the original MIME message. |
-| `ContentBytes` | string (base64) | The raw file contents, base64-encoded. May be `null` on the list endpoint for larger files. Always populated on the detail endpoint. |
+| Field                  | Type            | Notes                                                                                                                                |
+| ---------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `@odata.type`          | string          | Discriminator. Always `#Microsoft.OutlookServices.FileAttachment`.                                                                   |
+| `@odata.id`            | string          | Fully qualified self-link. Usable as a fetch URL.                                                                                    |
+| `Id`                   | string          | Opaque attachment identifier. Stable within the session; use for per-attachment GET.                                                 |
+| `LastModifiedDateTime` | ISO 8601 string | UTC. Suitable for display; not needed for download.                                                                                  |
+| `Name`                 | string          | Display name — **not** a safe filesystem path. See Section 5.                                                                        |
+| `ContentType`          | string          | MIME type. May be `application/octet-stream` even if the file is clearly a PDF. Do not trust for extension inference.                |
+| `Size`                 | number (Int32)  | Declared size in bytes of the raw (binary) content. The base64 encoding in `ContentBytes` is ~33% larger.                            |
+| `IsInline`             | boolean         | `true` for inline images embedded in HTML bodies (e.g. logo images in email signatures). Default CLI behavior: skip.                 |
+| `ContentId`            | string or null  | CID used in MIME parts to reference inline attachments from HTML body (`cid:` scheme). Usually non-null when `IsInline` is true.     |
+| `ContentLocation`      | string or null  | Rarely populated. A URL hint from the original MIME message.                                                                         |
+| `ContentBytes`         | string (base64) | The raw file contents, base64-encoded. May be `null` on the list endpoint for larger files. Always populated on the detail endpoint. |
 
 **Inline attachment identification:** An attachment is inline when `IsInline === true`. Additionally, when `ContentId` is non-null the attachment is referenced from the message HTML body via a `cid:` URI. Both conditions consistently co-occur but checking `IsInline` alone is sufficient for the CLI's skip logic.
 
@@ -178,6 +179,7 @@ When `$expand=Microsoft.OutlookServices.ItemAttachment/Item` is added:
 ```
 
 **Key notes for the implementer:**
+
 - `ContentBytes` is never present on `ItemAttachment`. There is no field to decode.
 - `Item` is `null` unless `$expand` is used.
 - The attached item may itself be a `Message`, `Event`, or `Contact` — the `@odata.type` inside the `Item` object identifies which.
@@ -210,14 +212,14 @@ A `ReferenceAttachment` is a hyperlink to a cloud-stored file (OneDrive, OneDriv
 
 **Field-by-field explanation:**
 
-| Field | Type | Notes |
-|---|---|---|
-| `SourceUrl` | string | The full URL to the file or folder in the cloud storage provider. Include in the `skipped[]` record so the user can access it manually. |
-| `ProviderType` | string | One of: `oneDriveBusiness`, `oneDriveConsumer`, `dropbox`, `box`, `google`, `other`. Informational only. |
-| `Permission` | string | `"Edit"` or `"View"`. Describes the access level the attachment link conveys. |
-| `IsFolder` | boolean | `true` if the link points to a folder rather than a file. |
-| `ThumbnailUrl` | string or null | Often null. |
-| `PreviewUrl` | string or null | Often null. |
+| Field          | Type           | Notes                                                                                                                                   |
+| -------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `SourceUrl`    | string         | The full URL to the file or folder in the cloud storage provider. Include in the `skipped[]` record so the user can access it manually. |
+| `ProviderType` | string         | One of: `oneDriveBusiness`, `oneDriveConsumer`, `dropbox`, `box`, `google`, `other`. Informational only.                                |
+| `Permission`   | string         | `"Edit"` or `"View"`. Describes the access level the attachment link conveys.                                                           |
+| `IsFolder`     | boolean        | `true` if the link points to a folder rather than a file.                                                                               |
+| `ThumbnailUrl` | string or null | Often null.                                                                                                                             |
+| `PreviewUrl`   | string or null | Often null.                                                                                                                             |
 
 **Implementation decision:** Skip `ReferenceAttachment` entries. Record in the `skipped[]` output with `reason: "reference-attachment"` and include `Name`, `Id`, and `SourceUrl`.
 
@@ -381,11 +383,11 @@ The following pseudocode describes the complete `download-attachments` command l
 async function downloadAttachments(
   messageId: string,
   outputDir: string,
-  opts: { includeInline: boolean; overwrite: boolean }
+  opts: { includeInline: boolean; overwrite: boolean },
 ): Promise<DownloadResult> {
   // ── Step 1: List attachments ────────────────────────────────────────────────
   const listUrl = `https://outlook.office.com/api/v2.0/me/messages/${messageId}/attachments`;
-  const listResp = await apiGet(listUrl);           // throws UpstreamError on 4xx/5xx
+  const listResp = await apiGet(listUrl); // throws UpstreamError on 4xx/5xx
   const attachments: AttachmentEnvelope[] = listResp.value;
 
   const downloaded: DownloadedRecord[] = [];
@@ -506,20 +508,20 @@ async function downloadAttachments(
 
 The following table maps every HTTP error that can arise from the attachments endpoints to the exit code taxonomy defined in `investigation-outlook-cli.md §4.9`.
 
-| HTTP Status | Scenario | Exit Code | Error Class | Handling |
-|---|---|---|---|---|
-| 401 (first attempt) | Token expired | — (retry) | — | Trigger re-auth once; on second 401, exit 4. |
-| 401 (second attempt) | Re-auth failed | 4 | `AuthError` | Surface message: "authentication failed after retry". |
-| 403 on list | No `Mail.Read` scope / IRM policy / mailbox access denied | 5 | `UpstreamError` | Do not retry. Include `messageId` in error. |
-| 403 on detail | Item-level IRM protection (individual attachment locked) | — (skip) | — | Add to `skipped[]` with `reason: "access-denied"`. Do not abort the whole download. |
-| 404 on list | `messageId` does not exist or was deleted | 5 | `UpstreamError` | Abort: the entire command target is invalid. |
-| 404 on detail | Attachment was deleted between list GET and detail GET | — (skip) | — | Add to `skipped[]` with `reason: "not-found"`. Continue loop. |
-| 429 | Rate limited | 5 | `UpstreamError` | Include `Retry-After` header value in error message. No auto-retry in this iteration. |
-| 5xx | Server error | 5 | `UpstreamError` | No auto-retry. Surface `httpStatus` and `requestId` (from `request-id` response header). |
-| Network / DNS / TLS | Connectivity failure | 5 | `UpstreamError` | Wrap the underlying Node `Error` message. Do not include the Bearer token in the error object. |
-| `AbortError` | HTTP timeout | 5 | `UpstreamError` | Message: `"HTTP timeout after ${OUTLOOK_CLI_HTTP_TIMEOUT_MS}ms"`. |
-| Write error (`ENOSPC`, `EACCES`, etc.) | Disk full or permissions | 6 | `IoError` | Surface `errno`, `path`. |
-| Target file exists and `--overwrite` not set | Collision detected | 6 | `IoError` | Message names the offending file path. Abort before writing any attachment in the batch. |
+| HTTP Status                                  | Scenario                                                  | Exit Code | Error Class     | Handling                                                                                       |
+| -------------------------------------------- | --------------------------------------------------------- | --------- | --------------- | ---------------------------------------------------------------------------------------------- |
+| 401 (first attempt)                          | Token expired                                             | — (retry) | —               | Trigger re-auth once; on second 401, exit 4.                                                   |
+| 401 (second attempt)                         | Re-auth failed                                            | 4         | `AuthError`     | Surface message: "authentication failed after retry".                                          |
+| 403 on list                                  | No `Mail.Read` scope / IRM policy / mailbox access denied | 5         | `UpstreamError` | Do not retry. Include `messageId` in error.                                                    |
+| 403 on detail                                | Item-level IRM protection (individual attachment locked)  | — (skip)  | —               | Add to `skipped[]` with `reason: "access-denied"`. Do not abort the whole download.            |
+| 404 on list                                  | `messageId` does not exist or was deleted                 | 5         | `UpstreamError` | Abort: the entire command target is invalid.                                                   |
+| 404 on detail                                | Attachment was deleted between list GET and detail GET    | — (skip)  | —               | Add to `skipped[]` with `reason: "not-found"`. Continue loop.                                  |
+| 429                                          | Rate limited                                              | 5         | `UpstreamError` | Include `Retry-After` header value in error message. No auto-retry in this iteration.          |
+| 5xx                                          | Server error                                              | 5         | `UpstreamError` | No auto-retry. Surface `httpStatus` and `requestId` (from `request-id` response header).       |
+| Network / DNS / TLS                          | Connectivity failure                                      | 5         | `UpstreamError` | Wrap the underlying Node `Error` message. Do not include the Bearer token in the error object. |
+| `AbortError`                                 | HTTP timeout                                              | 5         | `UpstreamError` | Message: `"HTTP timeout after ${OUTLOOK_CLI_HTTP_TIMEOUT_MS}ms"`.                              |
+| Write error (`ENOSPC`, `EACCES`, etc.)       | Disk full or permissions                                  | 6         | `IoError`       | Surface `errno`, `path`.                                                                       |
+| Target file exists and `--overwrite` not set | Collision detected                                        | 6         | `IoError`       | Message names the offending file path. Abort before writing any attachment in the batch.       |
 
 ### 7.1 Distinguishing 403 on list vs 403 on detail
 
@@ -533,12 +535,12 @@ Every `UpstreamError` and `IoError` must include:
 
 ```typescript
 interface OutlookCliError {
-  code: string;          // e.g. "UPSTREAM_HTTP_403", "IO_WRITE_ENOSPC"
-  exitCode: number;      // 4, 5, or 6
-  message: string;       // Human-readable, safe to print to stderr
-  httpStatus?: number;   // Present for upstream HTTP errors
-  requestId?: string;    // The "request-id" response header from Outlook, when available
-  cause?: Error;         // The original Error, for debugging; Bearer/cookies MUST NOT appear here
+  code: string; // e.g. "UPSTREAM_HTTP_403", "IO_WRITE_ENOSPC"
+  exitCode: number; // 4, 5, or 6
+  message: string; // Human-readable, safe to print to stderr
+  httpStatus?: number; // Present for upstream HTTP errors
+  requestId?: string; // The "request-id" response header from Outlook, when available
+  cause?: Error; // The original Error, for debugging; Bearer/cookies MUST NOT appear here
 }
 ```
 
@@ -564,14 +566,14 @@ The CLI writes bytes to disk directly via `atomicWrite`. It does not set HTTP `C
 
 ### What was assumed
 
-| Assumption | Confidence | Impact if Wrong |
-|---|---|---|
-| `outlook.office.com/api/v2.0` still responds to the `GET /me/messages/{id}/attachments` endpoint despite the documented March 2024 decommission. | MEDIUM | If the endpoint is silently dead, all download commands will receive 404 or 410; the CLI must surface this clearly. Migration to Graph would be required. |
-| The `@odata.type` discriminator strings (`#Microsoft.OutlookServices.*`) are exactly as documented in the v2.0 spec. | HIGH | A mismatch would cause all attachments to fall into the "unknown type" skip branch; easily debugged by logging the raw `@odata.type` value. |
-| `ContentBytes` is null or absent on the list endpoint for attachments above ~3 MB and is reliable on the detail endpoint up to the same limit. | HIGH | Based on corroborating evidence from Graph API documentation and community reports. The v2.0 spec does not explicitly document this behavior. |
-| `$value` is not supported on `outlook.office.com/api/v2.0` for attachments. | MEDIUM | If `$value` does work, it would enable streaming large attachments without the 4 MB base64 ceiling. This should be tested empirically on the live endpoint. |
-| The CLI will not attempt to reconstruct `.eml` from `ItemAttachment`. | HIGH | In-scope decision. Would require `/$value` on Graph or an MHTML assembly step. |
-| `ReferenceAttachment` never has bytes to download. | HIGH | By design in the v2.0 spec. `SourceUrl` is the only actionable field. |
+| Assumption                                                                                                                                       | Confidence | Impact if Wrong                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `outlook.office.com/api/v2.0` still responds to the `GET /me/messages/{id}/attachments` endpoint despite the documented March 2024 decommission. | MEDIUM     | If the endpoint is silently dead, all download commands will receive 404 or 410; the CLI must surface this clearly. Migration to Graph would be required.   |
+| The `@odata.type` discriminator strings (`#Microsoft.OutlookServices.*`) are exactly as documented in the v2.0 spec.                             | HIGH       | A mismatch would cause all attachments to fall into the "unknown type" skip branch; easily debugged by logging the raw `@odata.type` value.                 |
+| `ContentBytes` is null or absent on the list endpoint for attachments above ~3 MB and is reliable on the detail endpoint up to the same limit.   | HIGH       | Based on corroborating evidence from Graph API documentation and community reports. The v2.0 spec does not explicitly document this behavior.               |
+| `$value` is not supported on `outlook.office.com/api/v2.0` for attachments.                                                                      | MEDIUM     | If `$value` does work, it would enable streaming large attachments without the 4 MB base64 ceiling. This should be tested empirically on the live endpoint. |
+| The CLI will not attempt to reconstruct `.eml` from `ItemAttachment`.                                                                            | HIGH       | In-scope decision. Would require `/$value` on Graph or an MHTML assembly step.                                                                              |
+| `ReferenceAttachment` never has bytes to download.                                                                                               | HIGH       | By design in the v2.0 spec. `SourceUrl` is the only actionable field.                                                                                       |
 
 ### What is explicitly out of scope
 
@@ -593,21 +595,21 @@ The CLI writes bytes to disk directly via `atomicWrite`. It does not set HTTP `C
 
 ## References
 
-| # | Source | URL | Information Gathered |
-|---|---|---|---|
-| 1 | Microsoft Docs — Outlook Mail REST v2.0 | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/mail-rest-operations | Endpoint paths, attachment list/detail semantics, sample requests |
-| 2 | Microsoft Docs — v2.0 Complex Types Reference | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/complex-types-for-mail-contacts-calendar | Base `Attachment` resource fields: `ContentType`, `IsInline`, `LastModifiedDateTime`, `Name`, `Size` |
-| 3 | Microsoft Graph — Get Attachment | https://learn.microsoft.com/en-us/graph/api/attachment-get?view=graph-rest-1.0 | `$value` endpoint semantics, raw binary vs base64, MIME content for ItemAttachment; `@odata.type` Graph equivalents |
-| 4 | Microsoft Graph — List Attachments | https://learn.microsoft.com/en-us/graph/api/message-list-attachments?view=graph-rest-1.0 | Confirms `contentBytes` appears in list response; JSON sample |
-| 5 | Microsoft Graph — Attach Large Files | https://learn.microsoft.com/en-us/graph/outlook-large-attachments | 4 MB REST ceiling, 3 MB binary threshold, upload-session mechanism (write-path only) |
-| 6 | Microsoft Docs — ReferenceAttachment fields | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/task-rest-operations | `SourceUrl`, `ProviderType`, `Permission`, `IsFolder`, `ThumbnailUrl`, `PreviewUrl` shape |
-| 7 | PortSwigger Web Security Academy — Path Traversal | https://portswigger.net/web-security/file-path-traversal | Path traversal attack patterns and encoding bypass techniques |
-| 8 | Node.js Path Traversal Security Guide | https://nodejsdesignpatterns.com/blog/nodejs-path-traversal-security/ | `path.resolve()` + boundary check pattern, `path.sep` usage |
-| 9 | HackerOne — Preventing Directory Traversal | https://www.hackerone.com/blog/preventing-directory-traversal-attacks-techniques-and-tips-secure-file-access | Defense checklist: reserved names, UNC paths, drive letters |
-| 10 | Xygeni — Path Traversal in File Uploads | https://xygeni.io/blog/path-traversal-in-file-uploads-how-developers-create-their-own-exploits/ | Windows reserved names list, `path.relative()` alternative check |
-| 11 | CVE-2025-23084 / Node.js Windows path vuln | https://security.snyk.io/vuln/SNYK-UPSTREAM-NODE-8651420 | Windows drive-letter path traversal in Node.js; patch in v20.19.4+, v22.17.1+, v24.4.1+ |
-| 12 | MS Q&A — ContentBytes missing from list | https://learn.microsoft.com/en-us/answers/questions/1080476/get-email-attachments-via-graph-api-missing-conten | Community confirmation that `contentBytes` may be absent from list endpoint |
-| 13 | MS Graph Docs — fileAttachment resource | https://learn.microsoft.com/en-us/graph/api/resources/fileattachment?view=graph-rest-1.0 | `contentBytes`, `contentId`, `contentLocation`, `isInline` field definitions |
+| #   | Source                                            | URL                                                                                                                                | Information Gathered                                                                                                |
+| --- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 1   | Microsoft Docs — Outlook Mail REST v2.0           | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/mail-rest-operations                     | Endpoint paths, attachment list/detail semantics, sample requests                                                   |
+| 2   | Microsoft Docs — v2.0 Complex Types Reference     | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/complex-types-for-mail-contacts-calendar | Base `Attachment` resource fields: `ContentType`, `IsInline`, `LastModifiedDateTime`, `Name`, `Size`                |
+| 3   | Microsoft Graph — Get Attachment                  | https://learn.microsoft.com/en-us/graph/api/attachment-get?view=graph-rest-1.0                                                     | `$value` endpoint semantics, raw binary vs base64, MIME content for ItemAttachment; `@odata.type` Graph equivalents |
+| 4   | Microsoft Graph — List Attachments                | https://learn.microsoft.com/en-us/graph/api/message-list-attachments?view=graph-rest-1.0                                           | Confirms `contentBytes` appears in list response; JSON sample                                                       |
+| 5   | Microsoft Graph — Attach Large Files              | https://learn.microsoft.com/en-us/graph/outlook-large-attachments                                                                  | 4 MB REST ceiling, 3 MB binary threshold, upload-session mechanism (write-path only)                                |
+| 6   | Microsoft Docs — ReferenceAttachment fields       | https://learn.microsoft.com/en-us/previous-versions/office/office-365-api/api/version-2.0/task-rest-operations                     | `SourceUrl`, `ProviderType`, `Permission`, `IsFolder`, `ThumbnailUrl`, `PreviewUrl` shape                           |
+| 7   | PortSwigger Web Security Academy — Path Traversal | https://portswigger.net/web-security/file-path-traversal                                                                           | Path traversal attack patterns and encoding bypass techniques                                                       |
+| 8   | Node.js Path Traversal Security Guide             | https://nodejsdesignpatterns.com/blog/nodejs-path-traversal-security/                                                              | `path.resolve()` + boundary check pattern, `path.sep` usage                                                         |
+| 9   | HackerOne — Preventing Directory Traversal        | https://www.hackerone.com/blog/preventing-directory-traversal-attacks-techniques-and-tips-secure-file-access                       | Defense checklist: reserved names, UNC paths, drive letters                                                         |
+| 10  | Xygeni — Path Traversal in File Uploads           | https://xygeni.io/blog/path-traversal-in-file-uploads-how-developers-create-their-own-exploits/                                    | Windows reserved names list, `path.relative()` alternative check                                                    |
+| 11  | CVE-2025-23084 / Node.js Windows path vuln        | https://security.snyk.io/vuln/SNYK-UPSTREAM-NODE-8651420                                                                           | Windows drive-letter path traversal in Node.js; patch in v20.19.4+, v22.17.1+, v24.4.1+                             |
+| 12  | MS Q&A — ContentBytes missing from list           | https://learn.microsoft.com/en-us/answers/questions/1080476/get-email-attachments-via-graph-api-missing-conten                     | Community confirmation that `contentBytes` may be absent from list endpoint                                         |
+| 13  | MS Graph Docs — fileAttachment resource           | https://learn.microsoft.com/en-us/graph/api/resources/fileattachment?view=graph-rest-1.0                                           | `contentBytes`, `contentId`, `contentLocation`, `isInline` field definitions                                        |
 
 ### Recommended for Deep Reading
 

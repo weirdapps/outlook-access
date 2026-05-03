@@ -29,27 +29,26 @@ describe('activateOutlookApp', () => {
 
   it('spawns `open -a "Microsoft Outlook"` on darwin and resolves on close 0', async () => {
     const spawnFn = vi.fn(() => fakeChild(0)) as unknown as typeof import('child_process').spawn;
-    await expect(
-      activateOutlookApp({ platform: 'darwin', spawnFn }),
-    ).resolves.toBeUndefined();
-    expect(spawnFn).toHaveBeenCalledWith(
-      'open',
-      ['-a', 'Microsoft Outlook'],
-      { stdio: 'ignore', detached: true },
-    );
+    await expect(activateOutlookApp({ platform: 'darwin', spawnFn })).resolves.toBeUndefined();
+    expect(spawnFn).toHaveBeenCalledWith('open', ['-a', 'Microsoft Outlook'], {
+      stdio: 'ignore',
+      detached: true,
+    });
   });
 
   it('rejects with explanatory error when open exits non-zero', async () => {
     const spawnFn = vi.fn(() => fakeChild(1)) as unknown as typeof import('child_process').spawn;
-    await expect(
-      activateOutlookApp({ platform: 'darwin', spawnFn }),
-    ).rejects.toThrow(/exited with code 1.*Microsoft Outlook installed/);
+    await expect(activateOutlookApp({ platform: 'darwin', spawnFn })).rejects.toThrow(
+      /exited with code 1.*Microsoft Outlook installed/,
+    );
   });
 
   it('rejects when spawn emits an error event (e.g. open binary not found)', async () => {
-    const spawnFn = vi.fn(() => fakeChild(null, { errFirst: true })) as unknown as typeof import('child_process').spawn;
-    await expect(
-      activateOutlookApp({ platform: 'darwin', spawnFn }),
-    ).rejects.toThrow(/spawn failed: ENOENT/);
+    const spawnFn = vi.fn(() =>
+      fakeChild(null, { errFirst: true }),
+    ) as unknown as typeof import('child_process').spawn;
+    await expect(activateOutlookApp({ platform: 'darwin', spawnFn })).rejects.toThrow(
+      /spawn failed: ENOENT/,
+    );
   });
 });

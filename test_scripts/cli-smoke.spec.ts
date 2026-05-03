@@ -22,13 +22,8 @@ interface RunOptions {
   cleanEnv?: boolean;
 }
 
-function runCli(
-  args: string[],
-  options: RunOptions = {},
-): SpawnSyncReturns<string> {
-  const baseEnv = options.cleanEnv
-    ? { PATH: process.env.PATH ?? '' }
-    : { ...process.env };
+function runCli(args: string[], options: RunOptions = {}): SpawnSyncReturns<string> {
+  const baseEnv = options.cleanEnv ? { PATH: process.env.PATH ?? '' } : { ...process.env };
   return spawnSync('npx', ['ts-node', 'src/cli.ts', ...args], {
     env: { ...baseEnv, ...(options.env ?? {}) },
     cwd: PROJECT_ROOT,

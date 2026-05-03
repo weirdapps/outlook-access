@@ -59,7 +59,7 @@ Baseline Playwright script. Behavior:
   - `console.log` progress messages on stdout — spec §5 requires JSON on stdout and progress on stderr (with `--quiet` support).
   - Output file at `outlook_report.json` — replaced by stdout JSON, per-command schemas.
 - **Leave alone**:
-  - The script itself can stay in `test_scripts/` as a historical/reference artifact, or be removed once the new CLI ships. It is *not* imported by anything.
+  - The script itself can stay in `test_scripts/` as a historical/reference artifact, or be removed once the new CLI ships. It is _not_ imported by anything.
 - **Key reference lines**:
   - `test_scripts/outlook_read_recent.ts:15` — profile dir resolution.
   - `test_scripts/outlook_read_recent.ts:102-106` — persistent-context launch (exact pattern the new `auth/browser.ts` should adopt).
@@ -91,7 +91,7 @@ Baseline Playwright script. Behavior:
 - **Tests live under `test_scripts/`** (create if missing; already exists here).
 - **Plans** under `docs/design/plan-xxx-<desc>.md`; global design in `docs/design/project-design.md`; functional requirements in `docs/design/project-functions.MD`; reference material in `docs/reference/`.
 - **Prompts** under `prompts/` with sequential-number prefix.
-- **No fallback defaults for mandatory configuration** — missing mandatory settings must raise a typed error (spec §8 defines which settings are mandatory vs. have explicit defaults). Any proposed exception must be written to the memory file *before* implementation.
+- **No fallback defaults for mandatory configuration** — missing mandatory settings must raise a typed error (spec §8 defines which settings are mandatory vs. have explicit defaults). Any proposed exception must be written to the memory file _before_ implementation.
 - **Tool docs** in `CLAUDE.md` use the XML shape `<toolName><objective/><command/><info/></toolName>`.
 - **Issues tracker** at project root: `Issues - Pending Items.md` (pending first, ranked; completed below). Not created yet — will need to be added as soon as the first discrepancy is logged.
 - **Import style**: CommonJS (`import { chromium } from 'playwright'` works because of `esModuleInterop`). Stick with the existing pattern.
@@ -156,18 +156,18 @@ test_scripts/
 
 Missing dev/runtime tooling the new CLI will need:
 
-| Gap | Needed for | Recommendation |
-|---|---|---|
-| CLI argument parser | Global flags + 7 subcommands with options | Add `commander` (widely used, tree-shake-friendly, first-class TS types). `yargs` is an acceptable alternative but heavier. |
-| JWT decoding | Extract `exp`, `puid`, `tid` from the captured Bearer | Add `jwt-decode` (small, no crypto; we are not verifying signatures, only reading claims per spec §6.3 step 5). |
-| Table output | `--table` mode for `list-mail` / `list-calendar` | Add `cli-table3` (lightweight, TS-friendly) or hand-roll a minimal formatter to avoid an extra dep. Pick one in the design phase. |
-| Test runner | Automated coverage for AC scripts | Consider `vitest` or `node --test`. Given existing `@playwright/test` is unused, either adopt it for end-to-end tests or add `vitest` for unit tests. Decide in the plan phase. |
-| `bin` + build | Ship `outlook-cli` as an executable | Add `"bin"` in `package.json`, a `build` script (`tsc`), and a shebang (`#!/usr/bin/env node`) in `src/cli.ts`. |
-| `.gitignore` | Exclude `node_modules/`, `.playwright-profile/`, `.playwright-cli/`, `.playwright/`, `dist/`, `outlook_report.json` | Add before the first commit. |
-| `Issues - Pending Items.md` | Required by conventions | Create at root on first tracked issue. |
-| `docs/design/project-design.md` and `project-functions.MD` | Required by conventions | Create during the design phase. |
-| Typed error hierarchy | Enforce spec §8 "no fallback" rule and exit codes 2/3/4/5/6 | Implement in `src/config/errors.ts`; surface `ConfigurationError` for missing mandatory config. |
-| Cookie-jar serialization | Build `Cookie:` header from stored Playwright cookies on every REST call | Write a small helper in `src/http/headers.ts`; no extra dep required. |
+| Gap                                                        | Needed for                                                                                                          | Recommendation                                                                                                                                                                  |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLI argument parser                                        | Global flags + 7 subcommands with options                                                                           | Add `commander` (widely used, tree-shake-friendly, first-class TS types). `yargs` is an acceptable alternative but heavier.                                                     |
+| JWT decoding                                               | Extract `exp`, `puid`, `tid` from the captured Bearer                                                               | Add `jwt-decode` (small, no crypto; we are not verifying signatures, only reading claims per spec §6.3 step 5).                                                                 |
+| Table output                                               | `--table` mode for `list-mail` / `list-calendar`                                                                    | Add `cli-table3` (lightweight, TS-friendly) or hand-roll a minimal formatter to avoid an extra dep. Pick one in the design phase.                                               |
+| Test runner                                                | Automated coverage for AC scripts                                                                                   | Consider `vitest` or `node --test`. Given existing `@playwright/test` is unused, either adopt it for end-to-end tests or add `vitest` for unit tests. Decide in the plan phase. |
+| `bin` + build                                              | Ship `outlook-cli` as an executable                                                                                 | Add `"bin"` in `package.json`, a `build` script (`tsc`), and a shebang (`#!/usr/bin/env node`) in `src/cli.ts`.                                                                 |
+| `.gitignore`                                               | Exclude `node_modules/`, `.playwright-profile/`, `.playwright-cli/`, `.playwright/`, `dist/`, `outlook_report.json` | Add before the first commit.                                                                                                                                                    |
+| `Issues - Pending Items.md`                                | Required by conventions                                                                                             | Create at root on first tracked issue.                                                                                                                                          |
+| `docs/design/project-design.md` and `project-functions.MD` | Required by conventions                                                                                             | Create during the design phase.                                                                                                                                                 |
+| Typed error hierarchy                                      | Enforce spec §8 "no fallback" rule and exit codes 2/3/4/5/6                                                         | Implement in `src/config/errors.ts`; surface `ConfigurationError` for missing mandatory config.                                                                                 |
+| Cookie-jar serialization                                   | Build `Cookie:` header from stored Playwright cookies on every REST call                                            | Write a small helper in `src/http/headers.ts`; no extra dep required.                                                                                                           |
 
 No Microsoft Graph SDK or MSAL library is needed — spec NG4 / NG5 explicitly restrict the tool to `outlook.office.com/api/v2.0` REST + `fetch`-intercepted Bearer. Avoid pulling `@azure/msal-node` / `@microsoft/microsoft-graph-client`.
 

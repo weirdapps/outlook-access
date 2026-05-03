@@ -63,10 +63,7 @@ export interface CaptureOptions {
   headless?: boolean;
 }
 
-export type AuthCaptureErrorCode =
-  | 'AUTH_CANCELLED'
-  | 'LOGIN_TIMEOUT'
-  | 'NO_TOKEN';
+export type AuthCaptureErrorCode = 'AUTH_CANCELLED' | 'LOGIN_TIMEOUT' | 'NO_TOKEN';
 
 export class AuthCaptureError extends Error {
   public readonly code: AuthCaptureErrorCode;
@@ -213,9 +210,7 @@ export function _redactToken(token: string): string {
   return token.slice(0, 10) + '…';
 }
 
-export async function captureOutlookSession(
-  opts: CaptureOptions,
-): Promise<CaptureResult> {
+export async function captureOutlookSession(opts: CaptureOptions): Promise<CaptureResult> {
   // 1. Ensure profile dir exists with mode 0o700.
   fs.mkdirSync(opts.profileDir, { recursive: true, mode: 0o700 });
   try {
@@ -226,15 +221,12 @@ export async function captureOutlookSession(
   }
 
   // 2. Launch persistent Chrome.
-  const context: BrowserContext = await chromium.launchPersistentContext(
-    opts.profileDir,
-    {
-      channel: opts.chromeChannel,
-      headless: opts.headless === true,
-      viewport: { width: 1280, height: 900 },
-      args: ['--no-first-run', '--no-default-browser-check'],
-    },
-  );
+  const context: BrowserContext = await chromium.launchPersistentContext(opts.profileDir, {
+    channel: opts.chromeChannel,
+    headless: opts.headless === true,
+    viewport: { width: 1280, height: 900 },
+    args: ['--no-first-run', '--no-default-browser-check'],
+  });
 
   try {
     // 3. Set up the capture promise plumbing BEFORE creating/using any pages.
@@ -256,21 +248,18 @@ export async function captureOutlookSession(
     });
 
     // 4. Register the exposeBinding FIRST, then the init script.
-    await context.exposeBinding(
-      '__outlookCliReportBearer',
-      (_source, payload: unknown) => {
-        // Validate the shape before acting on it.
-        if (
-          !payload ||
-          typeof payload !== 'object' ||
-          typeof (payload as BearerPayload).token !== 'string' ||
-          typeof (payload as BearerPayload).url !== 'string'
-        ) {
-          return;
-        }
-        resolveCapture(payload as BearerPayload);
-      },
-    );
+    await context.exposeBinding('__outlookCliReportBearer', (_source, payload: unknown) => {
+      // Validate the shape before acting on it.
+      if (
+        !payload ||
+        typeof payload !== 'object' ||
+        typeof (payload as BearerPayload).token !== 'string' ||
+        typeof (payload as BearerPayload).url !== 'string'
+      ) {
+        return;
+      }
+      resolveCapture(payload as BearerPayload);
+    });
 
     await context.addInitScript(INIT_SCRIPT_TEXT);
 
@@ -323,8 +312,16 @@ export async function captureOutlookSession(
       payload = await capturePromise;
     } finally {
       clearTimeout(timeoutHandle);
-      try { page.off('close', onClose); } catch { /* ignore */ }
-      try { context.off('close', onClose); } catch { /* ignore */ }
+      try {
+        page.off('close', onClose);
+      } catch {
+        /* ignore */
+      }
+      try {
+        context.off('close', onClose);
+      } catch {
+        /* ignore */
+      }
     }
 
     // 10. Normalise the token: store the JWT only. Outlook occasionally emits
@@ -334,10 +331,7 @@ export async function captureOutlookSession(
     const jwt = rawHeader.replace(/^Bearer\s+/i, '');
 
     if (!jwt || jwt.split('.').length !== 3) {
-      throw new AuthCaptureError(
-        'NO_TOKEN',
-        'captured Authorization header did not contain a JWT',
-      );
+      throw new AuthCaptureError('NO_TOKEN', 'captured Authorization header did not contain a JWT');
     }
 
     // 11. Decode claims.
@@ -345,24 +339,18 @@ export async function captureOutlookSession(
     try {
       claims = decodeJwt(jwt);
     } catch {
-      throw new AuthCaptureError(
-        'NO_TOKEN',
-        'captured Bearer token could not be decoded as JWT',
-      );
+      throw new AuthCaptureError('NO_TOKEN', 'captured Bearer token could not be decoded as JWT');
     }
 
     const expiresAt = new Date(claims.exp * 1000).toISOString();
     const audience = claims.aud;
     const scopes =
-      typeof claims.scp === 'string'
-        ? claims.scp.split(/\s+/).filter((s) => s.length > 0)
-        : [];
+      typeof claims.scp === 'string' ? claims.scp.split(/\s+/).filter((s) => s.length > 0) : [];
 
     // 12. Account fields — prefer JWT claims, fall back to /me if needed.
     let puid = stringOrEmpty(claims.oid) || stringOrEmpty(claims.puid);
     let tenantId = stringOrEmpty(claims.tid);
-    let upn =
-      stringOrEmpty(claims.preferred_username) || stringOrEmpty(claims.upn);
+    let upn = stringOrEmpty(claims.preferred_username) || stringOrEmpty(claims.upn);
 
     if (!puid || !tenantId || !upn) {
       const meCookies = await context.cookies();
@@ -455,9 +443,7 @@ function toSchemaCookie(c: {
   sameSite?: 'Strict' | 'Lax' | 'None' | undefined;
 }): Cookie {
   const sameSite: 'Strict' | 'Lax' | 'None' =
-    c.sameSite === 'Strict' || c.sameSite === 'Lax' || c.sameSite === 'None'
-      ? c.sameSite
-      : 'Lax';
+    c.sameSite === 'Strict' || c.sameSite === 'Lax' || c.sameSite === 'None' ? c.sameSite : 'Lax';
 
   return {
     name: c.name,
@@ -504,20 +490,14 @@ async function fetchMeFallback(
   }
 
   if (!resp.ok) {
-    throw new AuthCaptureError(
-      'NO_TOKEN',
-      `/me fallback returned HTTP ${resp.status}`,
-    );
+    throw new AuthCaptureError('NO_TOKEN', `/me fallback returned HTTP ${resp.status}`);
   }
 
   let body: unknown;
   try {
     body = await resp.json();
   } catch {
-    throw new AuthCaptureError(
-      'NO_TOKEN',
-      '/me fallback returned non-JSON body',
-    );
+    throw new AuthCaptureError('NO_TOKEN', '/me fallback returned non-JSON body');
   }
 
   const me = (body ?? {}) as Record<string, unknown>;
@@ -528,14 +508,9 @@ async function fetchMeFallback(
     stringOrEmpty(me['EmailAddress']) ||
     stringOrEmpty(me['userPrincipalName']) ||
     stringOrEmpty(me['mail']);
-  const puid =
-    stringOrEmpty(me['Id']) ||
-    stringOrEmpty(me['id']) ||
-    stringOrEmpty(me['oid']);
+  const puid = stringOrEmpty(me['Id']) || stringOrEmpty(me['id']) || stringOrEmpty(me['oid']);
   const tenantId =
-    stringOrEmpty(me['TenantId']) ||
-    stringOrEmpty(me['tenantId']) ||
-    stringOrEmpty(me['tid']);
+    stringOrEmpty(me['TenantId']) || stringOrEmpty(me['tenantId']) || stringOrEmpty(me['tid']);
 
   return { upn, puid, tenantId };
 }

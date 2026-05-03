@@ -25,11 +25,7 @@
 import type { CliConfig } from '../config/config';
 import { UpstreamError } from '../config/errors';
 import { parseFolderSpec, resolveFolder } from '../folders/resolver';
-import type {
-  MoveEntry,
-  MoveFailedEntry,
-  MoveMailResult,
-} from '../folders/types';
+import type { MoveEntry, MoveFailedEntry, MoveMailResult } from '../folders/types';
 import type { OutlookClient } from '../http/outlook-client';
 import type { SessionFile } from '../session/schema';
 
@@ -93,15 +89,11 @@ export async function run(
 ): Promise<MoveMailResult> {
   // ---- argv validation (raises exit 2) ----
   if (!Array.isArray(messageIds) || messageIds.length === 0) {
-    throw new UsageError(
-      'move-mail: at least one <messageId> positional argument is required',
-    );
+    throw new UsageError('move-mail: at least one <messageId> positional argument is required');
   }
   for (const id of messageIds) {
     if (typeof id !== 'string' || id.length === 0) {
-      throw new UsageError(
-        'move-mail: <messageId> positional arguments must be non-empty strings',
-      );
+      throw new UsageError('move-mail: <messageId> positional arguments must be non-empty strings');
     }
   }
   if (typeof opts.to !== 'string' || opts.to.length === 0) {
@@ -214,10 +206,7 @@ function toFailedEntry(sourceId: string, err: unknown): MoveFailedEntry {
   // only the fields we can reasonably type.
   const maybe = err as { code?: unknown; message?: unknown };
   const code =
-    typeof maybe.code === 'string' && maybe.code.length > 0
-      ? maybe.code
-      : 'UPSTREAM_UNKNOWN';
-  const message =
-    typeof maybe.message === 'string' ? maybe.message : String(err);
+    typeof maybe.code === 'string' && maybe.code.length > 0 ? maybe.code : 'UPSTREAM_UNKNOWN';
+  const message = typeof maybe.message === 'string' ? maybe.message : String(err);
   return { sourceId, error: { code, message } };
 }

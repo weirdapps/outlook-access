@@ -11,16 +11,25 @@
     "postbuild": "chmod +x dist/cli.js",
     "cli": "ts-node src/cli.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
     "@types/node": "^25.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
     "playwright": "^1.59.1",
+    "prettier": "^3.8.3",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3",
     "vitest": "^4.1.4"

@@ -92,7 +92,8 @@ describe('listMessagesInFolder — filter option', () => {
 
     await client.listMessagesInFolder('Inbox', {
       top: 10,
-      filter: "ReceivedDateTime ge 2026-04-01T00:00:00.000Z and ReceivedDateTime lt 2026-05-01T00:00:00.000Z",
+      filter:
+        'ReceivedDateTime ge 2026-04-01T00:00:00.000Z and ReceivedDateTime lt 2026-05-01T00:00:00.000Z',
     });
 
     const [url] = fetchMock.mock.calls[0] as [string, unknown];
@@ -104,9 +105,7 @@ describe('listMessagesInFolder — filter option', () => {
   });
 
   it('omits $filter when option is not provided', async () => {
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 200, body: { value: [] } }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 200, body: { value: [] } }));
     const client = createOutlookClient({
       session: buildFakeSession(),
       httpTimeoutMs: 5000,
@@ -137,9 +136,7 @@ describe('listMessagesByConversation', () => {
       makeMessage('m2', '2026-03-01T10:00:00Z'),
       makeMessage('m1', '2026-03-01T09:00:00Z'),
     ];
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 200, body: { value: msgs } }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 200, body: { value: msgs } }));
     const client = createOutlookClient({
       session: buildFakeSession(),
       httpTimeoutMs: 5000,
@@ -167,9 +164,7 @@ describe('listMessagesByConversation', () => {
       makeMessage('a', '2026-03-01T09:00:00Z'),
       makeMessage('b', '2026-03-01T10:00:00Z'),
     ];
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 200, body: { value: msgs } }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 200, body: { value: msgs } }));
     const client = createOutlookClient({
       session: buildFakeSession(),
       httpTimeoutMs: 5000,
@@ -195,9 +190,7 @@ describe('listMessagesByConversation', () => {
   });
 
   it("escapes single quotes inside the conversation id (OData ' → '')", async () => {
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 200, body: { value: [] } }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 200, body: { value: [] } }));
     const client = createOutlookClient({
       session: buildFakeSession(),
       httpTimeoutMs: 5000,
@@ -219,9 +212,7 @@ describe('listMessagesByConversation', () => {
       noAutoReauth: false,
       onReauthNeeded: async () => buildFakeSession(),
     });
-    await expect(client.listMessagesByConversation('')).rejects.toThrow(
-      /non-empty conversationId/,
-    );
+    await expect(client.listMessagesByConversation('')).rejects.toThrow(/non-empty conversationId/);
   });
 });
 
@@ -311,8 +302,6 @@ describe('countMessagesInFolder', () => {
       noAutoReauth: false,
       onReauthNeeded: async () => buildFakeSession(),
     });
-    await expect(client.countMessagesInFolder('')).rejects.toThrow(
-      /non-empty folderId/,
-    );
+    await expect(client.countMessagesInFolder('')).rejects.toThrow(/non-empty folderId/);
   });
 });

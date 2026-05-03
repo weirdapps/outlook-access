@@ -4,6 +4,7 @@ This is the **fork** of `BikS2013/outlook-tool`. Upstream's CHANGELOG is at
 <https://github.com/BikS2013/outlook-tool/blob/master/CHANGELOG.md>.
 
 Fork-only features (not in upstream):
+
 - `--since` / `--until` / `--all` / `--max` pagination on `list-mail`
 - `download-sharepoint-link` command + `sharepoint-client`/`sharepoint-schema`
   modules for SharePoint Bearer-session capture and ReferenceAttachment fetching
@@ -18,6 +19,7 @@ including inline-image asset support so the user's NBG logo renders
 correctly in delivered mail. Also strengthens CC-self compliance.
 
 ### Added
+
 - **`send-mail` signature injection** — defaults to reading
   `~/.outlook-cli/signature.html` and appending after the user's HTML
   body (before `</body>`). New flags: `--signature <file>` (override),
@@ -50,6 +52,7 @@ correctly in delivered mail. Also strengthens CC-self compliance.
   used by capture-signature and reply.
 
 ### Changed
+
 - `doRequest` / `executeFetch` / `buildHeaders` extended to accept PATCH
   (was only GET/POST).
 - `SendMailOptions` types extended with `signature?` and `noSignature?`.
@@ -57,6 +60,7 @@ correctly in delivered mail. Also strengthens CC-self compliance.
   flag for caller verification.
 
 ### Notes
+
 - Default behavior is "always cc self, always have signature, image
   displays properly" per user's explicit requirement.
 - Stderr warning when signature has cid: refs but no matching asset
@@ -68,6 +72,7 @@ correctly in delivered mail. Also strengthens CC-self compliance.
   signature.html → no forwarded-thread cruft in delivered body.
 
 ### Known limitation
+
 - `extractSignature` heuristic is best-effort — when capturing from a
   reply message, the "last-hr" fallback can grab the forwarded-thread
   block instead of the signature. User should hand-edit
@@ -84,6 +89,7 @@ gives the fork a complete send pipeline that can replace the AppleScript
 send path in `email-handler` (downstream migration tracked separately).
 
 ### Added
+
 - `capture-signature [--from-message <id>] [--out <file>]` — extracts
   email signature from a SentItems message (or specified one). Heuristic
   priority: `<div id="Signature">` (Outlook web wrapper) → `<div class="elementToProof">`
@@ -109,6 +115,7 @@ send path in `email-handler` (downstream migration tracked separately).
   `GetMessageOptions`.
 
 ### Notes
+
 - Inline `cid:` images and SharePoint reference attachments are still
   deferred (would have been B2 stretch — likely a v1.5.0 follow-up if
   needed).
@@ -125,6 +132,7 @@ Phase B1: send-mail core. Replaces the AppleScript send path for direct
 CLI use; downstream `email-handler` migration tracked separately.
 
 ### Added
+
 - `send-mail` command — new email composition with **draft-first default**.
   - `--to/--cc/--bcc` accept comma-separated strings AND/OR repeated flag.
   - `--html <file>` and/or `--text <file>` body sources.
@@ -141,6 +149,7 @@ CLI use; downstream `email-handler` migration tracked separately.
 - `redactMessageBodies()` extension — message Body.Content / HtmlBody / TextBody redacted from echoed-back error JSON (defense-in-depth; subject and ContentType preserved).
 
 ### Notes
+
 - Inline `cid:` images, SharePoint reference attachments, and reply / reply-all / forward commands are deferred to **B2** (next plan).
 - `email-handler` `/send-mail` skill still uses AppleScript path; migration to `outlook-cli send-mail` in a separate downstream PR.
 - Smoke verified against live NBG mailbox: dry-run, draft creation, draft visible in Drafts folder, immediate send, attachment round-trip, Greek text preserved, error paths.
@@ -153,6 +162,7 @@ Cherry-pick from upstream `BikS2013/outlook-tool` v1.2.0 + v1.3.0
 (commit `cca2f50`). Preserves all fork-only features above.
 
 ### Added
+
 - `get-thread <id>` command — retrieves every message in a conversation by
   message id (or `conv:<conversationId>` to skip the resolve hop). Flags:
   `--body html|text|none` (default text), `--order asc|desc` (default asc).
@@ -172,6 +182,7 @@ Cherry-pick from upstream `BikS2013/outlook-tool` v1.2.0 + v1.3.0
 - `ODataListResponse['@odata.count']?: number` — envelope field for count.
 
 ### Changed
+
 - `list-mail --top` cap raised from 100 → 1000 (default still 10).
 - `list-mail` rejects combining `--since/--until` with `--from/--to`
   (mutually exclusive — use `--from/--to` for new code).
@@ -179,6 +190,7 @@ Cherry-pick from upstream `BikS2013/outlook-tool` v1.2.0 + v1.3.0
   HTTP call by design; `--all` paginates).
 
 ### Deferred (downstream callers to migrate next)
+
 - `outlook-bridge` MCP wrappers in `~/SourceCode/communications-marketplace`:
   add `outlook_get_thread` and `outlook_count_mail` tool wrappers; switch
   date filters from `--since` to `--from` (semantically equivalent).
@@ -190,6 +202,7 @@ Cherry-pick from upstream `BikS2013/outlook-tool` v1.2.0 + v1.3.0
 ## [1.1.1] — 2026-04-21 (fork)
 
 ### Fixed
+
 - `outlook-cli` Node stdout/stderr pipe truncation when piping to `head`/
   `tail` etc. Caused by `process.exit()` not draining pipes. Added
   `exitWithDrain()` helper that `process.stdout.write('', cb)` before
@@ -198,6 +211,7 @@ Cherry-pick from upstream `BikS2013/outlook-tool` v1.2.0 + v1.3.0
 ## [1.1.0] — 2026-04-21 (fork)
 
 ### Added
+
 - `list-mail --since <iso>` / `--until <iso>` — ISO-8601 date filters.
 - `list-mail --all` / `--max <N>` — auto-paginate via `@odata.nextLink`
   with safety cap (default 10000, max 100000).

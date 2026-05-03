@@ -125,9 +125,7 @@ describe('createOutlookClient.listFolders', () => {
   it('(1) single-page response returns the folders verbatim', async () => {
     const f1 = makeFolder('f1', 'Alpha');
     const f2 = makeFolder('f2', 'Beta');
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 200, body: { value: [f1, f2] } }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 200, body: { value: [f1, f2] } }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -161,9 +159,7 @@ describe('createOutlookClient.listFolders', () => {
           body: { value: p1, '@odata.nextLink': nextLink },
         }),
       )
-      .mockResolvedValueOnce(
-        makeResponse({ status: 200, body: { value: p2 } }),
-      );
+      .mockResolvedValueOnce(makeResponse({ status: 200, body: { value: p2 } }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -189,9 +185,7 @@ describe('createOutlookClient.listFolders', () => {
       oversized.push(makeFolder(`f${i}`, `Folder ${i}`));
     }
 
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 200, body: { value: oversized } }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 200, body: { value: oversized } }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -200,25 +194,16 @@ describe('createOutlookClient.listFolders', () => {
       onReauthNeeded: async () => buildFakeSession(),
     });
 
-    await expect(client.listFolders('parent-0')).rejects.toSatisfy(
-      (err: unknown) => {
-        return (
-          err instanceof UpstreamError &&
-          err.code === 'UPSTREAM_PAGINATION_LIMIT'
-        );
-      },
-    );
+    await expect(client.listFolders('parent-0')).rejects.toSatisfy((err: unknown) => {
+      return err instanceof UpstreamError && err.code === 'UPSTREAM_PAGINATION_LIMIT';
+    });
   });
 
   it('(4) 401 on first page triggers auto-reauth retry then succeeds', async () => {
     const f1 = makeFolder('f1', 'Alpha');
     fetchMock
-      .mockResolvedValueOnce(
-        makeResponse({ status: 401, bodyText: 'unauthorized' }),
-      )
-      .mockResolvedValueOnce(
-        makeResponse({ status: 200, body: { value: [f1] } }),
-      );
+      .mockResolvedValueOnce(makeResponse({ status: 401, bodyText: 'unauthorized' }))
+      .mockResolvedValueOnce(makeResponse({ status: 200, body: { value: [f1] } }));
 
     const newSession = buildFakeSession({
       bearer: {
@@ -242,10 +227,7 @@ describe('createOutlookClient.listFolders', () => {
     expect(onReauthNeeded).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
-    const secondCall = fetchMock.mock.calls[1] as [
-      string,
-      { headers: Record<string, string> },
-    ];
+    const secondCall = fetchMock.mock.calls[1] as [string, { headers: Record<string, string> }];
     expect(secondCall[1].headers.Authorization).toBe('Bearer new.new.new');
   });
 });
@@ -268,9 +250,7 @@ describe('createOutlookClient.getFolder', () => {
 
   it('(1) happy path with well-known alias "Inbox"', async () => {
     const inbox = makeFolder('inbox-id', 'Inbox');
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 200, body: inbox }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 200, body: inbox }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -289,9 +269,7 @@ describe('createOutlookClient.getFolder', () => {
   it('(2) happy path with raw opaque id', async () => {
     const rawId = 'AAMkAGI1234567890';
     const folder = makeFolder(rawId, 'Projects');
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 200, body: folder }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 200, body: folder }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -304,15 +282,11 @@ describe('createOutlookClient.getFolder', () => {
     expect(result).toEqual(folder);
 
     const [url] = fetchMock.mock.calls[0] as [string, unknown];
-    expect(url).toBe(
-      `https://outlook.office.com/api/v2.0/me/MailFolders/${rawId}`,
-    );
+    expect(url).toBe(`https://outlook.office.com/api/v2.0/me/MailFolders/${rawId}`);
   });
 
   it('(3) 404 → UpstreamError UPSTREAM_FOLDER_NOT_FOUND', async () => {
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 404, bodyText: 'not found' }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 404, bodyText: 'not found' }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -321,15 +295,13 @@ describe('createOutlookClient.getFolder', () => {
       onReauthNeeded: async () => buildFakeSession(),
     });
 
-    await expect(client.getFolder('does-not-exist')).rejects.toSatisfy(
-      (err: unknown) => {
-        return (
-          err instanceof UpstreamError &&
-          err.code === 'UPSTREAM_FOLDER_NOT_FOUND' &&
-          err.httpStatus === 404
-        );
-      },
-    );
+    await expect(client.getFolder('does-not-exist')).rejects.toSatisfy((err: unknown) => {
+      return (
+        err instanceof UpstreamError &&
+        err.code === 'UPSTREAM_FOLDER_NOT_FOUND' &&
+        err.httpStatus === 404
+      );
+    });
   });
 });
 
@@ -351,9 +323,7 @@ describe('createOutlookClient.createFolder', () => {
 
   it('(1) parentId === "msgfolderroot" posts to top-level /MailFolders', async () => {
     const created = makeFolder('new-id', 'Projects');
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 201, body: created }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 201, body: created }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -377,9 +347,7 @@ describe('createOutlookClient.createFolder', () => {
 
   it('(2) non-root parentId posts to /MailFolders/{parentId}/childfolders', async () => {
     const created = makeFolder('child-id', 'Alpha');
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 201, body: created }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 201, body: created }));
 
     const parentId = 'AAMkparent123';
     const client = createOutlookClient({
@@ -392,13 +360,8 @@ describe('createOutlookClient.createFolder', () => {
     const result = await client.createFolder(parentId, 'Alpha');
     expect(result).toEqual(created);
 
-    const [url, init] = fetchMock.mock.calls[0] as [
-      string,
-      { method: string; body: string },
-    ];
-    expect(url).toBe(
-      `https://outlook.office.com/api/v2.0/me/MailFolders/${parentId}/childfolders`,
-    );
+    const [url, init] = fetchMock.mock.calls[0] as [string, { method: string; body: string }];
+    expect(url).toBe(`https://outlook.office.com/api/v2.0/me/MailFolders/${parentId}/childfolders`);
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body)).toEqual({ DisplayName: 'Alpha' });
   });
@@ -412,9 +375,7 @@ describe('createOutlookClient.createFolder', () => {
       UnreadItemCount: 0,
       TotalItemCount: 0,
     };
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 201, body: created }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 201, body: created }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -435,9 +396,7 @@ describe('createOutlookClient.createFolder', () => {
           "A folder with the specified name already exists., Could not create folder 'Alpha'.",
       },
     };
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 400, body: dupeBody }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 400, body: dupeBody }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -446,16 +405,14 @@ describe('createOutlookClient.createFolder', () => {
       onReauthNeeded: async () => buildFakeSession(),
     });
 
-    await expect(client.createFolder('parent-0', 'Alpha')).rejects.toSatisfy(
-      (err: unknown) => {
-        return (
-          err instanceof CollisionError &&
-          err.code === 'FOLDER_ALREADY_EXISTS' &&
-          err.parentId === 'parent-0' &&
-          err.path === 'Alpha'
-        );
-      },
-    );
+    await expect(client.createFolder('parent-0', 'Alpha')).rejects.toSatisfy((err: unknown) => {
+      return (
+        err instanceof CollisionError &&
+        err.code === 'FOLDER_ALREADY_EXISTS' &&
+        err.parentId === 'parent-0' &&
+        err.path === 'Alpha'
+      );
+    });
   });
 
   it('(5) 409 + ErrorFolderExists body → CollisionError (some tenants)', async () => {
@@ -466,9 +423,7 @@ describe('createOutlookClient.createFolder', () => {
           "A folder with the specified name already exists., Could not create folder 'Alpha'.",
       },
     };
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 409, body: dupeBody }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 409, body: dupeBody }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -477,14 +432,9 @@ describe('createOutlookClient.createFolder', () => {
       onReauthNeeded: async () => buildFakeSession(),
     });
 
-    await expect(client.createFolder('parent-0', 'Alpha')).rejects.toSatisfy(
-      (err: unknown) => {
-        return (
-          err instanceof CollisionError &&
-          err.code === 'FOLDER_ALREADY_EXISTS'
-        );
-      },
-    );
+    await expect(client.createFolder('parent-0', 'Alpha')).rejects.toSatisfy((err: unknown) => {
+      return err instanceof CollisionError && err.code === 'FOLDER_ALREADY_EXISTS';
+    });
   });
 
   it('(6) non-ErrorFolderExists 400 → UpstreamError (NOT a CollisionError)', async () => {
@@ -494,9 +444,7 @@ describe('createOutlookClient.createFolder', () => {
         message: 'The folder name contains invalid characters.',
       },
     };
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 400, body: otherBody }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 400, body: otherBody }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -543,9 +491,7 @@ describe('createOutlookClient.moveMessage', () => {
       IsRead: false,
       WebLink: 'https://outlook.office.com/owa/?ItemID=NEW-ID-AFTER-MOVE',
     };
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 201, body: moved }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 201, body: moved }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -565,9 +511,7 @@ describe('createOutlookClient.moveMessage', () => {
       string,
       { method: string; body: string; headers: Record<string, string> },
     ];
-    expect(url).toBe(
-      'https://outlook.office.com/api/v2.0/me/messages/OLD-MSG-ID/move',
-    );
+    expect(url).toBe('https://outlook.office.com/api/v2.0/me/messages/OLD-MSG-ID/move');
     expect(init.method).toBe('POST');
     expect(init.headers['Content-Type']).toBe('application/json');
     expect(JSON.parse(init.body)).toEqual({ DestinationId: 'dest-folder-123' });
@@ -588,15 +532,13 @@ describe('createOutlookClient.moveMessage', () => {
       onReauthNeeded: async () => buildFakeSession(),
     });
 
-    await expect(
-      client.moveMessage('msg-id', 'missing-folder'),
-    ).rejects.toSatisfy((err: unknown) => {
-      return (
-        err instanceof UpstreamError &&
-        err.httpStatus === 404 &&
-        err.code === 'UPSTREAM_HTTP_404'
-      );
-    });
+    await expect(client.moveMessage('msg-id', 'missing-folder')).rejects.toSatisfy(
+      (err: unknown) => {
+        return (
+          err instanceof UpstreamError && err.httpStatus === 404 && err.code === 'UPSTREAM_HTTP_404'
+        );
+      },
+    );
   });
 
   it('(3) DestinationId is passed through verbatim (caller pre-resolves aliases)', async () => {
@@ -605,9 +547,7 @@ describe('createOutlookClient.moveMessage', () => {
     // contract by sending a raw alias-looking string and asserting the
     // wire body still contains it unchanged.
     const moved = makeMessage('new-id', 'Subject');
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 201, body: moved }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 201, body: moved }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -618,10 +558,7 @@ describe('createOutlookClient.moveMessage', () => {
 
     await client.moveMessage('some-msg', 'Inbox');
 
-    const [, init] = fetchMock.mock.calls[0] as [
-      string,
-      { body: string },
-    ];
+    const [, init] = fetchMock.mock.calls[0] as [string, { body: string }];
     expect(JSON.parse(init.body)).toEqual({ DestinationId: 'Inbox' });
   });
 });
@@ -645,9 +582,7 @@ describe('createOutlookClient.listMessagesInFolder', () => {
   it('(1) happy path: URL encodes $top/$select/$orderby and returns .value', async () => {
     const m1 = makeMessage('msg-1', 'Subject 1');
     const m2 = makeMessage('msg-2', 'Subject 2');
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 200, body: { value: [m1, m2] } }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 200, body: { value: [m1, m2] } }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -665,13 +600,9 @@ describe('createOutlookClient.listMessagesInFolder', () => {
 
     const [url] = fetchMock.mock.calls[0] as [string, unknown];
     const parsed = new URL(url);
-    expect(parsed.pathname).toBe(
-      '/api/v2.0/me/MailFolders/folder-123/messages',
-    );
+    expect(parsed.pathname).toBe('/api/v2.0/me/MailFolders/folder-123/messages');
     expect(parsed.searchParams.get('$top')).toBe('10');
-    expect(parsed.searchParams.get('$select')).toBe(
-      'Id,Subject,ReceivedDateTime',
-    );
+    expect(parsed.searchParams.get('$select')).toBe('Id,Subject,ReceivedDateTime');
     expect(parsed.searchParams.get('$orderby')).toBe('ReceivedDateTime desc');
   });
 
@@ -707,9 +638,7 @@ describe('createOutlookClient.listMessagesInFolder', () => {
   });
 
   it('(3) no options still produces a well-formed request path', async () => {
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({ status: 200, body: { value: [] } }),
-    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 200, body: { value: [] } }));
 
     const client = createOutlookClient({
       session: buildFakeSession(),
@@ -723,9 +652,7 @@ describe('createOutlookClient.listMessagesInFolder', () => {
 
     const [url] = fetchMock.mock.calls[0] as [string, unknown];
     const parsed = new URL(url);
-    expect(parsed.pathname).toBe(
-      '/api/v2.0/me/MailFolders/folder-xyz/messages',
-    );
+    expect(parsed.pathname).toBe('/api/v2.0/me/MailFolders/folder-xyz/messages');
     // With no options, no query-string keys should have been appended.
     expect(parsed.searchParams.get('$top')).toBeNull();
     expect(parsed.searchParams.get('$select')).toBeNull();

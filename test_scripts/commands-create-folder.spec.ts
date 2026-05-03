@@ -99,9 +99,10 @@ function folder(
  * short-circuited (a valid cached session is returned) so `ensureSession`
  * never touches the network nor triggers `doAuthCapture`.
  */
-function buildDeps(
-  client: Partial<OutlookClient>,
-): { deps: CreateFolderDeps; authCapture: ReturnType<typeof vi.fn> } {
+function buildDeps(client: Partial<OutlookClient>): {
+  deps: CreateFolderDeps;
+  authCapture: ReturnType<typeof vi.fn>;
+} {
   const session = buildFakeSession();
   const authCapture = vi.fn(async () => session);
   const deps: CreateFolderDeps = {
@@ -147,10 +148,7 @@ describe('create-folder command', () => {
     // The resolver resolves MsgFolderRoot via getFolder first, then
     // create-folder calls createFolder(parentId, displayName).
     expect(createFolder).toHaveBeenCalledTimes(1);
-    expect(createFolder).toHaveBeenCalledWith(
-      'msgfolderroot-id',
-      'Archive-2026',
-    );
+    expect(createFolder).toHaveBeenCalledWith('msgfolderroot-id', 'Archive-2026');
 
     expect(result.created.length).toBe(1);
     expect(result.created[0].Id).toBe('new-id');
@@ -204,9 +202,7 @@ describe('create-folder command', () => {
 
     const { deps } = buildDeps({ getFolder, createFolder, listFolders });
 
-    await expect(
-      runCreateFolder(deps, 'Archive-2026'),
-    ).rejects.toBeInstanceOf(CollisionError);
+    await expect(runCreateFolder(deps, 'Archive-2026')).rejects.toBeInstanceOf(CollisionError);
 
     // Non-idempotent path must NOT re-list.
     expect(listFolders).not.toHaveBeenCalled();
@@ -293,15 +289,13 @@ describe('create-folder command', () => {
 
     // Record creation order.
     const createCalls: Array<{ parentId: string; name: string }> = [];
-    const createFolder = vi.fn(
-      async (parentId: string, displayName: string) => {
-        createCalls.push({ parentId, name: displayName });
-        if (displayName === 'A') return folder('A-id', 'A', parentId);
-        if (displayName === 'B') return folder('B-id', 'B', parentId);
-        if (displayName === 'C') return folder('C-id', 'C', parentId);
-        throw new Error(`unexpected displayName ${displayName}`);
-      },
-    );
+    const createFolder = vi.fn(async (parentId: string, displayName: string) => {
+      createCalls.push({ parentId, name: displayName });
+      if (displayName === 'A') return folder('A-id', 'A', parentId);
+      if (displayName === 'B') return folder('B-id', 'B', parentId);
+      if (displayName === 'C') return folder('C-id', 'C', parentId);
+      throw new Error(`unexpected displayName ${displayName}`);
+    });
 
     const { deps } = buildDeps({ getFolder, listFolders, createFolder });
 
@@ -342,14 +336,12 @@ describe('create-folder command', () => {
     });
 
     const createCalls: Array<{ parentId: string; name: string }> = [];
-    const createFolder = vi.fn(
-      async (parentId: string, displayName: string) => {
-        createCalls.push({ parentId, name: displayName });
-        if (displayName === 'B') return folder('B-id', 'B', parentId);
-        if (displayName === 'C') return folder('C-id', 'C', parentId);
-        throw new Error(`unexpected displayName ${displayName}`);
-      },
-    );
+    const createFolder = vi.fn(async (parentId: string, displayName: string) => {
+      createCalls.push({ parentId, name: displayName });
+      if (displayName === 'B') return folder('B-id', 'B', parentId);
+      if (displayName === 'C') return folder('C-id', 'C', parentId);
+      throw new Error(`unexpected displayName ${displayName}`);
+    });
 
     const { deps } = buildDeps({ getFolder, listFolders, createFolder });
 
@@ -439,16 +431,12 @@ describe('create-folder command', () => {
 
   it("(11) 'id:...' as positional raises UsageError", async () => {
     const { deps } = buildDeps({});
-    await expect(
-      runCreateFolder(deps, 'id:AAMkAGI'),
-    ).rejects.toBeInstanceOf(UsageError);
+    await expect(runCreateFolder(deps, 'id:AAMkAGI')).rejects.toBeInstanceOf(UsageError);
   });
 
   it('(12) bare well-known alias positional raises UsageError', async () => {
     const { deps } = buildDeps({});
-    await expect(runCreateFolder(deps, 'Inbox')).rejects.toBeInstanceOf(
-      UsageError,
-    );
+    await expect(runCreateFolder(deps, 'Inbox')).rejects.toBeInstanceOf(UsageError);
   });
 
   it('(13) well-known-alias leaf at MsgFolderRoot (nested path) raises UsageError', async () => {

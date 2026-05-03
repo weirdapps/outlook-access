@@ -3,14 +3,8 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
-import {
-  run,
-  SharepointSessionMissingError,
-} from '../src/commands/download-sharepoint-link';
-import {
-  saveSharepointSession,
-  SharepointSession,
-} from '../src/session/sharepoint-schema';
+import { run, SharepointSessionMissingError } from '../src/commands/download-sharepoint-link';
+import { saveSharepointSession, SharepointSession } from '../src/session/sharepoint-schema';
 import { SharepointHttpError } from '../src/http/sharepoint-client';
 
 function freshSession(host = 'nbg.sharepoint.com'): SharepointSession {
@@ -150,7 +144,9 @@ describe('download-sharepoint-link', () => {
         'https://x.sharepoint.com/y',
         { out: outDir },
       );
-    } catch (e) { err = e; }
+    } catch (e) {
+      err = e;
+    }
     expect(err).toBeInstanceOf(SharepointSessionMissingError);
     expect((err as Error).message).toMatch(/expired/);
   });

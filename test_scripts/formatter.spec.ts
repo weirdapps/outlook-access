@@ -20,15 +20,11 @@ describe('formatOutput json mode', () => {
 
 describe('formatOutput table mode', () => {
   it('throws when columns is omitted in table mode', () => {
-    expect(() => formatOutput([{ a: 1 }], 'table')).toThrowError(
-      /table mode requires/,
-    );
+    expect(() => formatOutput([{ a: 1 }], 'table')).toThrowError(/table mode requires/);
   });
 
   it('throws when columns is an empty array', () => {
-    expect(() => formatOutput([{ a: 1 }], 'table', [])).toThrowError(
-      /table mode requires/,
-    );
+    expect(() => formatOutput([{ a: 1 }], 'table', [])).toThrowError(/table mode requires/);
   });
 
   it('renders a header line, separator, and data rows', () => {
@@ -53,9 +49,7 @@ describe('formatOutput table mode', () => {
 
   it('ellipsizes values exceeding maxWidth', () => {
     type Row = { long: string };
-    const columns: ColumnSpec<Row>[] = [
-      { header: 'long', extract: (r) => r.long, maxWidth: 10 },
-    ];
+    const columns: ColumnSpec<Row>[] = [{ header: 'long', extract: (r) => r.long, maxWidth: 10 }];
     const data: Row[] = [{ long: 'abcdefghijklmnopqrstuvwxyz' }];
     const out = formatOutput(data, 'table', columns);
     // One data line; ensure it contains the ellipsis char and no longer cell.
@@ -68,9 +62,7 @@ describe('formatOutput table mode', () => {
 
   it('wraps a single object as a single-row table', () => {
     type Row = { status: string };
-    const columns: ColumnSpec<Row>[] = [
-      { header: 'status', extract: (r) => r.status },
-    ];
+    const columns: ColumnSpec<Row>[] = [{ header: 'status', extract: (r) => r.status }];
     const out = formatOutput({ status: 'ok' }, 'table', columns);
     const lines = out.split('\n');
     expect(lines).toHaveLength(3); // header + separator + 1 row
@@ -79,9 +71,7 @@ describe('formatOutput table mode', () => {
 
   it('renders null/undefined cell values as empty string', () => {
     type Row = { v: string | null | undefined };
-    const columns: ColumnSpec<Row>[] = [
-      { header: 'v', extract: (r) => r.v as string },
-    ];
+    const columns: ColumnSpec<Row>[] = [{ header: 'v', extract: (r) => r.v as string }];
     const out = formatOutput([{ v: null }, { v: undefined }], 'table', columns);
     const lines = out.split('\n');
     expect(lines[2].trim()).toBe('');
@@ -91,8 +81,8 @@ describe('formatOutput table mode', () => {
 
 describe('formatOutput unsupported mode', () => {
   it('throws on an unknown mode', () => {
-    expect(() =>
-      formatOutput([{ a: 1 }], 'xml' as unknown as 'json'),
-    ).toThrowError(/unsupported mode/);
+    expect(() => formatOutput([{ a: 1 }], 'xml' as unknown as 'json')).toThrowError(
+      /unsupported mode/,
+    );
   });
 });

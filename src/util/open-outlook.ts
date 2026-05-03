@@ -28,9 +28,7 @@ export interface ActivateOutlookOptions {
  * Rejects with an Error when `open` exits non-zero or fails to launch
  * (typically because Outlook is not installed in /Applications).
  */
-export async function activateOutlookApp(
-  opts: ActivateOutlookOptions = {},
-): Promise<void> {
+export async function activateOutlookApp(opts: ActivateOutlookOptions = {}): Promise<void> {
   const platform = opts.platform ?? process.platform;
   if (platform !== 'darwin') {
     process.stderr.write(
@@ -50,15 +48,12 @@ export async function activateOutlookApp(
       } else {
         reject(
           new Error(
-            `open -a "${APP_NAME}" exited with code ${code} ` +
-              '(is Microsoft Outlook installed?)',
+            `open -a "${APP_NAME}" exited with code ${code} ` + '(is Microsoft Outlook installed?)',
           ),
         );
       }
     });
-    child.on('error', (err) =>
-      reject(new Error(`open-outlook: spawn failed: ${err.message}`)),
-    );
+    child.on('error', (err) => reject(new Error(`open-outlook: spawn failed: ${err.message}`)));
     child.unref();
   });
 }

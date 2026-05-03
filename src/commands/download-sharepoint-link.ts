@@ -8,21 +8,14 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { ConfigurationError, OutlookCliError } from '../config/errors';
-import {
-  SharepointClient,
-  SharepointHttpError,
-} from '../http/sharepoint-client';
+import { SharepointClient, SharepointHttpError } from '../http/sharepoint-client';
 import {
   loadSharepointSession,
   defaultSharepointSessionPath,
   SharepointSession,
 } from '../session/sharepoint-schema';
 import { atomicWriteBuffer } from '../util/fs-atomic';
-import {
-  assertWithinDir,
-  deduplicateFilename,
-  sanitizeAttachmentName,
-} from '../util/filename';
+import { assertWithinDir, deduplicateFilename, sanitizeAttachmentName } from '../util/filename';
 
 import { UsageError } from './list-mail';
 
@@ -70,7 +63,10 @@ export interface DownloadSharepointLinkResult {
 function deriveFilenameFromUrl(url: string): string {
   try {
     const u = new URL(url);
-    const last = u.pathname.split('/').filter((p) => p.length > 0).pop();
+    const last = u.pathname
+      .split('/')
+      .filter((p) => p.length > 0)
+      .pop();
     if (last && /\.[a-z0-9]+$/i.test(last)) return decodeURIComponent(last);
   } catch {
     /* ignore — fallback below */
@@ -78,10 +74,7 @@ function deriveFilenameFromUrl(url: string): string {
   return 'sharepoint-download';
 }
 
-function defaultClientFactory(
-  session: SharepointSession,
-  timeoutMs: number,
-): SharepointClient {
+function defaultClientFactory(session: SharepointSession, timeoutMs: number): SharepointClient {
   return new SharepointClient({
     bearer: session.bearer,
     cookies: session.cookies,
@@ -106,10 +99,7 @@ export async function run(
     throw new UsageError('download-sharepoint-link: <url> is required');
   }
   if (typeof opts.out !== 'string' || opts.out.length === 0) {
-    throw new ConfigurationError(
-      'download-sharepoint-link.out',
-      ['--out flag'],
-    );
+    throw new ConfigurationError('download-sharepoint-link.out', ['--out flag']);
   }
 
   const sessionPath = deps.sharepointSessionPath ?? defaultSharepointSessionPath();
@@ -138,16 +128,10 @@ export async function run(
 
   try {
     const result = await client.getBinary(url);
-    const desiredName = sanitizeAttachmentName(
-      result.filename ?? deriveFilenameFromUrl(url),
-    );
+    const desiredName = sanitizeAttachmentName(result.filename ?? deriveFilenameFromUrl(url));
     let finalName = desiredName;
     if (!opts.overwrite) {
-      const existing = new Set(
-        fs.existsSync(outDir)
-          ? fs.readdirSync(outDir)
-          : [],
-      );
+      const existing = new Set(fs.existsSync(outDir) ? fs.readdirSync(outDir) : []);
       finalName = deduplicateFilename(desiredName, existing);
     }
     const finalPath = path.join(outDir, finalName);
@@ -162,10 +146,13 @@ export async function run(
   } catch (err) {
     if (err instanceof SharepointHttpError) {
       const reason: SkippedReason =
-        err.status === 404 || err.status === 410 ? 'not-found'
-        : err.status === 403 ? 'access-denied'
-        : err.status === 401 ? 'auth-required'
-        : 'http-error';
+        err.status === 404 || err.status === 410
+          ? 'not-found'
+          : err.status === 403
+            ? 'access-denied'
+            : err.status === 401
+              ? 'auth-required'
+              : 'http-error';
       skipped.push({ url, reason, status: err.status });
     } else {
       throw err;

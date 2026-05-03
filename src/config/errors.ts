@@ -41,13 +41,8 @@ export class ConfigurationError extends OutlookCliError {
   /** Ordered list of sources checked (e.g. ["--timeout flag", "OUTLOOK_CLI_HTTP_TIMEOUT_MS env var"]). */
   public readonly checkedSources: readonly string[];
 
-  constructor(
-    missingSetting: string,
-    checkedSources: readonly string[],
-    detail?: string,
-  ) {
-    const sourcesText =
-      checkedSources.length > 0 ? checkedSources.join(', ') : '(no sources)';
+  constructor(missingSetting: string, checkedSources: readonly string[], detail?: string) {
+    const sourcesText = checkedSources.length > 0 ? checkedSources.join(', ') : '(no sources)';
     const base = detail
       ? `Mandatory setting "${missingSetting}" ${detail}. Checked: ${sourcesText}.`
       : `Mandatory setting "${missingSetting}" was not provided. Checked: ${sourcesText}.`;
@@ -73,11 +68,7 @@ export class AuthError extends OutlookCliError {
   public readonly exitCode: number = 4;
 
   constructor(
-    code:
-      | 'AUTH_LOGIN_CANCELLED'
-      | 'AUTH_LOGIN_TIMEOUT'
-      | 'AUTH_401_AFTER_RETRY'
-      | 'AUTH_NO_REAUTH',
+    code: 'AUTH_LOGIN_CANCELLED' | 'AUTH_LOGIN_TIMEOUT' | 'AUTH_401_AFTER_RETRY' | 'AUTH_NO_REAUTH',
     message: string,
     cause?: unknown,
   ) {
@@ -130,12 +121,7 @@ export class IoError extends OutlookCliError {
   public readonly exitCode: number = 6;
   public readonly path?: string;
 
-  constructor(init: {
-    code: string;
-    message: string;
-    path?: string;
-    cause?: unknown;
-  }) {
+  constructor(init: { code: string; message: string; path?: string; cause?: unknown }) {
     super(init.message, init.cause);
     this.name = 'IoError';
     this.code = init.code;

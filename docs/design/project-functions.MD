@@ -212,6 +212,7 @@ the `{ sourceId, newId }` mapping per moved message because the new id differs f
 the source id on v2.0.
 
 **Inputs.**
+
 - `<id>` positional (single message id) OR `--ids-from <path-or-->` (read one id per
   line, blank lines and `#` comments ignored; `-` reads stdin). Mutually exclusive;
   both absent or both present → `UsageError BAD_USAGE`.

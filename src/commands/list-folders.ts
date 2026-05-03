@@ -12,10 +12,7 @@
 import type { CliConfig } from '../config/config';
 import { UpstreamError } from '../config/errors';
 import { parseFolderSpec, resolveFolder } from '../folders/resolver';
-import {
-  DEFAULT_LIST_FOLDERS_TOP,
-  MAX_FOLDERS_VISITED,
-} from '../folders/types';
+import { DEFAULT_LIST_FOLDERS_TOP, MAX_FOLDERS_VISITED } from '../folders/types';
 import type { OutlookClient } from '../http/outlook-client';
 import type { FolderSummary } from '../http/types';
 import type { SessionFile } from '../session/schema';
@@ -98,9 +95,7 @@ export async function run(
   // REST hop — `client.listFolders` accepts the alias verbatim in the URL
   // path (v2.0 contract).
   const parentInput =
-    typeof opts.parent === 'string' && opts.parent.length > 0
-      ? opts.parent
-      : ROOT_ALIAS;
+    typeof opts.parent === 'string' && opts.parent.length > 0 ? opts.parent : ROOT_ALIAS;
 
   const session = await ensureSession(deps);
   const client = deps.createClient(session);
@@ -189,9 +184,7 @@ async function listRecursive(
       // `ChildFolderCount` may be undefined on some tenants — in that case we
       // still descend, falling back to a GET that may return an empty page.
       const hasChildren =
-        typeof child.ChildFolderCount === 'number'
-          ? child.ChildFolderCount > 0
-          : true;
+        typeof child.ChildFolderCount === 'number' ? child.ChildFolderCount > 0 : true;
       if (hasChildren) {
         queue.push({ id: child.Id, path: childPath, depth: childDepth });
       }
@@ -209,8 +202,7 @@ function resolveTop(raw: number | undefined): number {
   if (raw === undefined) return DEFAULT_LIST_FOLDERS_TOP;
   if (!Number.isInteger(raw) || raw < 1 || raw > MAX_TOP) {
     throw new UsageError(
-      `list-folders: --top must be an integer between 1 and ${MAX_TOP} ` +
-        `(got ${String(raw)})`,
+      `list-folders: --top must be an integer between 1 and ${MAX_TOP} ` + `(got ${String(raw)})`,
     );
   }
   return raw;
@@ -257,18 +249,15 @@ export const LIST_FOLDERS_COLUMNS: ReadonlyArray<{
   },
   {
     header: 'Unread',
-    extract: (r) =>
-      typeof r.UnreadItemCount === 'number' ? String(r.UnreadItemCount) : '',
+    extract: (r) => (typeof r.UnreadItemCount === 'number' ? String(r.UnreadItemCount) : ''),
   },
   {
     header: 'Total',
-    extract: (r) =>
-      typeof r.TotalItemCount === 'number' ? String(r.TotalItemCount) : '',
+    extract: (r) => (typeof r.TotalItemCount === 'number' ? String(r.TotalItemCount) : ''),
   },
   {
     header: 'Children',
-    extract: (r) =>
-      typeof r.ChildFolderCount === 'number' ? String(r.ChildFolderCount) : '',
+    extract: (r) => (typeof r.ChildFolderCount === 'number' ? String(r.ChildFolderCount) : ''),
   },
   {
     header: 'Id',

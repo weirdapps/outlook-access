@@ -123,12 +123,7 @@ export class NetworkError extends Error {
   public readonly cause?: unknown;
   public readonly timedOut: boolean;
 
-  constructor(init: {
-    message: string;
-    url: string;
-    cause?: unknown;
-    timedOut?: boolean;
-  }) {
+  constructor(init: { message: string; url: string; cause?: unknown; timedOut?: boolean }) {
     super(redactString(init.message));
     this.name = 'NetworkError';
     this.url = redactString(init.url);

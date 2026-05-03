@@ -72,16 +72,16 @@
 
 - **[sec-leak] Body-snippet redaction is pattern-based, not token-equality based.**
   File: `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/http/errors.ts` (`truncateAndRedactBody`)
-  + `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/util/redact.ts` (`redactString`).
-  Design §4 says the client must replace any substring equal to
-  `session.bearer.token` or any `cookie.value` with `[REDACTED]` before embedding
-  upstream body text in an error message. The current `redactString` only catches
-  any base64-url run >100 chars. This covers JWTs and most session cookies in
-  practice, but the normative contract is stricter. To close the gap, thread the
-  active session into the HTTP client and do an explicit `.replaceAll(token, ...)`
-  + `.replaceAll(cookie.value, ...)` pass before redactString runs. Not fixed in
-  this review because it requires a signature change to `createOutlookClient`
-  options.
+  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/util/redact.ts` (`redactString`).
+    Design §4 says the client must replace any substring equal to
+    `session.bearer.token` or any `cookie.value` with `[REDACTED]` before embedding
+    upstream body text in an error message. The current `redactString` only catches
+    any base64-url run >100 chars. This covers JWTs and most session cookies in
+    practice, but the normative contract is stricter. To close the gap, thread the
+    active session into the HTTP client and do an explicit `.replaceAll(token, ...)`
+  - `.replaceAll(cookie.value, ...)` pass before redactString runs. Not fixed in
+    this review because it requires a signature change to `createOutlookClient`
+    options.
 
 - **[design-drift] HTTP error hierarchy diverges from design §2.2.**
   Files: `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/http/errors.ts`,
@@ -119,7 +119,7 @@
 - **[signature-drift] `sanitizeAttachmentName` signature.** File:
   `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/util/filename.ts`. Design §2.11
   specifies `sanitizeAttachmentName(raw: string | null | undefined, fallback:
-  string)`; the implementation is `sanitizeAttachmentName(raw: string)` with a
+string)`; the implementation is `sanitizeAttachmentName(raw: string)` with a
   hard-coded fallback of `"attachment"`. All current callers pass a string, but
   the API deviates from the normative contract.
 
@@ -194,7 +194,7 @@
 
 - **[fixed] 401 + `--no-auto-reauth` now yields `AUTH_NO_REAUTH`, not
   `AUTH_401_AFTER_RETRY`.** Added a `reason` discriminator to `http/errors
-  AuthError`, threaded through `outlook-client.doGet`, and updated
+AuthError`, threaded through `outlook-client.doGet`, and updated
   `list-mail.mapHttpError` to emit the correct CLI code. Matches design §2.8 /
   §4.
 

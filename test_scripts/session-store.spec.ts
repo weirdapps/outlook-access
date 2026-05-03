@@ -94,9 +94,7 @@ describe('session store', () => {
         { mode: 0o600 },
       );
 
-      const warnSpy = vi
-        .spyOn(process.stderr, 'write')
-        .mockImplementation(() => true);
+      const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
       try {
         const result = await loadSession(sessionPath);
         expect(result).toBeNull();

@@ -21,10 +21,7 @@ describe('extractCidReferences', () => {
   });
 
   it('handles multiple unique refs and deduplicates', () => {
-    const html =
-      '<img src="cid:logo">' +
-      '<img src="cid:icon">' +
-      '<img src="cid:logo">'; // duplicate
+    const html = '<img src="cid:logo">' + '<img src="cid:icon">' + '<img src="cid:logo">'; // duplicate
     expect(extractCidReferences(html)).toEqual(['logo', 'icon']);
   });
 
@@ -131,19 +128,24 @@ describe('loadSignatureAttachments', () => {
 
   it('returns attachments matched against manifest', async () => {
     const written = new Map<string, Buffer>([
-      ['/tmp/sig-assets/manifest.json', Buffer.from(JSON.stringify({
-        version: 1,
-        capturedAt: '2026-04-22T00:00:00Z',
-        sourceMessageId: 'AAMk-src',
-        assets: [
-          {
-            contentId: 'logo',
-            fileName: 'logo',
-            contentType: 'image/png',
-            originalName: 'logo.png',
-          },
-        ],
-      }))],
+      [
+        '/tmp/sig-assets/manifest.json',
+        Buffer.from(
+          JSON.stringify({
+            version: 1,
+            capturedAt: '2026-04-22T00:00:00Z',
+            sourceMessageId: 'AAMk-src',
+            assets: [
+              {
+                contentId: 'logo',
+                fileName: 'logo',
+                contentType: 'image/png',
+                originalName: 'logo.png',
+              },
+            ],
+          }),
+        ),
+      ],
       ['/tmp/sig-assets/logo', Buffer.from('IMAGE-BYTES')],
     ]);
     const reader = vi.fn(async (p: string) => {
@@ -162,8 +164,9 @@ describe('loadSignatureAttachments', () => {
     expect(out.attachments[0]!.ContentId).toBe('logo');
     expect(out.attachments[0]!.Name).toBe('logo.png');
     expect(out.attachments[0]!.ContentType).toBe('image/png');
-    expect(Buffer.from(out.attachments[0]!.ContentBytes, 'base64').toString('utf-8'))
-      .toBe('IMAGE-BYTES');
+    expect(Buffer.from(out.attachments[0]!.ContentBytes, 'base64').toString('utf-8')).toBe(
+      'IMAGE-BYTES',
+    );
     expect(out.unmatchedRefs).toEqual([]);
   });
 
@@ -182,14 +185,24 @@ describe('loadSignatureAttachments', () => {
 
   it('partially resolves — some matched, some unmatched', async () => {
     const written = new Map<string, Buffer>([
-      ['/tmp/sig-assets/manifest.json', Buffer.from(JSON.stringify({
-        version: 1,
-        capturedAt: '2026-04-22T00:00:00Z',
-        sourceMessageId: 'AAMk-src',
-        assets: [
-          { contentId: 'logo', fileName: 'logo', contentType: 'image/png', originalName: 'logo.png' },
-        ],
-      }))],
+      [
+        '/tmp/sig-assets/manifest.json',
+        Buffer.from(
+          JSON.stringify({
+            version: 1,
+            capturedAt: '2026-04-22T00:00:00Z',
+            sourceMessageId: 'AAMk-src',
+            assets: [
+              {
+                contentId: 'logo',
+                fileName: 'logo',
+                contentType: 'image/png',
+                originalName: 'logo.png',
+              },
+            ],
+          }),
+        ),
+      ],
       ['/tmp/sig-assets/logo', Buffer.from('IMG')],
     ]);
     const reader = vi.fn(async (p: string) => {

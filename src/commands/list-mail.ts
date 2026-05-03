@@ -4,17 +4,9 @@
 // See project-design.md §2.13.3 and refined spec §5.3.
 
 import type { CliConfig } from '../config/config';
-import {
-  AuthError as CliAuthError,
-  OutlookCliError,
-  UpstreamError,
-} from '../config/errors';
+import { AuthError as CliAuthError, OutlookCliError, UpstreamError } from '../config/errors';
 import type { OutlookClient } from '../http/outlook-client';
-import {
-  ApiError,
-  AuthError as HttpAuthError,
-  NetworkError,
-} from '../http/errors';
+import { ApiError, AuthError as HttpAuthError, NetworkError } from '../http/errors';
 import { buildReceivedDateFilter, FilterError } from '../http/filter-builder';
 import type { MessageSummary, ODataListResponse } from '../http/types';
 import type { SessionFile } from '../session/schema';
@@ -75,16 +67,9 @@ export const DEFAULT_MAX_RESULTS = 10000;
 /** Absolute hard ceiling — refuses to walk more than this many results in one call. */
 export const ABSOLUTE_MAX_RESULTS = 100_000;
 
-export const ALLOWED_FOLDERS = [
-  'Inbox',
-  'SentItems',
-  'Drafts',
-  'DeletedItems',
-  'Archive',
-] as const;
+export const ALLOWED_FOLDERS = ['Inbox', 'SentItems', 'Drafts', 'DeletedItems', 'Archive'] as const;
 
-const DEFAULT_SELECT =
-  'Id,Subject,From,ReceivedDateTime,HasAttachments,IsRead,WebLink';
+const DEFAULT_SELECT = 'Id,Subject,From,ReceivedDateTime,HasAttachments,IsRead,WebLink';
 
 /**
  * Raised for user-input validation failures that commander does not catch.
@@ -122,9 +107,7 @@ export async function run(
   const fetchAll = opts.all === true;
   const maxResults = opts.max ?? DEFAULT_MAX_RESULTS;
   if (!Number.isInteger(maxResults) || maxResults < 1) {
-    throw new UsageError(
-      `list-mail: --max must be a positive integer (got ${String(maxResults)})`,
-    );
+    throw new UsageError(`list-mail: --max must be a positive integer (got ${String(maxResults)})`);
   }
   if (maxResults > ABSOLUTE_MAX_RESULTS) {
     throw new UsageError(
@@ -171,15 +154,11 @@ export async function run(
   //                     well-known aliases in addition to the original fast-
   //                     path set (ALLOWED_FOLDERS).
   const hasFolder = typeof opts.folder === 'string' && opts.folder.length > 0;
-  const hasFolderId =
-    typeof opts.folderId === 'string' && opts.folderId.length > 0;
-  const hasFolderParent =
-    typeof opts.folderParent === 'string' && opts.folderParent.length > 0;
+  const hasFolderId = typeof opts.folderId === 'string' && opts.folderId.length > 0;
+  const hasFolderParent = typeof opts.folderParent === 'string' && opts.folderParent.length > 0;
 
   if (hasFolder && hasFolderId) {
-    throw new UsageError(
-      'list-mail: --folder and --folder-id are mutually exclusive.',
-    );
+    throw new UsageError('list-mail: --folder and --folder-id are mutually exclusive.');
   }
   if (hasFolderParent && hasFolderId) {
     throw new UsageError(
@@ -195,16 +174,17 @@ export async function run(
   }
 
   const select =
-    typeof opts.select === 'string' && opts.select.length > 0
-      ? opts.select
-      : DEFAULT_SELECT;
+    typeof opts.select === 'string' && opts.select.length > 0 ? opts.select : DEFAULT_SELECT;
 
   // Session load. If missing/expired and auto-reauth is allowed, capture a
   // fresh session before we build the client.
   const session = await ensureSession(deps);
   const client = deps.createClient(session);
 
-  const selectArr = select.split(',').map((s) => s.trim()).filter((s) => s.length > 0);
+  const selectArr = select
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
   const listOpts = {
     top,
     select: selectArr,
@@ -249,17 +229,15 @@ export async function run(
       });
     }
     if (fetchAll) {
-      const result = await client.listMessagesInFolderAll(
-        targetFolderId,
-        listOpts,
-        maxResults,
-      );
+      const result = await client.listMessagesInFolderAll(targetFolderId, listOpts, maxResults);
       if (result.truncated) {
-        process.stderr.write(JSON.stringify({
-          code: 'max_results_reached',
-          message: `--max=${maxResults} cap hit; ${result.messages.length} returned, more available`,
-          hint: 'increase --max or split query with --since/--until',
-        }) + '\n');
+        process.stderr.write(
+          JSON.stringify({
+            code: 'max_results_reached',
+            message: `--max=${maxResults} cap hit; ${result.messages.length} returned, more available`,
+            hint: 'increase --max or split query with --since/--until',
+          }) + '\n',
+        );
       }
       return result.messages;
     }
@@ -309,10 +287,7 @@ export function mapHttpError(err: unknown): unknown {
     // Distinguish the two 401 paths per design §2.8:
     //   - noAutoReauth first 401 → AUTH_NO_REAUTH
     //   - after single retry     → AUTH_401_AFTER_RETRY
-    const cliCode =
-      err.reason === 'NO_AUTO_REAUTH'
-        ? 'AUTH_NO_REAUTH'
-        : 'AUTH_401_AFTER_RETRY';
+    const cliCode = err.reason === 'NO_AUTO_REAUTH' ? 'AUTH_NO_REAUTH' : 'AUTH_401_AFTER_RETRY';
     return new CliAuthError(cliCode, err.message, err);
   }
   if (err instanceof ApiError) {
@@ -345,10 +320,7 @@ export function mapHttpError(err: unknown): unknown {
  * Convention: lower bound is INCLUSIVE (`ge`), upper bound is EXCLUSIVE
  * (`lt`), matching the calendar-view convention.
  */
-function buildFromToFilter(
-  from: string | undefined,
-  to: string | undefined,
-): string {
+function buildFromToFilter(from: string | undefined, to: string | undefined): string {
   const hasFrom = typeof from === 'string' && from.length > 0;
   const hasTo = typeof to === 'string' && to.length > 0;
   if (!hasFrom && !hasTo) {

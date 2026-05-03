@@ -6,12 +6,7 @@
 
 import { Command, Option } from 'commander';
 
-import {
-  loadConfig,
-  type CliConfig,
-  type CliFlags,
-  type BodyMode,
-} from './config/config';
+import { loadConfig, type CliConfig, type CliFlags, type BodyMode } from './config/config';
 import {
   AuthError as CliAuthError,
   ConfigurationError,
@@ -28,15 +23,8 @@ import { createOutlookClient, type OutlookClient } from './http/outlook-client';
 import { CollisionError } from './http/errors';
 import { loadSession, saveSession } from './session/store';
 import type { SessionFile } from './session/schema';
-import {
-  formatOutput,
-  type ColumnSpec,
-  type OutputMode,
-} from './output/formatter';
-import type {
-  EventSummary,
-  MessageSummary,
-} from './http/types';
+import { formatOutput, type ColumnSpec, type OutputMode } from './output/formatter';
+import type { EventSummary, MessageSummary } from './http/types';
 import type {
   CreateFolderResult,
   CreateFolderSegment,
@@ -139,9 +127,7 @@ function buildDeps(globalFlags: CliFlags): CommandDeps {
     const sessionFile = captureToSessionFile(captured);
     await saveSession(sessionPath, sessionFile);
     if (!captured.sharepoint) {
-      throw new Error(
-        `captureOutlookSession returned no sharepoint session for host "${host}"`,
-      );
+      throw new Error(`captureOutlookSession returned no sharepoint session for host "${host}"`);
     }
     const { defaultSharepointSessionPath, saveSharepointSession } =
       await import('./session/sharepoint-schema');
@@ -190,9 +176,7 @@ interface GlobalOpts {
 function parseIntOrUndef(v: string | undefined, label: string): number | undefined {
   if (v === undefined) return undefined;
   if (!/^-?\d+$/.test(v)) {
-    throw new CommanderLikeError(
-      `${label} must be an integer (got ${JSON.stringify(v)})`,
-    );
+    throw new CommanderLikeError(`${label} must be an integer (got ${JSON.stringify(v)})`);
   }
   return Number.parseInt(v, 10);
 }
@@ -204,9 +188,7 @@ function resolveOutputMode(g: GlobalOpts): OutputMode {
   const explicitJson = argv.includes('--json');
   const explicitTable = argv.includes('--table') || g.table === true;
   if (explicitJson && explicitTable) {
-    throw new CommanderLikeError(
-      '--json and --table are mutually exclusive',
-    );
+    throw new CommanderLikeError('--json and --table are mutually exclusive');
   }
   return explicitTable ? 'table' : 'json';
 }
@@ -218,8 +200,7 @@ function globalOptsToFlags(g: GlobalOpts): CliFlags {
   const loginTimeout = parseIntOrUndef(g.loginTimeout, '--login-timeout');
   if (loginTimeout !== undefined) flags.loginTimeoutMs = loginTimeout;
   if (typeof g.chromeChannel === 'string') flags.chromeChannel = g.chromeChannel;
-  if (typeof g.sessionFile === 'string')
-    flags.sessionFileOverride = g.sessionFile;
+  if (typeof g.sessionFile === 'string') flags.sessionFileOverride = g.sessionFile;
   if (typeof g.profileDir === 'string') flags.profileDir = g.profileDir;
   if (typeof g.tz === 'string') flags.tz = g.tz;
   flags.outputMode = g.table === true ? 'table' : 'json';
@@ -255,10 +236,7 @@ const LIST_MAIL_COLUMNS: ColumnSpec<MessageSummary>[] = [
   },
   {
     header: 'From',
-    extract: (r) =>
-      r.From?.EmailAddress?.Name ||
-      r.From?.EmailAddress?.Address ||
-      '',
+    extract: (r) => r.From?.EmailAddress?.Name || r.From?.EmailAddress?.Address || '',
     maxWidth: 28,
   },
   {
@@ -287,10 +265,7 @@ const GET_THREAD_COLUMNS: ColumnSpec<MessageSummary>[] = [
   },
   {
     header: 'From',
-    extract: (r) =>
-      r.From?.EmailAddress?.Name ||
-      r.From?.EmailAddress?.Address ||
-      '',
+    extract: (r) => r.From?.EmailAddress?.Name || r.From?.EmailAddress?.Address || '',
     maxWidth: 28,
   },
   {
@@ -322,10 +297,7 @@ const LIST_CALENDAR_COLUMNS: ColumnSpec<EventSummary>[] = [
   },
   {
     header: 'Organizer',
-    extract: (r) =>
-      r.Organizer?.EmailAddress?.Name ||
-      r.Organizer?.EmailAddress?.Address ||
-      '',
+    extract: (r) => r.Organizer?.EmailAddress?.Name || r.Organizer?.EmailAddress?.Address || '',
     maxWidth: 28,
   },
   {
@@ -403,8 +375,7 @@ function toMoveMailRows(r: MoveMailResult): MoveMailRow[] {
   for (const f of r.failed as MoveFailedEntry[]) {
     const parts: string[] = [];
     if (f.error?.code) parts.push(f.error.code);
-    if (typeof f.error?.httpStatus === 'number')
-      parts.push(`HTTP ${f.error.httpStatus}`);
+    if (typeof f.error?.httpStatus === 'number') parts.push(`HTTP ${f.error.httpStatus}`);
     if (f.error?.message) parts.push(f.error.message);
     rows.push({
       sourceId: f.sourceId,
@@ -419,11 +390,7 @@ function toMoveMailRows(r: MoveMailResult): MoveMailRow[] {
 // Output helpers
 // ---------------------------------------------------------------------------
 
-function emitResult(
-  data: unknown,
-  mode: OutputMode,
-  columns?: ColumnSpec<unknown>[],
-): void {
+function emitResult(data: unknown, mode: OutputMode, columns?: ColumnSpec<unknown>[]): void {
   // Table is only meaningful for array-ish results that match the column
   // spec. For non-tabular results we fall back to JSON silently.
   if (mode === 'table' && columns) {
@@ -463,10 +430,8 @@ function formatErrorJson(err: unknown): ErrorPayload {
     const payload: ErrorPayload = {
       error: { code: err.code, message: err.message },
     };
-    if (err.httpStatus !== undefined)
-      payload.error.httpStatus = err.httpStatus;
-    if (err.requestId !== undefined)
-      payload.error.requestId = err.requestId;
+    if (err.httpStatus !== undefined) payload.error.httpStatus = err.httpStatus;
+    if (err.requestId !== undefined) payload.error.requestId = err.requestId;
     if (err.url !== undefined) payload.error.url = err.url;
     return payload;
   }
@@ -594,35 +559,22 @@ export async function main(argv: string[]): Promise<number> {
   const program = new Command();
   program
     .name('outlook-cli')
-    .description(
-      'CLI tool for reading Outlook mail and calendar via outlook.office.com/api/v2.0',
-    )
+    .description('CLI tool for reading Outlook mail and calendar via outlook.office.com/api/v2.0')
     .version(readPackageVersion())
     // Global flags. No `enablePositionalOptions()` so users can place global
     // options either before or after the subcommand (e.g.
     // `list-mail -n 5 --table`). Subcommand options never clash by name.
 
     .option('--timeout <ms>', 'Per-REST-call HTTP timeout (default 30000)')
-    .option(
-      '--login-timeout <ms>',
-      'Max wait for interactive login (default 300000)',
-    )
-    .option(
-      '--chrome-channel <name>',
-      'Playwright Chrome channel (default "chrome")',
-    )
+    .option('--login-timeout <ms>', 'Max wait for interactive login (default 300000)')
+    .option('--chrome-channel <name>', 'Playwright Chrome channel (default "chrome")')
     .option('--session-file <path>', 'Override session file path')
     .option('--profile-dir <path>', 'Override Playwright profile directory')
     .option('--tz <iana>', 'IANA timezone override')
-    .addOption(
-      new Option('--json', 'Emit JSON to stdout (default)').default(true),
-    )
+    .addOption(new Option('--json', 'Emit JSON to stdout (default)').default(true))
     .option('--table', 'Emit a human-readable table to stdout')
     .option('--quiet', 'Suppress stderr progress messages', false)
-    .option(
-      '--no-auto-reauth',
-      'Do not auto-reopen the browser on 401 or expired session',
-    )
+    .option('--no-auto-reauth', 'Do not auto-reopen the browser on 401 or expired session')
     .option('--log-file <path>', 'Write debug log to a file (mode 0600)');
 
   // -------- login --------
@@ -681,29 +633,29 @@ export async function main(argv: string[]): Promise<number> {
       '--folder <name>',
       'Folder name (Inbox|SentItems|Drafts|DeletedItems|Archive or path/alias)',
     )
-    .option(
-      '--folder-id <id>',
-      'Raw folder id (XOR with --folder)',
-    )
+    .option('--folder-id <id>', 'Raw folder id (XOR with --folder)')
     .option(
       '--folder-parent <spec>',
       'Anchor for a path/bare-name in --folder (default MsgFolderRoot)',
     )
     .option('--select <csv>', 'Comma-separated $select fields')
-    .option('--since <iso>',
-      'ISO-8601 UTC: include only messages with ReceivedDateTime >= this')
-    .option('--until <iso>',
-      'ISO-8601 UTC: include only messages with ReceivedDateTime < this')
-    .option('--from <iso|keyword>',
-      'Lower bound (ge) on ReceivedDateTime. ISO-8601 or now / now+Nd / now-Nd. Mutually exclusive with --since.')
-    .option('--to <iso|keyword>',
-      'Upper bound (lt) on ReceivedDateTime. Same grammar as --from. Mutually exclusive with --until.')
+    .option('--since <iso>', 'ISO-8601 UTC: include only messages with ReceivedDateTime >= this')
+    .option('--until <iso>', 'ISO-8601 UTC: include only messages with ReceivedDateTime < this')
+    .option(
+      '--from <iso|keyword>',
+      'Lower bound (ge) on ReceivedDateTime. ISO-8601 or now / now+Nd / now-Nd. Mutually exclusive with --since.',
+    )
+    .option(
+      '--to <iso|keyword>',
+      'Upper bound (lt) on ReceivedDateTime. Same grammar as --from. Mutually exclusive with --until.',
+    )
     .option('--all', 'Auto-paginate via @odata.nextLink until exhausted', false)
-    .option('--max <N>',
-      'Safety cap for --all (default 10000, max 100000)', parseIntArg)
-    .option('--just-count',
+    .option('--max <N>', 'Safety cap for --all (default 10000, max 100000)', parseIntArg)
+    .option(
+      '--just-count',
       'Return only {count, exact} via server-side $count=true. Ignores --top/--select. Mutually exclusive with --all.',
-      false)
+      false,
+    )
     .action(
       makeAction<
         {
@@ -729,11 +681,7 @@ export async function main(argv: string[]): Promise<number> {
         if (cmdOpts.justCount === true) {
           emitResult(result, mode);
         } else {
-          emitResult(
-            result,
-            mode,
-            LIST_MAIL_COLUMNS as unknown as ColumnSpec<unknown>[],
-          );
+          emitResult(result, mode, LIST_MAIL_COLUMNS as unknown as ColumnSpec<unknown>[]);
         }
       }),
     );
@@ -745,50 +693,36 @@ export async function main(argv: string[]): Promise<number> {
     .description('Retrieve one message with optional body')
     .option('--body <mode>', 'Body inclusion: html|text|none')
     .action(
-      makeAction<{ body?: BodyMode }, [string]>(
-        program,
-        async (deps, g, cmdOpts, id) => {
-          const result = await getMail.run(deps, id, cmdOpts);
-          emitResult(result, resolveOutputMode(g));
-        },
-      ),
+      makeAction<{ body?: BodyMode }, [string]>(program, async (deps, g, cmdOpts, id) => {
+        const result = await getMail.run(deps, id, cmdOpts);
+        emitResult(result, resolveOutputMode(g));
+      }),
     );
 
   // -------- get-thread <id> --------
   program
     .command('get-thread')
-    .argument(
-      '<id>',
-      'Message id (or "conv:<conversationId>" to skip the resolve hop)',
-    )
-    .description(
-      'Retrieve every message in a conversation (thread) regardless of folder',
-    )
-    .option(
-      '--body <mode>',
-      'Body inclusion: html|text|none (default text)',
-    )
-    .option(
-      '--order <asc|desc>',
-      'ReceivedDateTime order (default asc = oldest first)',
-    )
+    .argument('<id>', 'Message id (or "conv:<conversationId>" to skip the resolve hop)')
+    .description('Retrieve every message in a conversation (thread) regardless of folder')
+    .option('--body <mode>', 'Body inclusion: html|text|none (default text)')
+    .option('--order <asc|desc>', 'ReceivedDateTime order (default asc = oldest first)')
     .action(
-      makeAction<
-        { body?: getThread.ThreadBodyMode; order?: getThread.ThreadOrder },
-        [string]
-      >(program, async (deps, g, cmdOpts, id) => {
-        const result = await getThread.run(deps, id, cmdOpts);
-        const mode = resolveOutputMode(g);
-        if (mode === 'table') {
-          emitResult(
-            result.messages,
-            mode,
-            GET_THREAD_COLUMNS as unknown as ColumnSpec<unknown>[],
-          );
-        } else {
-          emitResult(result, mode);
-        }
-      }),
+      makeAction<{ body?: getThread.ThreadBodyMode; order?: getThread.ThreadOrder }, [string]>(
+        program,
+        async (deps, g, cmdOpts, id) => {
+          const result = await getThread.run(deps, id, cmdOpts);
+          const mode = resolveOutputMode(g);
+          if (mode === 'table') {
+            emitResult(
+              result.messages,
+              mode,
+              GET_THREAD_COLUMNS as unknown as ColumnSpec<unknown>[],
+            );
+          } else {
+            emitResult(result, mode);
+          }
+        },
+      ),
     );
 
   // -------- download-attachments <id> --------
@@ -800,13 +734,13 @@ export async function main(argv: string[]): Promise<number> {
     .option('--overwrite', 'Overwrite existing files', false)
     .option('--include-inline', 'Include inline attachments', false)
     .action(
-      makeAction<
-        { out?: string; overwrite?: boolean; includeInline?: boolean },
-        [string]
-      >(program, async (deps, g, cmdOpts, id) => {
-        const result = await downloadAttachments.run(deps, id, cmdOpts);
-        emitResult(result, resolveOutputMode(g));
-      }),
+      makeAction<{ out?: string; overwrite?: boolean; includeInline?: boolean }, [string]>(
+        program,
+        async (deps, g, cmdOpts, id) => {
+          const result = await downloadAttachments.run(deps, id, cmdOpts);
+          emitResult(result, resolveOutputMode(g));
+        },
+      ),
     );
 
   // -------- download-sharepoint-link <url> --------
@@ -838,17 +772,17 @@ export async function main(argv: string[]): Promise<number> {
     .option('--to <iso>', 'Window end (ISO8601). Default: now + 7d')
     .option('--tz <iana>', 'Timezone override')
     .action(
-      makeAction<
-        { from?: string; to?: string; tz?: string },
-        []
-      >(program, async (deps, g, cmdOpts) => {
-        const result = await listCalendar.run(deps, cmdOpts);
-        emitResult(
-          result,
-          resolveOutputMode(g),
-          LIST_CALENDAR_COLUMNS as unknown as ColumnSpec<unknown>[],
-        );
-      }),
+      makeAction<{ from?: string; to?: string; tz?: string }, []>(
+        program,
+        async (deps, g, cmdOpts) => {
+          const result = await listCalendar.run(deps, cmdOpts);
+          emitResult(
+            result,
+            resolveOutputMode(g),
+            LIST_CALENDAR_COLUMNS as unknown as ColumnSpec<unknown>[],
+          );
+        },
+      ),
     );
 
   // -------- get-event <id> --------
@@ -858,13 +792,10 @@ export async function main(argv: string[]): Promise<number> {
     .description('Retrieve one calendar event with optional body')
     .option('--body <mode>', 'Body inclusion: html|text|none')
     .action(
-      makeAction<{ body?: BodyMode }, [string]>(
-        program,
-        async (deps, g, cmdOpts, id) => {
-          const result = await getEvent.run(deps, id, cmdOpts);
-          emitResult(result, resolveOutputMode(g));
-        },
-      ),
+      makeAction<{ body?: BodyMode }, [string]>(program, async (deps, g, cmdOpts, id) => {
+        const result = await getEvent.run(deps, id, cmdOpts);
+        emitResult(result, resolveOutputMode(g));
+      }),
     );
 
   // -------- list-folders --------
@@ -918,15 +849,15 @@ export async function main(argv: string[]): Promise<number> {
       false,
     )
     .action(
-      makeAction<
-        { anchor?: string; firstMatch?: boolean },
-        [string]
-      >(program, async (deps, g, cmdOpts, spec) => {
-        const result = await findFolder.run(deps, spec, cmdOpts);
-        // find-folder returns a single object — no ColumnSpec; emitResult
-        // falls back to JSON per project-design §10.7.
-        emitResult(result, resolveOutputMode(g));
-      }),
+      makeAction<{ anchor?: string; firstMatch?: boolean }, [string]>(
+        program,
+        async (deps, g, cmdOpts, spec) => {
+          const result = await findFolder.run(deps, spec, cmdOpts);
+          // find-folder returns a single object — no ColumnSpec; emitResult
+          // falls back to JSON per project-design §10.7.
+          emitResult(result, resolveOutputMode(g));
+        },
+      ),
     );
 
   // -------- create-folder <path> --------
@@ -938,16 +869,8 @@ export async function main(argv: string[]): Promise<number> {
       '--parent <spec>',
       'Anchor folder (well-known, path, or id:<raw>). Default: MsgFolderRoot',
     )
-    .option(
-      '--create-parents',
-      'Create missing intermediate segments on a nested path',
-      false,
-    )
-    .option(
-      '--idempotent',
-      'Return the existing folder on collision instead of exit 6',
-      false,
-    )
+    .option('--create-parents', 'Create missing intermediate segments on a nested path', false)
+    .option('--idempotent', 'Return the existing folder on collision instead of exit 6', false)
     .action(
       makeAction<
         {
@@ -976,17 +899,9 @@ export async function main(argv: string[]): Promise<number> {
   // -------- move-mail <messageIds...> --------
   program
     .command('move-mail')
-    .argument(
-      '<messageIds...>',
-      'One or more source message ids to move',
-    )
-    .description(
-      'Move one or more messages to a destination folder (returns new ids per §10.8)',
-    )
-    .requiredOption(
-      '--to <spec>',
-      'Destination folder (well-known, path, or id:<raw>)',
-    )
+    .argument('<messageIds...>', 'One or more source message ids to move')
+    .description('Move one or more messages to a destination folder (returns new ids per §10.8)')
+    .requiredOption('--to <spec>', 'Destination folder (well-known, path, or id:<raw>)')
     .option(
       '--first-match',
       'On ambiguity in --to, pick the oldest candidate (CreatedDateTime asc, Id asc)',
@@ -1033,10 +948,7 @@ export async function main(argv: string[]): Promise<number> {
       'Send a new email. Default: creates a draft and activates Outlook desktop. ' +
         '--send-now bypasses the draft and sends immediately.',
     )
-    .option(
-      '--to <recipients...>',
-      'TO recipients (comma-separated string and/or repeat flag)',
-    )
+    .option('--to <recipients...>', 'TO recipients (comma-separated string and/or repeat flag)')
     .option('--cc <recipients...>', 'CC recipients (comma + repeat)')
     .option('--bcc <recipients...>', 'BCC recipients (comma + repeat)')
     .option('--subject <s>', 'Subject line')
@@ -1052,20 +964,14 @@ export async function main(argv: string[]): Promise<number> {
       '--signature <file>',
       'Override signature file path (default: ~/.outlook-cli/signature.html)',
     )
-    .option(
-      '--no-signature',
-      'Do not append signature even if signature.html exists',
-    )
+    .option('--no-signature', 'Do not append signature even if signature.html exists')
     .option(
       '--no-cc-self',
       'Suppress automatic CC to authenticated user (CLAUDE.md mandates CC-self by default)',
     )
     .option('--no-save-sent', 'Do not save to SentItems (only meaningful with --send-now)')
     .option('--send-now', 'Send immediately, skip draft + Outlook activation', false)
-    .option(
-      '--no-open',
-      'Do not activate Outlook desktop after creating the draft',
-    )
+    .option('--no-open', 'Do not activate Outlook desktop after creating the draft')
     .option('--dry-run', 'Print payload, do not contact M365', false)
     .action(
       makeAction<
@@ -1101,13 +1007,10 @@ export async function main(argv: string[]): Promise<number> {
     .option('--from-message <id>', 'Source message id (default: latest in SentItems)')
     .option('--out <file>', 'Output path (default: ~/.outlook-cli/signature.html)')
     .action(
-      makeAction<{ fromMessage?: string; out?: string }, []>(
-        program,
-        async (deps, g, cmdOpts) => {
-          const result = await captureSignature.run(deps, cmdOpts);
-          emitResult(result, resolveOutputMode(g));
-        },
-      ),
+      makeAction<{ fromMessage?: string; out?: string }, []>(program, async (deps, g, cmdOpts) => {
+        const result = await captureSignature.run(deps, cmdOpts);
+        emitResult(result, resolveOutputMode(g));
+      }),
     );
 
   // -------- reply <id> --------
@@ -1117,9 +1020,15 @@ export async function main(argv: string[]): Promise<number> {
     .description('Reply to a message (draft-first by default; --send-now to dispatch)')
     .option('--html <file>', 'HTML body file (your reply content; auto-quote + signature appended)')
     .option('--text <file>', 'Plain-text body file (escaped + wrapped in <p>)')
-    .option('--signature <file>', 'Override signature file path (default: ~/.outlook-cli/signature.html)')
+    .option(
+      '--signature <file>',
+      'Override signature file path (default: ~/.outlook-cli/signature.html)',
+    )
     .option('--no-signature', 'Suppress signature appending')
-    .option('--no-cc-self', 'Suppress automatic CC to authenticated user (default: ON, per CLAUDE.md compliance)')
+    .option(
+      '--no-cc-self',
+      'Suppress automatic CC to authenticated user (default: ON, per CLAUDE.md compliance)',
+    )
     .option('--send-now', 'Send immediately, skip draft + Outlook activation', false)
     .option('--no-open', 'Do not activate Outlook desktop after creating the draft')
     .option('--dry-run', 'Print result without contacting M365', false)
@@ -1178,9 +1087,7 @@ export async function main(argv: string[]): Promise<number> {
   program
     .command('forward')
     .argument('<id>', 'Source message id to forward')
-    .description(
-      'Forward a message — auto-quotes original. --to required (forward target).',
-    )
+    .description('Forward a message — auto-quotes original. --to required (forward target).')
     .option('--to <recipients...>', 'Forward target(s) (comma + repeat). REQUIRED.')
     .option('--cc <recipients...>', 'CC on the forward')
     .option('--bcc <recipients...>', 'BCC on the forward')
@@ -1246,9 +1153,7 @@ export async function main(argv: string[]): Promise<number> {
  */
 function parseIntArg(v: string): number {
   if (!/^-?\d+$/.test(v)) {
-    throw new CommanderLikeError(
-      `expected integer value, got ${JSON.stringify(v)}`,
-    );
+    throw new CommanderLikeError(`expected integer value, got ${JSON.stringify(v)}`);
   }
   return Number.parseInt(v, 10);
 }
@@ -1266,10 +1171,7 @@ function parseIntArg(v: string): number {
  * `writableLength === 0` before calling `process.exit`.
  */
 export async function exitWithDrain(code: number): Promise<never> {
-  await Promise.all([
-    drainStream(process.stdout),
-    drainStream(process.stderr),
-  ]);
+  await Promise.all([drainStream(process.stdout), drainStream(process.stderr)]);
   process.exit(code);
 }
 

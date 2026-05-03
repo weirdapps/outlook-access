@@ -119,7 +119,7 @@ All modules use:
 // src/config/config.ts
 
 export type OutputMode = 'json' | 'table';
-export type BodyMode   = 'html' | 'text' | 'none';
+export type BodyMode = 'html' | 'text' | 'none';
 
 /**
  * The fully resolved configuration object for a single CLI invocation.
@@ -213,24 +213,24 @@ export const ENV: {
 
 **Field matrix — mandatory vs. optional defaults:**
 
-| Field | Mandatory? | Flag | Env | Default if unresolved |
-|---|---|---|---|---|
-| `httpTimeoutMs` | Yes | `--timeout` | `OUTLOOK_CLI_HTTP_TIMEOUT_MS` | throws `ConfigurationError` |
-| `loginTimeoutMs` | Yes | `--login-timeout` | `OUTLOOK_CLI_LOGIN_TIMEOUT_MS` | throws `ConfigurationError` |
-| `chromeChannel` | Yes | `--chrome-channel` | `OUTLOOK_CLI_CHROME_CHANNEL` | throws `ConfigurationError` |
-| `sessionFilePath` | No | `--session-file` | `OUTLOOK_CLI_SESSION_FILE` | `$HOME/.outlook-cli/session.json` |
-| `profileDir` | No | `--profile-dir` | `OUTLOOK_CLI_PROFILE_DIR` | `$HOME/.outlook-cli/playwright-profile` |
-| `tz` | No | `--tz` | `OUTLOOK_CLI_TZ` | `Intl.DateTimeFormat().resolvedOptions().timeZone` |
-| `outputMode` | No | `--json`/`--table` | — | `'json'` |
-| `listMailTop` | No | `-n`/`--top` | — | `10` |
-| `listMailFolder` | No | `--folder` | — | `'Inbox'` |
-| `bodyMode` | No | `--body` | — | `'text'` |
-| `calFrom` | No | `--from` | `OUTLOOK_CLI_CAL_FROM` | `"now"` (resolved at call site) |
-| `calTo` | No | `--to` | `OUTLOOK_CLI_CAL_TO` | `"now + 7d"` (resolved at call site) |
-| `quiet` | No | `--quiet` | — | `false` |
-| `sessionFileOverride` | No | `--session-file` | — | `undefined` |
-| `noAutoReauth` | No | `--no-auto-reauth` | — | `false` |
-| `logFilePath` | No | `--log-file` | — | `undefined` |
+| Field                 | Mandatory? | Flag               | Env                            | Default if unresolved                              |
+| --------------------- | ---------- | ------------------ | ------------------------------ | -------------------------------------------------- |
+| `httpTimeoutMs`       | Yes        | `--timeout`        | `OUTLOOK_CLI_HTTP_TIMEOUT_MS`  | throws `ConfigurationError`                        |
+| `loginTimeoutMs`      | Yes        | `--login-timeout`  | `OUTLOOK_CLI_LOGIN_TIMEOUT_MS` | throws `ConfigurationError`                        |
+| `chromeChannel`       | Yes        | `--chrome-channel` | `OUTLOOK_CLI_CHROME_CHANNEL`   | throws `ConfigurationError`                        |
+| `sessionFilePath`     | No         | `--session-file`   | `OUTLOOK_CLI_SESSION_FILE`     | `$HOME/.outlook-cli/session.json`                  |
+| `profileDir`          | No         | `--profile-dir`    | `OUTLOOK_CLI_PROFILE_DIR`      | `$HOME/.outlook-cli/playwright-profile`            |
+| `tz`                  | No         | `--tz`             | `OUTLOOK_CLI_TZ`               | `Intl.DateTimeFormat().resolvedOptions().timeZone` |
+| `outputMode`          | No         | `--json`/`--table` | —                              | `'json'`                                           |
+| `listMailTop`         | No         | `-n`/`--top`       | —                              | `10`                                               |
+| `listMailFolder`      | No         | `--folder`         | —                              | `'Inbox'`                                          |
+| `bodyMode`            | No         | `--body`           | —                              | `'text'`                                           |
+| `calFrom`             | No         | `--from`           | `OUTLOOK_CLI_CAL_FROM`         | `"now"` (resolved at call site)                    |
+| `calTo`               | No         | `--to`             | `OUTLOOK_CLI_CAL_TO`           | `"now + 7d"` (resolved at call site)               |
+| `quiet`               | No         | `--quiet`          | —                              | `false`                                            |
+| `sessionFileOverride` | No         | `--session-file`   | —                              | `undefined`                                        |
+| `noAutoReauth`        | No         | `--no-auto-reauth` | —                              | `false`                                            |
+| `logFilePath`         | No         | `--log-file`       | —                              | `undefined`                                        |
 
 **Enforcement rule**: if any mandatory field cannot be resolved, throw a
 `ConfigurationError`. No silent defaults. Do NOT, for example, fall back to `30_000` for
@@ -279,7 +279,11 @@ export class ConfigurationError extends OutlookCliError {
  * Exit code 4.
  */
 export class AuthError extends OutlookCliError {
-  public readonly code: 'AUTH_LOGIN_CANCELLED' | 'AUTH_LOGIN_TIMEOUT' | 'AUTH_401_AFTER_RETRY' | 'AUTH_NO_REAUTH';
+  public readonly code:
+    | 'AUTH_LOGIN_CANCELLED'
+    | 'AUTH_LOGIN_TIMEOUT'
+    | 'AUTH_401_AFTER_RETRY'
+    | 'AUTH_NO_REAUTH';
   public readonly exitCode = 4;
   constructor(code: AuthError['code'], message: string, cause?: unknown);
 }
@@ -293,7 +297,7 @@ export class UpstreamError extends OutlookCliError {
   public readonly exitCode = 5;
   public readonly httpStatus?: number;
   public readonly requestId?: string;
-  public readonly url?: string;   // redacted of query-string tokens
+  public readonly url?: string; // redacted of query-string tokens
   constructor(init: {
     code: string;
     message: string;
@@ -318,13 +322,13 @@ export class IoError extends OutlookCliError {
 
 **Exit-code mapping** (referenced by `src/cli.ts` top-level handler):
 
-| Error class | Exit code |
-|---|---|
-| `ConfigurationError` | 3 |
-| `AuthError` | 4 |
-| `UpstreamError` | 5 |
-| `IoError` | 6 |
-| Any other `Error` | 1 (unexpected) |
+| Error class            | Exit code                |
+| ---------------------- | ------------------------ |
+| `ConfigurationError`   | 3                        |
+| `AuthError`            | 4                        |
+| `UpstreamError`        | 5                        |
+| `IoError`              | 6                        |
+| Any other `Error`      | 1 (unexpected)           |
 | `commander` argv error | 2 (handled by commander) |
 
 **Redaction contract**: No constructor may place the bearer token, cookie values, or
@@ -658,7 +662,7 @@ export const INIT_SCRIPT_TEXT: string;
 - Uses a local `alreadyResolved` flag so only the first call resolves the capture
   promise; all subsequent calls are silently ignored.
 - Handler signature: `(_source: unknown, payload: { url: string; token: string }) =>
-  void`.
+void`.
 
 ---
 
@@ -715,7 +719,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient;
   - For body-bearing endpoints (future): `Content-Type: application/json`.
 - `AbortController`: `signal` is passed to `fetch`; a `setTimeout(httpTimeoutMs, abort)`
   fires if the request is not complete. On abort → `UpstreamError("UPSTREAM_TIMEOUT",
-  ...)`.
+...)`.
 
 **Re-auth / retry semantics:**
 
@@ -880,8 +884,8 @@ export function deduplicateFilename(dir: string, filename: string): Promise<stri
 Constants (normative):
 
 ```typescript
-export const WINDOWS_RESERVED: RegExp;  // /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)/i
-export const ILLEGAL_CHARS:    RegExp;  // /[/\\:*?"<>|\x00-\x1F]/g
+export const WINDOWS_RESERVED: RegExp; // /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)/i
+export const ILLEGAL_CHARS: RegExp; // /[/\\:*?"<>|\x00-\x1F]/g
 export const MAX_FILENAME_BYTES: number; // 243
 export const LARGE_ATTACHMENT_BYTES: number; // 3 * 1024 * 1024
 ```
@@ -977,7 +981,9 @@ program
   .command('login')
   .description('Open Chrome and capture a fresh Outlook session')
   .option('--force', 'Ignore any cached session and always open the browser', false)
-  .action(async (opts: { force: boolean }) => { /* algorithm below */ });
+  .action(async (opts: { force: boolean }) => {
+    /* algorithm below */
+  });
 ```
 
 **Algorithm (7 steps):**
@@ -1016,7 +1022,9 @@ call `GET /api/v2.0/me` if JWT claims are incomplete).
 program
   .command('auth-check')
   .description('Verify the cached session is present and accepted by Outlook')
-  .action(async () => { /* algorithm below */ });
+  .action(async () => {
+    /* algorithm below */
+  });
 ```
 
 **Algorithm (5 steps):**
@@ -1048,7 +1056,9 @@ program
   .option('-n, --top <N>', 'Number of messages (1..100)', parseIntRange(1, 100), 10)
   .option('--folder <name>', 'Folder name (Inbox|SentItems|Drafts|DeletedItems|Archive)', 'Inbox')
   .option('--select <csv>', 'Comma-separated $select fields')
-  .action(async (opts) => { /* algorithm below */ });
+  .action(async (opts) => {
+    /* algorithm below */
+  });
 ```
 
 **Algorithm (6 steps):**
@@ -1057,7 +1067,7 @@ program
 2. Load/refresh session as needed; build client.
 3. `select = opts.select ?? "Id,Subject,From,ReceivedDateTime,HasAttachments,IsRead,WebLink"`.
 4. `path = `/api/v2.0/me/MailFolders/${opts.folder}/messages``;
-   `query = { $top: String(opts.top), $orderby: 'ReceivedDateTime desc', $select: select }`.
+`query = { $top: String(opts.top), $orderby: 'ReceivedDateTime desc', $select: select }`.
 5. `response = await client.get<{ value: MessageSummary[] }>(path, query)`.
 6. Format: `response.value` as array (JSON) or as table with columns
    `[Received, From, Subject, Att, Id]`.
@@ -1079,7 +1089,9 @@ program
   .command('get-mail <id>')
   .description('Retrieve one message with optional body')
   .option('--body <mode>', 'Body inclusion: html|text|none', 'text')
-  .action(async (id: string, opts: { body: BodyMode }) => { /* ... */ });
+  .action(async (id: string, opts: { body: BodyMode }) => {
+    /* ... */
+  });
 ```
 
 **Algorithm (5 steps):**
@@ -1091,6 +1103,7 @@ program
 5. Shape output: `{ ...message, Attachments: attachments.value }`. If `body === 'none'` strip `Body`; if `body === 'text'` and `Body.ContentType === 'HTML'` pass through as-is (client does not convert — refined spec defers HTML→text conversion).
 
 **REST endpoints:**
+
 - `GET /api/v2.0/me/messages/{id}`
 - `GET /api/v2.0/me/messages/{id}/attachments?$select=Id,Name,ContentType,Size,IsInline`
 
@@ -1111,7 +1124,9 @@ program
   .requiredOption('--out <dir>', 'Output directory (no default — must be provided)')
   .option('--overwrite', 'Overwrite existing files', false)
   .option('--include-inline', 'Include inline attachments', false)
-  .action(async (id: string, opts) => { /* ... */ });
+  .action(async (id: string, opts) => {
+    /* ... */
+  });
 ```
 
 **Algorithm (8 steps):** Exact port of the pseudocode in `docs/research/outlook-v2-attachments.md §6`.
@@ -1134,6 +1149,7 @@ program
 9. Push to `saved[]`. On collision without `--overwrite` → IoError exit 6.
 
 **REST endpoints:**
+
 - `GET /api/v2.0/me/messages/{id}/attachments`
 - `GET /api/v2.0/me/messages/{id}/attachments/{attId}` (per `FileAttachment`)
 
@@ -1161,18 +1177,20 @@ program
   .command('list-calendar')
   .description('List upcoming calendar events within a window')
   .option('--from <iso>', 'Window start (ISO8601). Default: now')
-  .option('--to <iso>',   'Window end   (ISO8601). Default: now + 7d')
-  .option('--tz <iana>',  'Timezone override', cfg.tz)
-  .action(async (opts) => { /* ... */ });
+  .option('--to <iso>', 'Window end   (ISO8601). Default: now + 7d')
+  .option('--tz <iana>', 'Timezone override', cfg.tz)
+  .action(async (opts) => {
+    /* ... */
+  });
 ```
 
 **Algorithm (6 steps):**
 
 1. Resolve `from = opts.from ?? cfg.calFrom` (default "now" → `new Date().toISOString()`).
-2. Resolve `to   = opts.to   ?? cfg.calTo`   (default "now + 7d" → `new Date(Date.now() + 7*86400000).toISOString()`).
+2. Resolve `to   = opts.to   ?? cfg.calTo` (default "now + 7d" → `new Date(Date.now() + 7*86400000).toISOString()`).
 3. Build client.
 4. `query = { startDateTime: from, endDateTime: to, $orderby: 'Start/DateTime asc',
-      $select: 'Id,Subject,Start,End,Organizer,Location,IsAllDay' }`.
+  $select: 'Id,Subject,Start,End,Organizer,Location,IsAllDay' }`.
 5. `response = await client.get<{ value: EventSummary[] }>('/api/v2.0/me/calendarview', query)`.
 6. Format: JSON array; table columns `[Start, End, Subject, Organizer, Location, Id]`.
 
@@ -1193,7 +1211,9 @@ program
   .command('get-event <id>')
   .description('Retrieve one event with optional body')
   .option('--body <mode>', 'Body inclusion: html|text|none', 'text')
-  .action(async (id: string, opts) => { /* ... */ });
+  .action(async (id: string, opts) => {
+    /* ... */
+  });
 ```
 
 **Algorithm (4 steps):**
@@ -1218,32 +1238,32 @@ program
 // src/cli.ts
 
 import { Command } from 'commander';
-import { loadConfig }        from './config/config';
-import { OutlookCliError }   from './config/errors';
-import * as login            from './commands/login';
-import * as authCheck        from './commands/auth-check';
-import * as listMail         from './commands/list-mail';
-import * as getMail          from './commands/get-mail';
-import * as downloadAtt      from './commands/download-attachments';
-import * as listCal          from './commands/list-calendar';
-import * as getEvent         from './commands/get-event';
+import { loadConfig } from './config/config';
+import { OutlookCliError } from './config/errors';
+import * as login from './commands/login';
+import * as authCheck from './commands/auth-check';
+import * as listMail from './commands/list-mail';
+import * as getMail from './commands/get-mail';
+import * as downloadAtt from './commands/download-attachments';
+import * as listCal from './commands/list-calendar';
+import * as getEvent from './commands/get-event';
 
 async function main(argv: string[]): Promise<number> {
   const program = new Command();
   program
     .name('outlook-cli')
     .description('Read-only CLI over outlook.office.com/api/v2.0')
-    .option('--timeout <ms>',           'Per-REST-call timeout (mandatory)')
-    .option('--login-timeout <ms>',     'Login wait timeout (mandatory)')
-    .option('--chrome-channel <name>',  'Chrome channel (mandatory)')
-    .option('--session-file <path>',    'Override session file path')
-    .option('--profile-dir <path>',     'Override profile directory path')
-    .option('--tz <iana>',              'Timezone override')
-    .option('--json',                   'Emit JSON (default)')
-    .option('--table',                  'Emit human-readable table')
-    .option('--quiet',                  'Suppress stderr progress messages', false)
-    .option('--no-auto-reauth',         'Do not auto-reopen the browser on 401')
-    .option('--log-file <path>',        'Write debug log to a file (mode 0600)');
+    .option('--timeout <ms>', 'Per-REST-call timeout (mandatory)')
+    .option('--login-timeout <ms>', 'Login wait timeout (mandatory)')
+    .option('--chrome-channel <name>', 'Chrome channel (mandatory)')
+    .option('--session-file <path>', 'Override session file path')
+    .option('--profile-dir <path>', 'Override profile directory path')
+    .option('--tz <iana>', 'Timezone override')
+    .option('--json', 'Emit JSON (default)')
+    .option('--table', 'Emit human-readable table')
+    .option('--quiet', 'Suppress stderr progress messages', false)
+    .option('--no-auto-reauth', 'Do not auto-reopen the browser on 401')
+    .option('--log-file <path>', 'Write debug log to a file (mode 0600)');
 
   // Commander parses global opts in the preAction hook so each command has them.
   program.hook('preAction', (thisCmd) => {
@@ -1255,7 +1275,7 @@ async function main(argv: string[]): Promise<number> {
   // Register all commands. Each passes cfg via closure or the hook value above.
   // The actual registration functions take (program, cfg); since cfg is per-invocation,
   // we use a deferred pattern: register a thunk that reads __cfg at action time.
-  login.register(program, /* cfg provided at action time */);
+  login.register(program /* cfg provided at action time */);
   authCheck.register(program);
   listMail.register(program);
   getMail.register(program);
@@ -1280,25 +1300,31 @@ function handleError(err: unknown): number {
   if (err && typeof err === 'object' && 'exitCode' in err) {
     return Number((err as { exitCode: number }).exitCode) || 2;
   }
-  process.stderr.write(JSON.stringify({
-    error: { code: 'UNEXPECTED', message: String((err as Error)?.message ?? err) }
-  }, null, 2) + '\n');
+  process.stderr.write(
+    JSON.stringify(
+      {
+        error: { code: 'UNEXPECTED', message: String((err as Error)?.message ?? err) },
+      },
+      null,
+      2,
+    ) + '\n',
+  );
   return 1;
 }
 
-main(process.argv).then(code => process.exit(code));
+main(process.argv).then((code) => process.exit(code));
 ```
 
 **Top-level error → exit code mapping:**
 
-| Thrown class | Exit code | Notes |
-|---|---|---|
-| `ConfigurationError` | 3 | `error.missingSetting` named in JSON payload |
-| `AuthError` | 4 | Message is user-safe — no token |
-| `UpstreamError` | 5 | `httpStatus`, `requestId`, redacted `url` in JSON |
-| `IoError` | 6 | `path` surfaced |
-| `CommanderError` (bad argv) | 2 | Handled by commander's default behavior |
-| Any other `Error` | 1 | Unexpected — wrap in generic message, do not leak stack to stdout |
+| Thrown class                | Exit code | Notes                                                             |
+| --------------------------- | --------- | ----------------------------------------------------------------- |
+| `ConfigurationError`        | 3         | `error.missingSetting` named in JSON payload                      |
+| `AuthError`                 | 4         | Message is user-safe — no token                                   |
+| `UpstreamError`             | 5         | `httpStatus`, `requestId`, redacted `url` in JSON                 |
+| `IoError`                   | 6         | `path` surfaced                                                   |
+| `CommanderError` (bad argv) | 2         | Handled by commander's default behavior                           |
+| Any other `Error`           | 1         | Unexpected — wrap in generic message, do not leak stack to stdout |
 
 ---
 
@@ -1414,7 +1440,7 @@ export interface EventSummary {
   Id: string;
   Subject: string;
   Start: { DateTime: string; TimeZone: string };
-  End:   { DateTime: string; TimeZone: string };
+  End: { DateTime: string; TimeZone: string };
   Organizer?: Recipient;
   Location?: { DisplayName: string };
   IsAllDay: boolean;
@@ -1444,9 +1470,9 @@ export interface Event extends EventSummary {
 export interface SavedRecord {
   id: string;
   originalName: string;
-  savedAs: string;   // path.basename(target)
-  path: string;      // absolute
-  size: number;      // bytes written
+  savedAs: string; // path.basename(target)
+  path: string; // absolute
+  size: number; // bytes written
   contentType: string | null;
   isInline: boolean;
 }
@@ -1479,28 +1505,28 @@ export interface SkippedRecord {
 
 ## 4. Error Taxonomy
 
-| Exception class | `code` values | Exit code | User-facing message template (stderr JSON) |
-|---|---|---|---|
-| `ConfigurationError` | `CONFIG_MISSING` | 3 | `{"error":{"code":"CONFIG_MISSING","missingSetting":"<name>","checkedSources":[<sources>],"message":"Mandatory setting <name> was not provided. Checked: <sources>."}}` |
-| `AuthError` | `AUTH_LOGIN_CANCELLED` | 4 | `{"error":{"code":"AUTH_LOGIN_CANCELLED","message":"Browser was closed before login completed."}}` |
-| `AuthError` | `AUTH_LOGIN_TIMEOUT` | 4 | `{"error":{"code":"AUTH_LOGIN_TIMEOUT","message":"No Bearer token captured within <N>ms — login may not have completed."}}` |
-| `AuthError` | `AUTH_401_AFTER_RETRY` | 4 | `{"error":{"code":"AUTH_401_AFTER_RETRY","message":"Authentication failed after re-auth retry."}}` |
-| `AuthError` | `AUTH_NO_REAUTH` | 4 | `{"error":{"code":"AUTH_NO_REAUTH","message":"Session is missing or expired and --no-auto-reauth was set."}}` |
-| `UpstreamError` | `UPSTREAM_HTTP_403` | 5 | `{"error":{"code":"UPSTREAM_HTTP_403","httpStatus":403,"requestId":"<id>","url":"<redacted>","message":"Outlook rejected the request (403). <bodySnippet>"}}` |
-| `UpstreamError` | `UPSTREAM_HTTP_404` | 5 | `{"error":{"code":"UPSTREAM_HTTP_404","httpStatus":404,"requestId":"<id>","url":"<redacted>","message":"Not found. <bodySnippet>"}}` |
-| `UpstreamError` | `UPSTREAM_HTTP_429` | 5 | `{"error":{"code":"UPSTREAM_HTTP_429","httpStatus":429,"requestId":"<id>","retryAfter":"<seconds>","message":"Rate limited. Retry-After: <s>s."}}` |
-| `UpstreamError` | `UPSTREAM_HTTP_5XX` | 5 | `{"error":{"code":"UPSTREAM_HTTP_5XX","httpStatus":<n>,"requestId":"<id>","url":"<redacted>","message":"Upstream server error <n>."}}` |
-| `UpstreamError` | `UPSTREAM_TIMEOUT` | 5 | `{"error":{"code":"UPSTREAM_TIMEOUT","message":"HTTP timeout after <N>ms."}}` |
-| `UpstreamError` | `UPSTREAM_NETWORK` | 5 | `{"error":{"code":"UPSTREAM_NETWORK","message":"Network error: <sanitized>"}}` |
-| `IoError` | `IO_SESSION_WRITE` | 6 | `{"error":{"code":"IO_SESSION_WRITE","path":"<path>","message":"Failed to write session file."}}` |
-| `IoError` | `IO_SESSION_READ` | 6 | `{"error":{"code":"IO_SESSION_READ","path":"<path>","message":"Failed to read session file."}}` |
-| `IoError` | `IO_SESSION_CORRUPT` | 6 | `{"error":{"code":"IO_SESSION_CORRUPT","path":"<path>","message":"Session file is corrupt or has unsupported schema."}}` |
-| `IoError` | `IO_WRITE_EEXIST` | 6 | `{"error":{"code":"IO_WRITE_EEXIST","path":"<path>","message":"Refusing to overwrite existing file. Pass --overwrite to replace."}}` |
-| `IoError` | `IO_PATH_TRAVERSAL` | 6 | `{"error":{"code":"IO_PATH_TRAVERSAL","path":"<name>","message":"Attachment name resolves outside the output directory."}}` |
-| `IoError` | `IO_DEDUP_EXHAUSTED` | 6 | `{"error":{"code":"IO_DEDUP_EXHAUSTED","path":"<name>","message":"Could not find a unique filename after 999 attempts."}}` |
-| `IoError` | `IO_MKDIR_EACCES` | 6 | `{"error":{"code":"IO_MKDIR_EACCES","path":"<dir>","message":"Cannot create directory (permission denied)."}}` |
-| `CommanderError` (external) | — | 2 | Commander's built-in usage message |
-| Any other `Error` | — | 1 | `{"error":{"code":"UNEXPECTED","message":"<string>"}}` |
+| Exception class             | `code` values          | Exit code | User-facing message template (stderr JSON)                                                                                                                              |
+| --------------------------- | ---------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ConfigurationError`        | `CONFIG_MISSING`       | 3         | `{"error":{"code":"CONFIG_MISSING","missingSetting":"<name>","checkedSources":[<sources>],"message":"Mandatory setting <name> was not provided. Checked: <sources>."}}` |
+| `AuthError`                 | `AUTH_LOGIN_CANCELLED` | 4         | `{"error":{"code":"AUTH_LOGIN_CANCELLED","message":"Browser was closed before login completed."}}`                                                                      |
+| `AuthError`                 | `AUTH_LOGIN_TIMEOUT`   | 4         | `{"error":{"code":"AUTH_LOGIN_TIMEOUT","message":"No Bearer token captured within <N>ms — login may not have completed."}}`                                             |
+| `AuthError`                 | `AUTH_401_AFTER_RETRY` | 4         | `{"error":{"code":"AUTH_401_AFTER_RETRY","message":"Authentication failed after re-auth retry."}}`                                                                      |
+| `AuthError`                 | `AUTH_NO_REAUTH`       | 4         | `{"error":{"code":"AUTH_NO_REAUTH","message":"Session is missing or expired and --no-auto-reauth was set."}}`                                                           |
+| `UpstreamError`             | `UPSTREAM_HTTP_403`    | 5         | `{"error":{"code":"UPSTREAM_HTTP_403","httpStatus":403,"requestId":"<id>","url":"<redacted>","message":"Outlook rejected the request (403). <bodySnippet>"}}`           |
+| `UpstreamError`             | `UPSTREAM_HTTP_404`    | 5         | `{"error":{"code":"UPSTREAM_HTTP_404","httpStatus":404,"requestId":"<id>","url":"<redacted>","message":"Not found. <bodySnippet>"}}`                                    |
+| `UpstreamError`             | `UPSTREAM_HTTP_429`    | 5         | `{"error":{"code":"UPSTREAM_HTTP_429","httpStatus":429,"requestId":"<id>","retryAfter":"<seconds>","message":"Rate limited. Retry-After: <s>s."}}`                      |
+| `UpstreamError`             | `UPSTREAM_HTTP_5XX`    | 5         | `{"error":{"code":"UPSTREAM_HTTP_5XX","httpStatus":<n>,"requestId":"<id>","url":"<redacted>","message":"Upstream server error <n>."}}`                                  |
+| `UpstreamError`             | `UPSTREAM_TIMEOUT`     | 5         | `{"error":{"code":"UPSTREAM_TIMEOUT","message":"HTTP timeout after <N>ms."}}`                                                                                           |
+| `UpstreamError`             | `UPSTREAM_NETWORK`     | 5         | `{"error":{"code":"UPSTREAM_NETWORK","message":"Network error: <sanitized>"}}`                                                                                          |
+| `IoError`                   | `IO_SESSION_WRITE`     | 6         | `{"error":{"code":"IO_SESSION_WRITE","path":"<path>","message":"Failed to write session file."}}`                                                                       |
+| `IoError`                   | `IO_SESSION_READ`      | 6         | `{"error":{"code":"IO_SESSION_READ","path":"<path>","message":"Failed to read session file."}}`                                                                         |
+| `IoError`                   | `IO_SESSION_CORRUPT`   | 6         | `{"error":{"code":"IO_SESSION_CORRUPT","path":"<path>","message":"Session file is corrupt or has unsupported schema."}}`                                                |
+| `IoError`                   | `IO_WRITE_EEXIST`      | 6         | `{"error":{"code":"IO_WRITE_EEXIST","path":"<path>","message":"Refusing to overwrite existing file. Pass --overwrite to replace."}}`                                    |
+| `IoError`                   | `IO_PATH_TRAVERSAL`    | 6         | `{"error":{"code":"IO_PATH_TRAVERSAL","path":"<name>","message":"Attachment name resolves outside the output directory."}}`                                             |
+| `IoError`                   | `IO_DEDUP_EXHAUSTED`   | 6         | `{"error":{"code":"IO_DEDUP_EXHAUSTED","path":"<name>","message":"Could not find a unique filename after 999 attempts."}}`                                              |
+| `IoError`                   | `IO_MKDIR_EACCES`      | 6         | `{"error":{"code":"IO_MKDIR_EACCES","path":"<dir>","message":"Cannot create directory (permission denied)."}}`                                                          |
+| `CommanderError` (external) | —                      | 2         | Commander's built-in usage message                                                                                                                                      |
+| Any other `Error`           | —                      | 1         | `{"error":{"code":"UNEXPECTED","message":"<string>"}}`                                                                                                                  |
 
 **Secret-leak contract (normative):** `<bodySnippet>` must be the response body truncated
 to 512 chars AFTER any substring equal to `session.bearer.token` or any `cookie.value`
@@ -1694,7 +1720,7 @@ response shape would add surface for no gain.
 **vitest** — Chosen over `@playwright/test` (already installed) and `node:test`. `vitest`
 is fast, zero-config against our existing `tsconfig.json` (CommonJS), supports `vi.mock`
 for mocking `fetch`/Playwright without a separate library, and has a familiar
-`expect` API. `@playwright/test` is preserved as a *dev dep* for future browser-level
+`expect` API. `@playwright/test` is preserved as a _dev dep_ for future browser-level
 end-to-end tests but is not used as the unit runner.
 
 **Manual JWT base64url split** — Chosen over `jwt-decode`. We only need to read three
@@ -1727,21 +1753,21 @@ both are heavyweight and would imply an architecture change.
     "outlook-cli": "dist/cli.js"
   },
   "scripts": {
-    "build":      "tsc",
-    "dev":        "ts-node src/cli.ts",
-    "test":       "vitest run",
+    "build": "tsc",
+    "dev": "ts-node src/cli.ts",
+    "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "commander": "^12.0.0"
   },
   "devDependencies": {
-    "playwright":        "^1.59.1",
-    "@playwright/test":  "^1.59.1",
-    "@types/node":       "^25.6.0",
-    "ts-node":           "^10.9.2",
-    "typescript":        "^6.0.3",
-    "vitest":            "^2.0.0"
+    "playwright": "^1.59.1",
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3",
+    "vitest": "^2.0.0"
   }
 }
 ```
@@ -1888,7 +1914,7 @@ Short bullets with rationale. Each reflects a design choice documented above.
 - **ADR-05: Advisory PID lock at `<sessionDir>/.browser.lock` over OS-level flock.**
   We chose an advisory PID lock because it is portable across macOS/Linux/Windows
   without native addons, and the stale-PID recovery algorithm (`process.kill(pid, 0)`
-  + age > max(loginTimeout, 30min)) handles crash recovery cleanly.
+  - age > max(loginTimeout, 30min)) handles crash recovery cleanly.
 - **ADR-06: One-shot re-auth on 401 over loop-until-success.** We chose one-shot retry
   (spec §6.4) because repeatedly opening the browser on pathological 401 loops (e.g.
   tenant revocation) would be hostile UX and would not converge. One retry is the
@@ -1922,7 +1948,7 @@ Short bullets with rationale. Each reflects a design choice documented above.
   handle those attachments manually.
 - **ADR-13: Dedicated `CollisionError` class (exit 6) for `FOLDER_ALREADY_EXISTS`
   instead of reusing `IoError`.** We chose a new `CollisionError extends
-  OutlookCliError { exitCode = 6 }` because the cause is not filesystem IO (the
+OutlookCliError { exitCode = 6 }` because the cause is not filesystem IO (the
   existing exit-6 path is attachment-file collisions from `download-attachments`).
   Keeping a distinct `instanceof` discriminant in `cli.ts formatErrorJson` /
   `exitCodeFor` yields a deterministic JSON shape (`{code, path?, parentId?}`) that
@@ -2070,31 +2096,31 @@ non-well-known names are delegated to the resolver).
 
 **File-touch table.** Every file in scope, with "new" vs "modified" status.
 
-| File                                                  | Status    | Nature of change                                                                                |
-|-------------------------------------------------------|-----------|-------------------------------------------------------------------------------------------------|
-| `src/folders/types.ts`                                | **new**   | `FolderSpec`, `ResolvedFolder`, `CreateFolderResult`, `MoveMailResult`, constants               |
-| `src/folders/resolver.ts`                             | **new**   | `parseFolderPath`, `buildFolderPath`, `matchesWellKnownAlias`, `listChildren`, `resolveFolder`, `createFolderPath`, `isFolderExistsError` |
-| `src/commands/list-folders.ts`                        | **new**   | `register()` + `run()` for `list-folders`                                                       |
-| `src/commands/find-folder.ts`                         | **new**   | `register()` + `run()` for `find-folder`                                                        |
-| `src/commands/create-folder.ts`                       | **new**   | `register()` + `run()` for `create-folder`                                                      |
-| `src/commands/move-mail.ts`                           | **new**   | `register()` + `run()` for `move-mail`                                                          |
-| `src/commands/list-mail.ts`                           | modified  | adds `--folder-id`, `--folder-parent`; widens `--folder` to accept paths / other aliases        |
-| `src/cli.ts`                                          | modified  | registers 4 new subcommands; adds 3 new `ColumnSpec`s; `CollisionError` branch                  |
-| `src/config/errors.ts`                                | modified  | adds `CollisionError` class; documents new code strings on `UsageError` / `UpstreamError`       |
-| `src/http/outlook-client.ts`                          | modified  | refactor `doGet` → `doRequest`; add `post` + `listAll`                                          |
-| `src/http/types.ts`                                   | modified  | add `FolderSummary`, `FolderCreateRequest`, `MoveMessageRequest`                                |
-| `CLAUDE.md`                                           | modified  | adds 4 child blocks under `<outlook-cli>`; updates `<list-mail>` documentation                  |
-| `docs/design/project-design.md`                       | modified  | this section (§10) + ADR-13..ADR-16                                                             |
-| `docs/design/project-functions.MD`                    | modified  | adds FR-008..FR-011; extends FR-003                                                             |
-| `Issues - Pending Items.md`                           | modified  | pending-item register updates (if any arise during implementation)                              |
-| `test_scripts/unit/folders-resolver.spec.ts`          | **new**   | unit tests for resolver branches                                                                |
-| `test_scripts/unit/outlook-client-post.spec.ts`       | **new**   | unit tests for `post` + `listAll`                                                               |
-| `test_scripts/unit/list-folders.spec.ts`              | **new**   | unit tests                                                                                       |
-| `test_scripts/unit/find-folder.spec.ts`               | **new**   | unit tests                                                                                       |
-| `test_scripts/unit/create-folder.spec.ts`             | **new**   | unit tests                                                                                       |
-| `test_scripts/unit/move-mail.spec.ts`                 | **new**   | unit tests                                                                                       |
-| `test_scripts/unit/list-mail-folder-id.spec.ts`       | **new**   | narrow unit tests for the new path / fast-path decision branches                                |
-| `test_scripts/ac-folders-*.ts`                        | **new**   | one script per acceptance criterion (AC-LISTFOLDERS-ROOT … AC-CLAUDEMD-UPDATED-FOLDERS)         |
+| File                                            | Status   | Nature of change                                                                                                                          |
+| ----------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/folders/types.ts`                          | **new**  | `FolderSpec`, `ResolvedFolder`, `CreateFolderResult`, `MoveMailResult`, constants                                                         |
+| `src/folders/resolver.ts`                       | **new**  | `parseFolderPath`, `buildFolderPath`, `matchesWellKnownAlias`, `listChildren`, `resolveFolder`, `createFolderPath`, `isFolderExistsError` |
+| `src/commands/list-folders.ts`                  | **new**  | `register()` + `run()` for `list-folders`                                                                                                 |
+| `src/commands/find-folder.ts`                   | **new**  | `register()` + `run()` for `find-folder`                                                                                                  |
+| `src/commands/create-folder.ts`                 | **new**  | `register()` + `run()` for `create-folder`                                                                                                |
+| `src/commands/move-mail.ts`                     | **new**  | `register()` + `run()` for `move-mail`                                                                                                    |
+| `src/commands/list-mail.ts`                     | modified | adds `--folder-id`, `--folder-parent`; widens `--folder` to accept paths / other aliases                                                  |
+| `src/cli.ts`                                    | modified | registers 4 new subcommands; adds 3 new `ColumnSpec`s; `CollisionError` branch                                                            |
+| `src/config/errors.ts`                          | modified | adds `CollisionError` class; documents new code strings on `UsageError` / `UpstreamError`                                                 |
+| `src/http/outlook-client.ts`                    | modified | refactor `doGet` → `doRequest`; add `post` + `listAll`                                                                                    |
+| `src/http/types.ts`                             | modified | add `FolderSummary`, `FolderCreateRequest`, `MoveMessageRequest`                                                                          |
+| `CLAUDE.md`                                     | modified | adds 4 child blocks under `<outlook-cli>`; updates `<list-mail>` documentation                                                            |
+| `docs/design/project-design.md`                 | modified | this section (§10) + ADR-13..ADR-16                                                                                                       |
+| `docs/design/project-functions.MD`              | modified | adds FR-008..FR-011; extends FR-003                                                                                                       |
+| `Issues - Pending Items.md`                     | modified | pending-item register updates (if any arise during implementation)                                                                        |
+| `test_scripts/unit/folders-resolver.spec.ts`    | **new**  | unit tests for resolver branches                                                                                                          |
+| `test_scripts/unit/outlook-client-post.spec.ts` | **new**  | unit tests for `post` + `listAll`                                                                                                         |
+| `test_scripts/unit/list-folders.spec.ts`        | **new**  | unit tests                                                                                                                                |
+| `test_scripts/unit/find-folder.spec.ts`         | **new**  | unit tests                                                                                                                                |
+| `test_scripts/unit/create-folder.spec.ts`       | **new**  | unit tests                                                                                                                                |
+| `test_scripts/unit/move-mail.spec.ts`           | **new**  | unit tests                                                                                                                                |
+| `test_scripts/unit/list-mail-folder-id.spec.ts` | **new**  | narrow unit tests for the new path / fast-path decision branches                                                                          |
+| `test_scripts/ac-folders-*.ts`                  | **new**  | one script per acceptance criterion (AC-LISTFOLDERS-ROOT … AC-CLAUDEMD-UPDATED-FOLDERS)                                                   |
 
 **Untouched (verified via `docs/reference/codebase-scan-folders.md`):**
 `src/auth/*`, `src/session/*`, `src/config/config.ts`, `src/output/formatter.ts`,
@@ -2186,14 +2212,26 @@ export type FolderSpec =
 /** Exhaustive PascalCase alias list accepted in the v2.0 URL path.
  *  Source: refined §6.2 + outlook-v2-folder-pagination-filter.md §References #3. */
 export type WellKnownAlias =
-  | 'Inbox' | 'SentItems' | 'Drafts' | 'DeletedItems'
-  | 'Archive' | 'JunkEmail' | 'Outbox'
-  | 'MsgFolderRoot' | 'RecoverableItemsDeletions';
+  | 'Inbox'
+  | 'SentItems'
+  | 'Drafts'
+  | 'DeletedItems'
+  | 'Archive'
+  | 'JunkEmail'
+  | 'Outbox'
+  | 'MsgFolderRoot'
+  | 'RecoverableItemsDeletions';
 
 export const WELL_KNOWN_ALIASES: readonly WellKnownAlias[] = Object.freeze([
-  'Inbox', 'SentItems', 'Drafts', 'DeletedItems',
-  'Archive', 'JunkEmail', 'Outbox',
-  'MsgFolderRoot', 'RecoverableItemsDeletions',
+  'Inbox',
+  'SentItems',
+  'Drafts',
+  'DeletedItems',
+  'Archive',
+  'JunkEmail',
+  'Outbox',
+  'MsgFolderRoot',
+  'RecoverableItemsDeletions',
 ]);
 
 /** Result of `resolveFolder`. Carries `ResolvedVia` for JSON output of `find-folder`. */
@@ -2531,12 +2569,12 @@ When `--case-sensitive` is set, case-folding is skipped; NFC still applies.
 
 **Max depth + max pages/nodes (caps, normative).**
 
-| Cap                                 | Value   | Purpose                                                                 | Error raised on breach                                       |
-|-------------------------------------|---------|-------------------------------------------------------------------------|--------------------------------------------------------------|
-| `MAX_PATH_SEGMENTS`                 | 16      | Bounds `parseFolderPath` output length.                                 | `UsageError('FOLDER_PATH_INVALID')` exit 2                   |
-| `MAX_FOLDER_PAGES` (per collection) | 50      | Bounds a single `listChildren` pagination loop.                         | `ApiError('PAGINATION_LIMIT')` → `UpstreamError('UPSTREAM_PAGINATION_LIMIT')` exit 5 |
-| `DEFAULT_LIST_TOP` (per page)       | 250     | Default `$top` for every `listAll` first page.                          | —                                                            |
-| `MAX_FOLDERS_VISITED` (per walk)    | 5000    | Whole-tree cap for `list-folders --recursive` DFS materialization.      | `UpstreamError('UPSTREAM_PAGINATION_LIMIT')` exit 5          |
+| Cap                                 | Value | Purpose                                                            | Error raised on breach                                                               |
+| ----------------------------------- | ----- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `MAX_PATH_SEGMENTS`                 | 16    | Bounds `parseFolderPath` output length.                            | `UsageError('FOLDER_PATH_INVALID')` exit 2                                           |
+| `MAX_FOLDER_PAGES` (per collection) | 50    | Bounds a single `listChildren` pagination loop.                    | `ApiError('PAGINATION_LIMIT')` → `UpstreamError('UPSTREAM_PAGINATION_LIMIT')` exit 5 |
+| `DEFAULT_LIST_TOP` (per page)       | 250   | Default `$top` for every `listAll` first page.                     | —                                                                                    |
+| `MAX_FOLDERS_VISITED` (per walk)    | 5000  | Whole-tree cap for `list-folders --recursive` DFS materialization. | `UpstreamError('UPSTREAM_PAGINATION_LIMIT')` exit 5                                  |
 
 Off-host `@odata.nextLink` (not matching `outlook.office.com`) is a
 defense-in-depth reject handled inside `OutlookClient.listAll`:
@@ -2562,26 +2600,26 @@ existing 0/1/2/3/4/5/6 taxonomy in §4 covers every new condition).
 reference for both implementers and reviewers. `codeForStatus` is the
 existing helper in `src/http/errors.ts:136`.
 
-| Upstream condition                                              | `ApiError.code` / Network | Resolver-level reclassification                        | `OutlookCliError`                                 | Exit |
-|-----------------------------------------------------------------|---------------------------|--------------------------------------------------------|---------------------------------------------------|------|
-| HTTP 401 (first)                                                | auto-retry — no error     | —                                                      | (none)                                            | —    |
-| HTTP 401 (second, or `--no-auto-reauth`)                        | `AFTER_RETRY` / `NO_REAUTH` | forwarded                                              | `AuthError`                                       | 4    |
-| HTTP 403                                                        | `FORBIDDEN`               | forwarded                                              | `UpstreamError('UPSTREAM_HTTP_403')`              | 5    |
-| HTTP 404 on `/me/MailFolders/{id}`                              | `NOT_FOUND`               | → `UPSTREAM_FOLDER_NOT_FOUND`                          | `UpstreamError('UPSTREAM_FOLDER_NOT_FOUND')`      | 5    |
-| HTTP 404 on `/me/messages/{srcId}/move` (source id)             | `NOT_FOUND`               | forwarded                                              | `UpstreamError('UPSTREAM_HTTP_404')`              | 5    |
-| HTTP 400 / 409 with `error.code === 'ErrorFolderExists'`        | `API_ERROR` / `CONFLICT`  | `isFolderExistsError(err) === true`                    | `CollisionError('FOLDER_ALREADY_EXISTS')` (or `PreExisting: true` under `--idempotent`) | 6 |
-| HTTP 400 (non-ErrorFolderExists)                                | `API_ERROR`               | forwarded                                              | `UpstreamError('UPSTREAM_HTTP_400')`              | 5    |
-| HTTP 409 (non-ErrorFolderExists)                                | `CONFLICT`                | forwarded                                              | `UpstreamError('UPSTREAM_HTTP_409')`              | 5    |
-| HTTP 429                                                        | `RATE_LIMITED`            | forwarded                                              | `UpstreamError('UPSTREAM_HTTP_429')`              | 5    |
-| HTTP 5xx                                                        | `SERVER_ERROR`            | forwarded                                              | `UpstreamError('UPSTREAM_HTTP_5XX')`              | 5    |
-| `listAll` page cap hit                                          | `PAGINATION_LIMIT`        | forwarded                                              | `UpstreamError('UPSTREAM_PAGINATION_LIMIT')`      | 5    |
-| `listAll` off-host nextLink                                     | `PAGINATION_OFF_HOST`     | forwarded as PAGINATION_LIMIT                          | `UpstreamError('UPSTREAM_PAGINATION_LIMIT')`      | 5    |
-| Ambiguous path segment (resolver-detected, no `--first-match`)  | (no HTTP error)           | resolver-raised                                        | `UsageError('FOLDER_AMBIGUOUS')`                  | 2    |
-| Missing intermediate parent (no `--create-parents`)             | (no HTTP error)           | resolver-raised                                        | `UsageError('FOLDER_MISSING_PARENT')`             | 2    |
-| Path parse error (depth > 16, empty segment, bad escape)        | (no HTTP error)           | resolver-raised                                        | `UsageError('FOLDER_PATH_INVALID')`               | 2    |
-| argv validation (missing `<query>`, XOR violations, range)      | —                         | command-raised                                         | `UsageError('BAD_USAGE')`                         | 2    |
-| Network / timeout / abort                                       | `NETWORK` / `TIMEOUT`     | forwarded                                              | `UpstreamError('UPSTREAM_NETWORK' / '_TIMEOUT')`  | 5    |
-| Partial move with `--continue-on-error` + at least one failure  | (per-entry `ApiError`)    | absorbed into `failed[]`; re-raised as synthetic after emit | `UpstreamError('UPSTREAM_PARTIAL_MOVE')`      | 5    |
+| Upstream condition                                             | `ApiError.code` / Network   | Resolver-level reclassification                             | `OutlookCliError`                                                                       | Exit |
+| -------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---- |
+| HTTP 401 (first)                                               | auto-retry — no error       | —                                                           | (none)                                                                                  | —    |
+| HTTP 401 (second, or `--no-auto-reauth`)                       | `AFTER_RETRY` / `NO_REAUTH` | forwarded                                                   | `AuthError`                                                                             | 4    |
+| HTTP 403                                                       | `FORBIDDEN`                 | forwarded                                                   | `UpstreamError('UPSTREAM_HTTP_403')`                                                    | 5    |
+| HTTP 404 on `/me/MailFolders/{id}`                             | `NOT_FOUND`                 | → `UPSTREAM_FOLDER_NOT_FOUND`                               | `UpstreamError('UPSTREAM_FOLDER_NOT_FOUND')`                                            | 5    |
+| HTTP 404 on `/me/messages/{srcId}/move` (source id)            | `NOT_FOUND`                 | forwarded                                                   | `UpstreamError('UPSTREAM_HTTP_404')`                                                    | 5    |
+| HTTP 400 / 409 with `error.code === 'ErrorFolderExists'`       | `API_ERROR` / `CONFLICT`    | `isFolderExistsError(err) === true`                         | `CollisionError('FOLDER_ALREADY_EXISTS')` (or `PreExisting: true` under `--idempotent`) | 6    |
+| HTTP 400 (non-ErrorFolderExists)                               | `API_ERROR`                 | forwarded                                                   | `UpstreamError('UPSTREAM_HTTP_400')`                                                    | 5    |
+| HTTP 409 (non-ErrorFolderExists)                               | `CONFLICT`                  | forwarded                                                   | `UpstreamError('UPSTREAM_HTTP_409')`                                                    | 5    |
+| HTTP 429                                                       | `RATE_LIMITED`              | forwarded                                                   | `UpstreamError('UPSTREAM_HTTP_429')`                                                    | 5    |
+| HTTP 5xx                                                       | `SERVER_ERROR`              | forwarded                                                   | `UpstreamError('UPSTREAM_HTTP_5XX')`                                                    | 5    |
+| `listAll` page cap hit                                         | `PAGINATION_LIMIT`          | forwarded                                                   | `UpstreamError('UPSTREAM_PAGINATION_LIMIT')`                                            | 5    |
+| `listAll` off-host nextLink                                    | `PAGINATION_OFF_HOST`       | forwarded as PAGINATION_LIMIT                               | `UpstreamError('UPSTREAM_PAGINATION_LIMIT')`                                            | 5    |
+| Ambiguous path segment (resolver-detected, no `--first-match`) | (no HTTP error)             | resolver-raised                                             | `UsageError('FOLDER_AMBIGUOUS')`                                                        | 2    |
+| Missing intermediate parent (no `--create-parents`)            | (no HTTP error)             | resolver-raised                                             | `UsageError('FOLDER_MISSING_PARENT')`                                                   | 2    |
+| Path parse error (depth > 16, empty segment, bad escape)       | (no HTTP error)             | resolver-raised                                             | `UsageError('FOLDER_PATH_INVALID')`                                                     | 2    |
+| argv validation (missing `<query>`, XOR violations, range)     | —                           | command-raised                                              | `UsageError('BAD_USAGE')`                                                               | 2    |
+| Network / timeout / abort                                      | `NETWORK` / `TIMEOUT`       | forwarded                                                   | `UpstreamError('UPSTREAM_NETWORK' / '_TIMEOUT')`                                        | 5    |
+| Partial move with `--continue-on-error` + at least one failure | (per-entry `ApiError`)      | absorbed into `failed[]`; re-raised as synthetic after emit | `UpstreamError('UPSTREAM_PARTIAL_MOVE')`                                                | 5    |
 
 **`ErrorFolderExists` predicate (normative).** The research in
 `docs/research/outlook-v2-folder-duplicate-error.md §4.1` pins this down:
@@ -2604,8 +2642,7 @@ single decision point for the idempotent branch:
 export function isFolderExistsError(err: unknown): boolean {
   if (!(err instanceof ApiError)) return false;
   if (err.status !== 400 && err.status !== 409) return false;
-  const code: unknown = (err.body as { error?: { code?: unknown } })
-    ?.error?.code;
+  const code: unknown = (err.body as { error?: { code?: unknown } })?.error?.code;
   return code === 'ErrorFolderExists';
 }
 ```
@@ -2618,13 +2655,13 @@ message parsing, no HTTP-status-only check.
 Cross-reference: the existing `list-mail` / `get-mail` / etc. shapes live
 in §2.13; this table documents only the new and changed surface.
 
-| Subcommand         | Positional     | Flags                                                                                                                                                                                                                                                                           | Exit codes | JSON shape                                                          | Table columns                                |
-|--------------------|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|---------------------------------------------------------------------|----------------------------------------------|
-| `list-folders`     | —              | `--parent <name-or-path-or-id>` (default `MsgFolderRoot`, ADR-15); `--recursive`; `--include-hidden`; `--top <N>` (1..250, default 100)                                                                                                                                          | 0/2/3/4/5  | `FolderSummary[]` (with `Path` when `--recursive`)                  | `Path \| Unread \| Total \| Children \| Id`  |
-| `find-folder`      | `<query>`      | `--parent <anchor>` (default `MsgFolderRoot`); `--case-sensitive`; `--include-hidden`; `--first-match`                                                                                                                                                                           | 0/2/3/4/5  | single `ResolvedFolder`                                             | JSON fallback (no ColumnSpec; `find-folder` is a single-object payload — see §2.13.7 pattern) |
-| `create-folder`    | `<path>`       | `--parent <anchor>` (default `MsgFolderRoot`); `--create-parents`; `--idempotent`; `--display-name <name>` (override last segment's DisplayName)                                                                                                                                  | 0/2/3/4/5/6 | `CreateFolderResult`                                                | `Path \| Id \| PreExisting` (applied to `result.created`)  |
-| `move-mail`        | `[id]`         | `--to <name-or-path>` XOR `--to-id <folderId>`; `--to-parent <anchor>` (default `MsgFolderRoot`); `--ids-from <path-or-dash>` (XOR with `<id>`); `--continue-on-error`; `--stop-at <N>` (default 1000, range 1..10000); `--first-match`                                              | 0/2/3/4/5  | `MoveMailResult`                                                    | `Source Id \| New Id \| Status \| Error`     |
-| `list-mail` (ext.) | —              | **Additive to §2.13.3**: `--folder-id <id>` (XOR with `--folder`); `--folder-parent <anchor>` (default `MsgFolderRoot`). `--folder` widened to accept paths and all other well-known aliases (`JunkEmail`, `Outbox`, `MsgFolderRoot`, `RecoverableItemsDeletions`).            | 0/2/3/4/5/6 | `MessageSummary[]` (unchanged)                                      | `Received \| From \| Subject \| Att \| Id` (unchanged) |
+| Subcommand         | Positional | Flags                                                                                                                                                                                                                                                               | Exit codes  | JSON shape                                         | Table columns                                                                                 |
+| ------------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `list-folders`     | —          | `--parent <name-or-path-or-id>` (default `MsgFolderRoot`, ADR-15); `--recursive`; `--include-hidden`; `--top <N>` (1..250, default 100)                                                                                                                             | 0/2/3/4/5   | `FolderSummary[]` (with `Path` when `--recursive`) | `Path \| Unread \| Total \| Children \| Id`                                                   |
+| `find-folder`      | `<query>`  | `--parent <anchor>` (default `MsgFolderRoot`); `--case-sensitive`; `--include-hidden`; `--first-match`                                                                                                                                                              | 0/2/3/4/5   | single `ResolvedFolder`                            | JSON fallback (no ColumnSpec; `find-folder` is a single-object payload — see §2.13.7 pattern) |
+| `create-folder`    | `<path>`   | `--parent <anchor>` (default `MsgFolderRoot`); `--create-parents`; `--idempotent`; `--display-name <name>` (override last segment's DisplayName)                                                                                                                    | 0/2/3/4/5/6 | `CreateFolderResult`                               | `Path \| Id \| PreExisting` (applied to `result.created`)                                     |
+| `move-mail`        | `[id]`     | `--to <name-or-path>` XOR `--to-id <folderId>`; `--to-parent <anchor>` (default `MsgFolderRoot`); `--ids-from <path-or-dash>` (XOR with `<id>`); `--continue-on-error`; `--stop-at <N>` (default 1000, range 1..10000); `--first-match`                             | 0/2/3/4/5   | `MoveMailResult`                                   | `Source Id \| New Id \| Status \| Error`                                                      |
+| `list-mail` (ext.) | —          | **Additive to §2.13.3**: `--folder-id <id>` (XOR with `--folder`); `--folder-parent <anchor>` (default `MsgFolderRoot`). `--folder` widened to accept paths and all other well-known aliases (`JunkEmail`, `Outbox`, `MsgFolderRoot`, `RecoverableItemsDeletions`). | 0/2/3/4/5/6 | `MessageSummary[]` (unchanged)                     | `Received \| From \| Subject \| Att \| Id` (unchanged)                                        |
 
 **Validation (normative, enforced in command `run()` before REST):**
 
@@ -2658,8 +2695,8 @@ command output:
 ```json
 {
   "destination": {
-    "Id":          "AAMkAGI...dest",
-    "Path":        "Projects/Alpha",
+    "Id": "AAMkAGI...dest",
+    "Path": "Projects/Alpha",
     "DisplayName": "Alpha"
   },
   "moved": [
@@ -2783,20 +2820,20 @@ Graph of implementation dependencies — identical to plan-002 §3:
 
 **Per-unit contracts.**
 
-| Unit | Sole-writer files                                              | Publishes (imports other units may use)                                                                                                                                                                                      | Must NOT touch                                                                                       |
-|------|-----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
-| P1   | `src/http/types.ts` (additive); `src/folders/types.ts`          | `FolderSummary`, `FolderCreateRequest`, `MoveMessageRequest`, `ODataListResponse<T>`, `FolderSpec`, `WellKnownAlias`, `WELL_KNOWN_ALIASES`, `ResolvedFolder`, `CreateFolderSegment`, `CreateFolderResult`, `MoveEntry`, `MoveFailedEntry`, `MoveDestination`, `MoveMailResult`, safety-cap constants | everything else                                                                                      |
-| P2   | `src/config/errors.ts`                                          | `CollisionError` class (`exitCode = 6`, fields `code`, `path?`, `parentId?`); documented new code strings on `UsageError` / `UpstreamError` (no type changes)                                                                   | everything else                                                                                      |
-| P3   | `src/http/outlook-client.ts`                                     | Extended `OutlookClient` interface with `post<TBody, TRes>` and `listAll<T>`; unchanged `get<T>` / `getBinary`                                                                                                                | `src/folders/*`, `src/commands/*`, `src/cli.ts`; must not rename existing exports                    |
-| P4   | `src/folders/resolver.ts`                                        | `parseFolderPath`, `buildFolderPath`, `matchesWellKnownAlias`, `listChildren`, `resolveFolder`, `findFolderByPath`, `createFolder`, `moveMessage`, `listMessagesInFolder`, `isFolderExistsError`                                | `src/http/*`, `src/commands/*`, `src/cli.ts`                                                          |
-| P5a  | `src/commands/list-folders.ts`                                   | `ListFoldersDeps`, `ListFoldersOptions`, `run(deps, opts): Promise<FolderSummary[]>`                                                                                                                                          | every other `src/commands/*.ts`, `src/folders/*`, `src/http/*`, `src/cli.ts`                          |
-| P5b  | `src/commands/find-folder.ts`                                    | `FindFolderDeps`, `FindFolderOptions`, `run(deps, query, opts): Promise<ResolvedFolder>`                                                                                                                                       | every other `src/commands/*.ts`, `src/folders/*`, `src/http/*`, `src/cli.ts`                          |
-| P5c  | `src/commands/create-folder.ts`                                  | `CreateFolderDeps`, `CreateFolderOptions`, `run(deps, path, opts): Promise<CreateFolderResult>`                                                                                                                                | every other `src/commands/*.ts`, `src/folders/*`, `src/http/*`, `src/cli.ts`                          |
-| P5d  | `src/commands/move-mail.ts`                                      | `MoveMailDeps`, `MoveMailOptions`, `run(deps, id?, opts): Promise<MoveMailResult>`                                                                                                                                             | every other `src/commands/*.ts`, `src/folders/*`, `src/http/*`, `src/cli.ts`                          |
-| P5e  | `src/commands/list-mail.ts`                                      | Extended `ListMailOptions` (`folderId?`, `folderParent?`); unchanged `ensureSession`, `mapHttpError`, `UsageError` re-exports                                                                                                 | every other `src/commands/*.ts`, `src/folders/*`, `src/http/*`, `src/cli.ts`                          |
-| P6   | `src/cli.ts`                                                     | wired subcommand registrations, new `ColumnSpec` constants, `CollisionError` branch in `formatErrorJson` / `exitCodeFor`                                                                                                      | (none; synthesis-only unit)                                                                          |
-| P7   | `CLAUDE.md`, `docs/design/project-design.md`, `docs/design/project-functions.MD`, `Issues - Pending Items.md` | documentation only — no runtime exports                                                                                                                                                                                      | `src/**`                                                                                              |
-| P8   | `test_scripts/unit/*.spec.ts`, `test_scripts/ac-folders-*.ts`    | tests only; no runtime exports                                                                                                                                                                                                | `src/**`                                                                                              |
+| Unit | Sole-writer files                                                                                             | Publishes (imports other units may use)                                                                                                                                                                                                                                                              | Must NOT touch                                                                    |
+| ---- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| P1   | `src/http/types.ts` (additive); `src/folders/types.ts`                                                        | `FolderSummary`, `FolderCreateRequest`, `MoveMessageRequest`, `ODataListResponse<T>`, `FolderSpec`, `WellKnownAlias`, `WELL_KNOWN_ALIASES`, `ResolvedFolder`, `CreateFolderSegment`, `CreateFolderResult`, `MoveEntry`, `MoveFailedEntry`, `MoveDestination`, `MoveMailResult`, safety-cap constants | everything else                                                                   |
+| P2   | `src/config/errors.ts`                                                                                        | `CollisionError` class (`exitCode = 6`, fields `code`, `path?`, `parentId?`); documented new code strings on `UsageError` / `UpstreamError` (no type changes)                                                                                                                                        | everything else                                                                   |
+| P3   | `src/http/outlook-client.ts`                                                                                  | Extended `OutlookClient` interface with `post<TBody, TRes>` and `listAll<T>`; unchanged `get<T>` / `getBinary`                                                                                                                                                                                       | `src/folders/*`, `src/commands/*`, `src/cli.ts`; must not rename existing exports |
+| P4   | `src/folders/resolver.ts`                                                                                     | `parseFolderPath`, `buildFolderPath`, `matchesWellKnownAlias`, `listChildren`, `resolveFolder`, `findFolderByPath`, `createFolder`, `moveMessage`, `listMessagesInFolder`, `isFolderExistsError`                                                                                                     | `src/http/*`, `src/commands/*`, `src/cli.ts`                                      |
+| P5a  | `src/commands/list-folders.ts`                                                                                | `ListFoldersDeps`, `ListFoldersOptions`, `run(deps, opts): Promise<FolderSummary[]>`                                                                                                                                                                                                                 | every other `src/commands/*.ts`, `src/folders/*`, `src/http/*`, `src/cli.ts`      |
+| P5b  | `src/commands/find-folder.ts`                                                                                 | `FindFolderDeps`, `FindFolderOptions`, `run(deps, query, opts): Promise<ResolvedFolder>`                                                                                                                                                                                                             | every other `src/commands/*.ts`, `src/folders/*`, `src/http/*`, `src/cli.ts`      |
+| P5c  | `src/commands/create-folder.ts`                                                                               | `CreateFolderDeps`, `CreateFolderOptions`, `run(deps, path, opts): Promise<CreateFolderResult>`                                                                                                                                                                                                      | every other `src/commands/*.ts`, `src/folders/*`, `src/http/*`, `src/cli.ts`      |
+| P5d  | `src/commands/move-mail.ts`                                                                                   | `MoveMailDeps`, `MoveMailOptions`, `run(deps, id?, opts): Promise<MoveMailResult>`                                                                                                                                                                                                                   | every other `src/commands/*.ts`, `src/folders/*`, `src/http/*`, `src/cli.ts`      |
+| P5e  | `src/commands/list-mail.ts`                                                                                   | Extended `ListMailOptions` (`folderId?`, `folderParent?`); unchanged `ensureSession`, `mapHttpError`, `UsageError` re-exports                                                                                                                                                                        | every other `src/commands/*.ts`, `src/folders/*`, `src/http/*`, `src/cli.ts`      |
+| P6   | `src/cli.ts`                                                                                                  | wired subcommand registrations, new `ColumnSpec` constants, `CollisionError` branch in `formatErrorJson` / `exitCodeFor`                                                                                                                                                                             | (none; synthesis-only unit)                                                       |
+| P7   | `CLAUDE.md`, `docs/design/project-design.md`, `docs/design/project-functions.MD`, `Issues - Pending Items.md` | documentation only — no runtime exports                                                                                                                                                                                                                                                              | `src/**`                                                                          |
+| P8   | `test_scripts/unit/*.spec.ts`, `test_scripts/ac-folders-*.ts`                                                 | tests only; no runtime exports                                                                                                                                                                                                                                                                       | `src/**`                                                                          |
 
 **Interface stability rules for Wave 4.** After P4 lands, every P5 coder
 receives:

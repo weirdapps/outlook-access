@@ -22,9 +22,7 @@ import {
   type ListFoldersDeps,
   type ListFoldersOptions,
 } from '../src/commands/list-folders';
-import {
-  MAX_FOLDERS_VISITED,
-} from '../src/folders/types';
+import { MAX_FOLDERS_VISITED } from '../src/folders/types';
 import type { OutlookClient } from '../src/http/outlook-client';
 import type { FolderSummary } from '../src/http/types';
 import type { SessionFile } from '../src/session/schema';
@@ -87,9 +85,7 @@ interface BuiltDeps {
  * for the scenario under test. The default session is non-expired so
  * ensureSession() returns it without calling doAuthCapture / saveSession.
  */
-function buildDeps(
-  clientOverrides: Partial<OutlookClient> = {},
-): BuiltDeps {
+function buildDeps(clientOverrides: Partial<OutlookClient> = {}): BuiltDeps {
   const client: Partial<OutlookClient> = { ...clientOverrides };
   const loadSession = vi.fn(async () => buildFakeSession());
   const saveSession = vi.fn(async () => undefined);
@@ -155,9 +151,7 @@ describe('list-folders: run()', () => {
     // `Inbox` is parsed as { kind: "wellKnown" } and resolved via a single
     // getFolder() call; the returned Id is then passed to listFolders.
     // Only `MsgFolderRoot` short-circuits without a REST hop (ADR-15).
-    const listFolders = vi.fn(async () => [
-      folder({ Id: 'child-1', DisplayName: 'Projects' }),
-    ]);
+    const listFolders = vi.fn(async () => [folder({ Id: 'child-1', DisplayName: 'Projects' })]);
     const getFolder = vi.fn(async () =>
       folder({ Id: 'inbox-real-id', DisplayName: 'Inbox', WellKnownName: 'inbox' }),
     );
@@ -240,9 +234,7 @@ describe('list-folders: run()', () => {
       getFolder: getFolder as OutlookClient['getFolder'],
     });
 
-    await expect(runListFolders(deps, { top: 300 })).rejects.toBeInstanceOf(
-      UsageError,
-    );
+    await expect(runListFolders(deps, { top: 300 })).rejects.toBeInstanceOf(UsageError);
     expect(listFolders).not.toHaveBeenCalled();
     expect(getFolder).not.toHaveBeenCalled();
   });
@@ -253,9 +245,7 @@ describe('list-folders: run()', () => {
       listFolders: listFolders as OutlookClient['listFolders'],
     });
 
-    await expect(runListFolders(deps, { top: 0 })).rejects.toBeInstanceOf(
-      UsageError,
-    );
+    await expect(runListFolders(deps, { top: 0 })).rejects.toBeInstanceOf(UsageError);
     expect(listFolders).not.toHaveBeenCalled();
   });
 
@@ -294,14 +284,12 @@ describe('list-folders: run()', () => {
     // Return one level of children that is strictly larger than the cap.
     // Each child has ChildFolderCount: 0 so we do NOT descend — the cap is
     // exclusively triggered by accumulating rows.
-    const oversized: FolderSummary[] = Array.from(
-      { length: MAX_FOLDERS_VISITED + 1 },
-      (_v, i) =>
-        folder({
-          Id: `big-${i}`,
-          DisplayName: `F${i}`,
-          ChildFolderCount: 0,
-        }),
+    const oversized: FolderSummary[] = Array.from({ length: MAX_FOLDERS_VISITED + 1 }, (_v, i) =>
+      folder({
+        Id: `big-${i}`,
+        DisplayName: `F${i}`,
+        ChildFolderCount: 0,
+      }),
     );
     const listFolders = vi.fn(async () => oversized);
 

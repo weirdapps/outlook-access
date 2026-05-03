@@ -73,13 +73,15 @@ export async function captureSharepointFromContext(
     );
 
     // Navigate. Don't await — let the request listener race.
-    page.goto(`https://${host}/_layouts/15/sharepoint.aspx`, {
-      waitUntil: 'domcontentloaded',
-      timeout: timeoutMs,
-    }).catch(() => {
-      // Navigation may itself error if SharePoint redirects oddly; rely on
-      // the request promise instead.
-    });
+    page
+      .goto(`https://${host}/_layouts/15/sharepoint.aspx`, {
+        waitUntil: 'domcontentloaded',
+        timeout: timeoutMs,
+      })
+      .catch(() => {
+        // Navigation may itself error if SharePoint redirects oddly; rely on
+        // the request promise instead.
+      });
 
     let request;
     try {
@@ -106,13 +108,14 @@ export async function captureSharepointFromContext(
     // Collect cookies for the SharePoint host AND its parent domain
     // (e.g. *.sharepoint.com cookies are needed for cross-subdomain calls).
     const allCookies = await context.cookies();
-    const parentDomain = host.split('.').slice(-2).join('.');  // sharepoint.com
+    const parentDomain = host.split('.').slice(-2).join('.'); // sharepoint.com
     const sharepointCookies = allCookies
-      .filter((c) =>
-        c.domain === host
-          || c.domain === `.${host}`
-          || c.domain === parentDomain
-          || c.domain === `.${parentDomain}`,
+      .filter(
+        (c) =>
+          c.domain === host ||
+          c.domain === `.${host}` ||
+          c.domain === parentDomain ||
+          c.domain === `.${parentDomain}`,
       )
       .map((c) => `${c.name}=${c.value}`)
       .join('; ');

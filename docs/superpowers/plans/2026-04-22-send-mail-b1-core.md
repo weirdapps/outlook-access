@@ -7,6 +7,7 @@
 **Scope (B1 only):** New command + 4 client methods + tests + smoke. Excludes reply/forward/signature (those are B2).
 
 **Architecture:**
+
 - New `OutlookClient` methods: `createDraft(payload)`, `sendDraft(id)`, `sendMail(payload)` (immediate). All POST to `/api/v2.0/me/...` using existing Bearer + auto-reauth.
 - `src/commands/send-mail.ts` — input parsing, body building (HTML and/or text), attachment loading (file paths only in B1), recipient parsing (comma-string + repeatable), CC-self injection from session UPN, dispatch.
 - `src/util/open-outlook.ts` — small helper that runs `open -a "Microsoft Outlook"` via `child_process.spawn`.
@@ -32,19 +33,19 @@
 
 ## Files map
 
-| File | Action | LOC |
-|---|---|---|
-| `src/http/outlook-client.ts` | modify — add 4 methods + types | +200 |
-| `src/http/errors.ts` | modify — extend redaction | +20 |
-| `src/commands/send-mail.ts` | create | +250 |
-| `src/util/open-outlook.ts` | create | +30 |
-| `src/cli.ts` | modify — register command | +60 |
-| `test_scripts/outlook-client-send.spec.ts` | create | +250 |
-| `test_scripts/commands-send-mail.spec.ts` | create | +250 |
-| `test_scripts/util-open-outlook.spec.ts` | create | +50 |
-| `package.json` | modify — version bump | +1 |
-| `CHANGELOG.md` | modify — add 1.3.0 entry | +25 |
-| **Total** | | **~1136** |
+| File                                       | Action                         | LOC       |
+| ------------------------------------------ | ------------------------------ | --------- |
+| `src/http/outlook-client.ts`               | modify — add 4 methods + types | +200      |
+| `src/http/errors.ts`                       | modify — extend redaction      | +20       |
+| `src/commands/send-mail.ts`                | create                         | +250      |
+| `src/util/open-outlook.ts`                 | create                         | +30       |
+| `src/cli.ts`                               | modify — register command      | +60       |
+| `test_scripts/outlook-client-send.spec.ts` | create                         | +250      |
+| `test_scripts/commands-send-mail.spec.ts`  | create                         | +250      |
+| `test_scripts/util-open-outlook.spec.ts`   | create                         | +50       |
+| `package.json`                             | modify — version bump          | +1        |
+| `CHANGELOG.md`                             | modify — add 1.3.0 entry       | +25       |
+| **Total**                                  |                                | **~1136** |
 
 ---
 
@@ -53,6 +54,7 @@
 **Files:** none (branch + verify only)
 
 - [ ] **Step 1.1:** Create feature branch
+
   ```bash
   cd ~/SourceCode/outlook-access
   git checkout -b feat/send-mail-b1-core
@@ -67,10 +69,12 @@
 ## Task 2: Util — `open-outlook.ts`
 
 **Files:**
+
 - Create: `src/util/open-outlook.ts`
 - Test: `test_scripts/util-open-outlook.spec.ts`
 
 - [ ] **Step 2.1:** Write failing test in `test_scripts/util-open-outlook.spec.ts`
+
   ```ts
   import { describe, it, expect, vi } from 'vitest';
   import * as child from 'child_process';
@@ -79,16 +83,25 @@
   describe('activateOutlookApp', () => {
     it('spawns `open -a "Microsoft Outlook"` and resolves on close 0', async () => {
       const spawnSpy = vi.spyOn(child, 'spawn').mockReturnValue({
-        on: (ev: string, cb: (n: number) => void) => { if (ev === 'close') queueMicrotask(() => cb(0)); return this; },
+        on: (ev: string, cb: (n: number) => void) => {
+          if (ev === 'close') queueMicrotask(() => cb(0));
+          return this;
+        },
         unref: () => {},
       } as never);
       await expect(activateOutlookApp()).resolves.toBeUndefined();
-      expect(spawnSpy).toHaveBeenCalledWith('open', ['-a', 'Microsoft Outlook'], { stdio: 'ignore', detached: true });
+      expect(spawnSpy).toHaveBeenCalledWith('open', ['-a', 'Microsoft Outlook'], {
+        stdio: 'ignore',
+        detached: true,
+      });
     });
 
     it('rejects with code when open exits non-zero', async () => {
       vi.spyOn(child, 'spawn').mockReturnValue({
-        on: (ev: string, cb: (n: number) => void) => { if (ev === 'close') queueMicrotask(() => cb(1)); return this; },
+        on: (ev: string, cb: (n: number) => void) => {
+          if (ev === 'close') queueMicrotask(() => cb(1));
+          return this;
+        },
         unref: () => {},
       } as never);
       await expect(activateOutlookApp()).rejects.toThrow(/exited with code 1/);
@@ -99,6 +112,7 @@
 - [ ] **Step 2.2:** Run test → fails (file doesn't exist)
 
 - [ ] **Step 2.3:** Implement
+
   ```ts
   // src/util/open-outlook.ts
   //
@@ -136,6 +150,7 @@
 ## Task 3: Body redaction extension
 
 **Files:**
+
 - Modify: `src/http/errors.ts` (or wherever the existing token-redaction lives)
 
 - [ ] **Step 3.1:** Locate redaction. `grep -n "redact\|REDACT\|Bearer\|cookie" src/http/errors.ts`
@@ -156,10 +171,12 @@
 ## Task 4: `OutlookClient.sendMail` (immediate send)
 
 **Files:**
+
 - Modify: `src/http/outlook-client.ts` — types + interface + impl
 - Test: `test_scripts/outlook-client-send.spec.ts`
 
 - [ ] **Step 4.1:** Define types
+
   ```ts
   export type EmailAddress = { Address: string; Name?: string };
   export type BodyContent = { ContentType: 'HTML' | 'Text'; Content: string };
@@ -185,6 +202,7 @@
   ```
 
 - [ ] **Step 4.2:** Add method to `OutlookClient` interface
+
   ```ts
   sendMail(payload: SendMailPayload, opts?: SendMailOptions): Promise<void>;
   ```
@@ -197,6 +215,7 @@
   - Throws on 413 (payload too large) with hint about attachment limits
 
 - [ ] **Step 4.4:** Implement method (mirrors existing `doPost` pattern)
+
   ```ts
   async function sendMail(payload: SendMailPayload, opts: SendMailOptions = {}): Promise<void> {
     const body = {
@@ -223,10 +242,12 @@
 ## Task 5: `OutlookClient.createDraft` + `sendDraft`
 
 **Files:**
+
 - Modify: `src/http/outlook-client.ts`
 - Test: extend `test_scripts/outlook-client-send.spec.ts`
 
 - [ ] **Step 5.1:** Add types
+
   ```ts
   export interface CreateDraftResult {
     Id: string;
@@ -236,6 +257,7 @@
   ```
 
 - [ ] **Step 5.2:** Add interface methods
+
   ```ts
   createDraft(payload: SendMailPayload): Promise<CreateDraftResult>;
   sendDraft(messageId: string): Promise<void>;
@@ -247,13 +269,14 @@
   - Both honor auth/reauth chain
 
 - [ ] **Step 5.4:** Implement
+
   ```ts
   async function createDraft(payload: SendMailPayload): Promise<CreateDraftResult> {
     try {
-      const resp = await doPost<SendMailPayload, { Id: string; WebLink: string; ConversationId?: string }>(
-        '/api/v2.0/me/messages',
-        payload,
-      );
+      const resp = await doPost<
+        SendMailPayload,
+        { Id: string; WebLink: string; ConversationId?: string }
+      >('/api/v2.0/me/messages', payload);
       return { Id: resp.Id, WebLink: resp.WebLink, ConversationId: resp.ConversationId };
     } catch (err) {
       throw mapHttpToCliError(err);
@@ -280,6 +303,7 @@
 ## Task 6: `send-mail` command
 
 **Files:**
+
 - Create: `src/commands/send-mail.ts`
 - Test: `test_scripts/commands-send-mail.spec.ts`
 
@@ -316,11 +340,13 @@
 ## Task 7: CLI registration
 
 **Files:**
+
 - Modify: `src/cli.ts`
 
 - [ ] **Step 7.1:** Import `* as sendMail from './commands/send-mail'`
 
 - [ ] **Step 7.2:** Register command after `move-mail`
+
   ```ts
   // -------- send-mail --------
   program
@@ -332,16 +358,23 @@
     .requiredOption('--subject <s>', 'Subject line')
     .option('--html <file>', 'HTML body file path')
     .option('--text <file>', 'Plain-text body file path')
-    .option('--attach <file>', 'Attach file (repeatable)', (v: string, acc: string[] = []) => [...acc, v], [] as string[])
+    .option(
+      '--attach <file>',
+      'Attach file (repeatable)',
+      (v: string, acc: string[] = []) => [...acc, v],
+      [] as string[],
+    )
     .option('--no-cc-self', 'Suppress automatic CC to authenticated user')
     .option('--no-save-sent', 'Do not save to Sent folder')
     .option('--send-now', 'Send immediately, skip draft', false)
     .option('--no-open', 'Do not activate Outlook desktop after draft creation')
     .option('--dry-run', 'Print payload JSON, do not send', false)
-    .action(makeAction<SendMailCmdOpts, []>(program, async (deps, g, cmdOpts) => {
-      const result = await sendMail.run(deps, cmdOpts);
-      emitResult(result, resolveOutputMode(g));
-    }));
+    .action(
+      makeAction<SendMailCmdOpts, []>(program, async (deps, g, cmdOpts) => {
+        const result = await sendMail.run(deps, cmdOpts);
+        emitResult(result, resolveOutputMode(g));
+      }),
+    );
   ```
 
 - [ ] **Step 7.3:** Run full `npm test` — all 285+30 should pass; commit
@@ -353,11 +386,13 @@
 **Files:** none (smoke only)
 
 - [ ] **Step 8.1:** Build
+
   ```bash
   npm run build
   ```
 
 - [ ] **Step 8.2:** Self-test draft creation
+
   ```bash
   echo '<p>test draft from outlook-cli</p>' > /tmp/test-body.html
   outlook-cli --quiet send-mail \
@@ -365,6 +400,7 @@
     --subject "test draft from outlook-cli" \
     --html /tmp/test-body.html
   ```
+
   Expected:
   - `{id, webLink}` printed
   - Microsoft Outlook desktop activates (focuses)
@@ -372,6 +408,7 @@
   - Verify CC-self present (your address in CC)
 
 - [ ] **Step 8.3:** Self-test immediate send
+
   ```bash
   outlook-cli --quiet send-mail \
     --to dimitrios.plessas@nbg.gr \
@@ -379,6 +416,7 @@
     --html /tmp/test-body.html \
     --send-now
   ```
+
   Expected:
   - Empty stdout (or `{}`)
   - Mail arrives in Inbox (CC-self) within seconds
@@ -386,6 +424,7 @@
   - HTML renders correctly (paragraph tag becomes paragraph, not literal `<p>`)
 
 - [ ] **Step 8.4:** Self-test attachment
+
   ```bash
   echo "test attachment content" > /tmp/test-attach.txt
   outlook-cli --quiet send-mail \
@@ -395,6 +434,7 @@
     --attach /tmp/test-attach.txt \
     --send-now
   ```
+
   Expected: mail arrives with `test-attach.txt` attached; downloads correctly.
 
 - [ ] **Step 8.5:** Self-test error paths
@@ -422,12 +462,14 @@
 - [ ] **Step 9.1:** `package.json` version → `1.3.0`
 
 - [ ] **Step 9.2:** Prepend to CHANGELOG.md
+
   ```markdown
   ## [1.3.0] — 2026-04-22 (fork)
 
   Phase B1: send-mail core.
 
   ### Added
+
   - `send-mail` command — new email composition with draft-first default.
   - `OutlookClient.sendMail()` — immediate send via `/me/sendmail`.
   - `OutlookClient.createDraft()` + `sendDraft()` — staged-send via `/me/messages` + `/send`.
@@ -435,6 +477,7 @@
   - Body/HtmlBody redaction in error stderr (extends existing token redaction).
 
   ### Notes
+
   - Default workflow: creates draft, returns `{id, webLink}`, activates Outlook desktop.
   - `--send-now` bypasses draft.
   - `--cc-self` defaults ON; resolves to authenticated UPN from session.
@@ -452,16 +495,19 @@
 ## Task 10: Push, PR, merge, relink
 
 - [ ] **Step 10.1:** Push branch
+
   ```bash
   git push -u origin feat/send-mail-b1-core
   ```
 
 - [ ] **Step 10.2:** Create PR — **explicitly target `weirdapps/outlook-access`** (don't repeat the upstream-PR mistake from Phase A)
+
   ```bash
   gh pr create --repo weirdapps/outlook-access --base master --head feat/send-mail-b1-core --title "feat(B1): add send-mail command (draft-first default)" --body "..."
   ```
 
 - [ ] **Step 10.3:** Self-merge after smoke verified
+
   ```bash
   gh pr merge <PR#> --repo weirdapps/outlook-access --squash --delete-branch
   ```
@@ -478,6 +524,7 @@
 ## Rollback plan
 
 If anything breaks:
+
 ```bash
 git checkout master
 git reset --hard 9c1cfb4   # back to v1.2.0
@@ -492,6 +539,7 @@ The `email-handler` plugin's `/send-mail` skill is unchanged in B1 (still uses A
 ## After B1 ships → B2 plan
 
 `docs/superpowers/plans/2026-04-22-send-mail-b2-replies.md` (TBW after B1):
+
 - `capture-signature` command + heuristic extraction
 - `reply <id>` / `reply-all <id>` / `forward <id>` commands
 - Inline `cid:` attachments (`--inline cid=path`)

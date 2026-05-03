@@ -95,9 +95,7 @@ export async function run(
     if (idOrConv.startsWith(CONV_PREFIX)) {
       const raw = idOrConv.slice(CONV_PREFIX.length);
       if (raw.length === 0) {
-        throw new UsageError(
-          'get-thread: conv: prefix requires a non-empty conversation id',
-        );
+        throw new UsageError('get-thread: conv: prefix requires a non-empty conversation id');
       }
       conversationId = raw;
     } else {

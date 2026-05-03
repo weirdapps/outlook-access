@@ -279,8 +279,8 @@ Notes:
   {
     "scripts": {
       "build": "tsc",
-      "dev":   "ts-node src/cli.ts",
-      "test":  "vitest run",
+      "dev": "ts-node src/cli.ts",
+      "test": "vitest run",
       "test:watch": "vitest"
     },
     "bin": { "outlook-cli": "dist/cli.js" }
@@ -291,26 +291,26 @@ Notes:
 
 ## 5. Acceptance Criteria Mapping
 
-| AC ID | Phase | Test(s) | Notes |
-|---|---|---|---|
-| AC-LOGIN-OK | D, F(login), G | `test_scripts/ac-login-ok.ts` (manual) | Verifies session file mode `0o600`, `account.upn` non-empty, future `tokenExpiresAt` |
-| AC-AUTHCHECK-OK | F(auth-check), G | `test_scripts/ac-authcheck-ok.ts` | Asserts no browser launch; cheap `GET /me` returns 200 |
-| AC-LISTMAIL-OK | F(list-mail), G | `test_scripts/ac-listmail-ok.ts` | Asserts array of 5 summaries with required fields |
-| AC-GETMAIL-OK | F(get-mail), G | `test_scripts/ac-getmail-ok.ts` | Full message + `Attachments[]` metadata only |
-| AC-DOWNLOAD-OK | F(download-attachments), G | `test_scripts/ac-download-ok.ts` + `test_scripts/unit/download-attachments.spec.ts` | Byte-for-byte size match; uses `docs/research/outlook-v2-attachments.md §6` loop |
-| AC-LISTCAL-OK | F(list-calendar), G | `test_scripts/ac-listcal-ok.ts` | Ordered by `Start/DateTime asc`; window respected |
-| AC-GETEVENT-OK | F(get-event), G | `test_scripts/ac-getevent-ok.ts` | Asserts `Start`, `End`, `Organizer`, `Attendees` present |
-| AC-SESSION-REUSE | C, G | `test_scripts/ac-session-reuse.ts` | Two calls → no re-auth; `capturedAt` stable across calls |
-| AC-MISSING-SESSION | F(all), G | `test_scripts/ac-missing-session.ts` | No file → triggers login; `--no-auto-reauth` → exit 4 |
-| AC-EXPIRED-TOKEN | E, F, G | `test_scripts/ac-expired-token.ts` | Stale `expiresAt` → re-auth + retry succeeds; `--no-auto-reauth` → exit 4 |
-| AC-401-RETRY | E | `test_scripts/ac-401-retry.ts` + `test_scripts/unit/outlook-client.spec.ts` | Mock-driven: first 401 → callback once + retry; second 401 → exit 4; no second browser launch |
-| AC-USER-CANCEL | D | `test_scripts/ac-user-cancel.ts` (manual) | Close browser → exit 4 within `OUTLOOK_CLI_LOGIN_TIMEOUT_MS`; pre-existing session untouched |
-| AC-CONFIG-MISSING | B | `test_scripts/ac-config-missing.ts` + `test_scripts/unit/config.spec.ts` | Unset env + unset flag → exit 3 with `ConfigurationError` naming the missing key |
-| AC-PERMS | C | `test_scripts/ac-perms.ts` + `test_scripts/unit/session-store.spec.ts` | `stat` checks: file `0o600`, dir `0o700` |
-| AC-NO-SECRET-LEAK | D, E | `test_scripts/ac-no-secret-leak.ts` | `grep` log file for token and cookie values → zero hits |
-| AC-INVALID-ID | E, F(get-mail) | `test_scripts/ac-invalid-id.ts` | Bad id → exit 5 with upstream HTTP status in payload |
-| AC-OVERWRITE-GUARD | F(download-attachments) | `test_scripts/ac-overwrite-guard.ts` | Collision without `--overwrite` → exit 6; with `--overwrite` → succeeds |
-| AC-CLAUDEMD-UPDATED | H | `test_scripts/ac-claudemd-updated.ts` | Grep for `<outlook-cli>` root + 7 child blocks |
+| AC ID               | Phase                      | Test(s)                                                                             | Notes                                                                                         |
+| ------------------- | -------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| AC-LOGIN-OK         | D, F(login), G             | `test_scripts/ac-login-ok.ts` (manual)                                              | Verifies session file mode `0o600`, `account.upn` non-empty, future `tokenExpiresAt`          |
+| AC-AUTHCHECK-OK     | F(auth-check), G           | `test_scripts/ac-authcheck-ok.ts`                                                   | Asserts no browser launch; cheap `GET /me` returns 200                                        |
+| AC-LISTMAIL-OK      | F(list-mail), G            | `test_scripts/ac-listmail-ok.ts`                                                    | Asserts array of 5 summaries with required fields                                             |
+| AC-GETMAIL-OK       | F(get-mail), G             | `test_scripts/ac-getmail-ok.ts`                                                     | Full message + `Attachments[]` metadata only                                                  |
+| AC-DOWNLOAD-OK      | F(download-attachments), G | `test_scripts/ac-download-ok.ts` + `test_scripts/unit/download-attachments.spec.ts` | Byte-for-byte size match; uses `docs/research/outlook-v2-attachments.md §6` loop              |
+| AC-LISTCAL-OK       | F(list-calendar), G        | `test_scripts/ac-listcal-ok.ts`                                                     | Ordered by `Start/DateTime asc`; window respected                                             |
+| AC-GETEVENT-OK      | F(get-event), G            | `test_scripts/ac-getevent-ok.ts`                                                    | Asserts `Start`, `End`, `Organizer`, `Attendees` present                                      |
+| AC-SESSION-REUSE    | C, G                       | `test_scripts/ac-session-reuse.ts`                                                  | Two calls → no re-auth; `capturedAt` stable across calls                                      |
+| AC-MISSING-SESSION  | F(all), G                  | `test_scripts/ac-missing-session.ts`                                                | No file → triggers login; `--no-auto-reauth` → exit 4                                         |
+| AC-EXPIRED-TOKEN    | E, F, G                    | `test_scripts/ac-expired-token.ts`                                                  | Stale `expiresAt` → re-auth + retry succeeds; `--no-auto-reauth` → exit 4                     |
+| AC-401-RETRY        | E                          | `test_scripts/ac-401-retry.ts` + `test_scripts/unit/outlook-client.spec.ts`         | Mock-driven: first 401 → callback once + retry; second 401 → exit 4; no second browser launch |
+| AC-USER-CANCEL      | D                          | `test_scripts/ac-user-cancel.ts` (manual)                                           | Close browser → exit 4 within `OUTLOOK_CLI_LOGIN_TIMEOUT_MS`; pre-existing session untouched  |
+| AC-CONFIG-MISSING   | B                          | `test_scripts/ac-config-missing.ts` + `test_scripts/unit/config.spec.ts`            | Unset env + unset flag → exit 3 with `ConfigurationError` naming the missing key              |
+| AC-PERMS            | C                          | `test_scripts/ac-perms.ts` + `test_scripts/unit/session-store.spec.ts`              | `stat` checks: file `0o600`, dir `0o700`                                                      |
+| AC-NO-SECRET-LEAK   | D, E                       | `test_scripts/ac-no-secret-leak.ts`                                                 | `grep` log file for token and cookie values → zero hits                                       |
+| AC-INVALID-ID       | E, F(get-mail)             | `test_scripts/ac-invalid-id.ts`                                                     | Bad id → exit 5 with upstream HTTP status in payload                                          |
+| AC-OVERWRITE-GUARD  | F(download-attachments)    | `test_scripts/ac-overwrite-guard.ts`                                                | Collision without `--overwrite` → exit 6; with `--overwrite` → succeeds                       |
+| AC-CLAUDEMD-UPDATED | H                          | `test_scripts/ac-claudemd-updated.ts`                                               | Grep for `<outlook-cli>` root + 7 child blocks                                                |
 
 Every AC from `refined-request-outlook-cli.md §9` is listed.
 
@@ -320,21 +320,21 @@ Every AC from `refined-request-outlook-cli.md §9` is listed.
 
 Derived from `investigation-outlook-cli.md §5`. Each risk maps to an implementation action.
 
-| # | Risk | Phase with mitigation | Action |
-|---|---|---|---|
-| R1 | Bearer expires between `auth-check` and the real REST call | E | `OutlookClient` re-checks `bearer.expiresAt` just before every call with a 60 s grace; on `now + 60s >= expiresAt` → triggers `onReauthNeeded` before the HTTP call fires. |
-| R2 | MFA re-prompted on silent re-login | D | `login-flow.ts` keeps the headed browser open for up to `OUTLOOK_CLI_LOGIN_TIMEOUT_MS`; no attempt to suppress MFA UI; `captureFirstBearerToken` is idle until user completes. |
-| R3 | Outlook UI change breaks "inbox reached" sentinel | D | `login-flow.ts` treats "first captured Bearer" as the success signal (not a DOM sentinel). `page.goto('outlook.office.com/mail/', { waitUntil: 'domcontentloaded' })` is the only navigation wait; the SPA does the rest. |
-| R4 | Captured Bearer missing a scope (e.g. `Calendars.Read`) | F(auth-check) | `auth-check` hits both `/me/messages?$top=1` AND `/me/calendarview?...&$top=1` and surfaces the first failure, matching spec §5.2. |
-| R5 | Cookie domain mismatch | D | `login-flow.ts` filters `context.cookies()` to `.office.com`, `.outlook.office.com`, `.login.microsoftonline.com`; `src/http/outlook-client.ts` serializes honoring `domain`, `path`, `secure`, and `httpOnly` (all written, since HTTP client sends them all). Unit test on cookie serialization in Phase E. |
-| R6 | Lock file stale after SIGKILL | D | `lock.ts`: on `EEXIST`, `process.kill(pid, 0)` → `ESRCH` means stale → overwrite. Also: expiry if file age > `max(OUTLOOK_CLI_LOGIN_TIMEOUT_MS, 30 min)`. |
-| R7 | Browser closed mid-capture | D | `captureFirstBearerToken` already registers `page.once('close')` + `context.once('close')` (see `docs/research/playwright-token-capture.md §9`). On close → `AuthError` exit 4; `login-flow.ts` does NOT write the session file. |
-| R8 | First API request uses service worker / XHR | D | Init script patches both `fetch` and `XMLHttpRequest` (defense-in-depth per research §3). If no token within `OUTLOOK_CLI_LOGIN_TIMEOUT_MS` → `AuthError` exit 4 with clear message. |
-| R9 | Secrets leak via error messages / log | B (error classes) + E (error mapper) + H (`ac-no-secret-leak`) | `ConfigurationError`/`AuthError`/`UpstreamError`/`IoError` constructors explicitly exclude `bearer.token` and cookie values from `.message` and `.stack`. `mapHttpResponseToError` never includes the request headers. AC-NO-SECRET-LEAK grep-validates. |
-| R10 | Persistent profile corrupted | D | `login --force` rebuilds; documented in CLAUDE.md tool `<info>` block. No self-repair attempted. |
-| R11 | v2.0 API decommissioned mid-flight | E, F | `mapHttpResponseToError` surfaces 404/410 with a clear "endpoint may be deprecated — consider Graph migration" hint in the error payload (no silent failure). |
-| R12 | Large attachment `ContentBytes` null | F(download-attachments) | Per `docs/research/outlook-v2-attachments.md §4.2`: attempt detail GET; if `ContentBytes == null`, add `{ reason: "content-bytes-null", size, hint }` to `skipped[]`. Non-fatal. |
-| R13 | Path traversal via attachment `Name` | F(download-attachments) | `src/util/filename.ts` implements `sanitizeAttachmentName` + `deduplicateFilename` per `docs/research/outlook-v2-attachments.md §5.1`, including resolved-path boundary check. |
+| #   | Risk                                                       | Phase with mitigation                                          | Action                                                                                                                                                                                                                                                                                                        |
+| --- | ---------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Bearer expires between `auth-check` and the real REST call | E                                                              | `OutlookClient` re-checks `bearer.expiresAt` just before every call with a 60 s grace; on `now + 60s >= expiresAt` → triggers `onReauthNeeded` before the HTTP call fires.                                                                                                                                    |
+| R2  | MFA re-prompted on silent re-login                         | D                                                              | `login-flow.ts` keeps the headed browser open for up to `OUTLOOK_CLI_LOGIN_TIMEOUT_MS`; no attempt to suppress MFA UI; `captureFirstBearerToken` is idle until user completes.                                                                                                                                |
+| R3  | Outlook UI change breaks "inbox reached" sentinel          | D                                                              | `login-flow.ts` treats "first captured Bearer" as the success signal (not a DOM sentinel). `page.goto('outlook.office.com/mail/', { waitUntil: 'domcontentloaded' })` is the only navigation wait; the SPA does the rest.                                                                                     |
+| R4  | Captured Bearer missing a scope (e.g. `Calendars.Read`)    | F(auth-check)                                                  | `auth-check` hits both `/me/messages?$top=1` AND `/me/calendarview?...&$top=1` and surfaces the first failure, matching spec §5.2.                                                                                                                                                                            |
+| R5  | Cookie domain mismatch                                     | D                                                              | `login-flow.ts` filters `context.cookies()` to `.office.com`, `.outlook.office.com`, `.login.microsoftonline.com`; `src/http/outlook-client.ts` serializes honoring `domain`, `path`, `secure`, and `httpOnly` (all written, since HTTP client sends them all). Unit test on cookie serialization in Phase E. |
+| R6  | Lock file stale after SIGKILL                              | D                                                              | `lock.ts`: on `EEXIST`, `process.kill(pid, 0)` → `ESRCH` means stale → overwrite. Also: expiry if file age > `max(OUTLOOK_CLI_LOGIN_TIMEOUT_MS, 30 min)`.                                                                                                                                                     |
+| R7  | Browser closed mid-capture                                 | D                                                              | `captureFirstBearerToken` already registers `page.once('close')` + `context.once('close')` (see `docs/research/playwright-token-capture.md §9`). On close → `AuthError` exit 4; `login-flow.ts` does NOT write the session file.                                                                              |
+| R8  | First API request uses service worker / XHR                | D                                                              | Init script patches both `fetch` and `XMLHttpRequest` (defense-in-depth per research §3). If no token within `OUTLOOK_CLI_LOGIN_TIMEOUT_MS` → `AuthError` exit 4 with clear message.                                                                                                                          |
+| R9  | Secrets leak via error messages / log                      | B (error classes) + E (error mapper) + H (`ac-no-secret-leak`) | `ConfigurationError`/`AuthError`/`UpstreamError`/`IoError` constructors explicitly exclude `bearer.token` and cookie values from `.message` and `.stack`. `mapHttpResponseToError` never includes the request headers. AC-NO-SECRET-LEAK grep-validates.                                                      |
+| R10 | Persistent profile corrupted                               | D                                                              | `login --force` rebuilds; documented in CLAUDE.md tool `<info>` block. No self-repair attempted.                                                                                                                                                                                                              |
+| R11 | v2.0 API decommissioned mid-flight                         | E, F                                                           | `mapHttpResponseToError` surfaces 404/410 with a clear "endpoint may be deprecated — consider Graph migration" hint in the error payload (no silent failure).                                                                                                                                                 |
+| R12 | Large attachment `ContentBytes` null                       | F(download-attachments)                                        | Per `docs/research/outlook-v2-attachments.md §4.2`: attempt detail GET; if `ContentBytes == null`, add `{ reason: "content-bytes-null", size, hint }` to `skipped[]`. Non-fatal.                                                                                                                              |
+| R13 | Path traversal via attachment `Name`                       | F(download-attachments)                                        | `src/util/filename.ts` implements `sanitizeAttachmentName` + `deduplicateFilename` per `docs/research/outlook-v2-attachments.md §5.1`, including resolved-path boundary check.                                                                                                                                |
 
 ---
 
@@ -346,15 +346,15 @@ Genuine blockers (need user confirmation before Phase A begins):
 
 Non-blocking defaults picked (user may override before Phase A with a one-line note):
 
-| Decision | Default picked | Where to override |
-|---|---|---|
-| Binary name | `outlook-cli` | `package.json#bin` (Phase A) |
-| Test runner | `vitest` | `package.json` + phase B onwards |
-| Table library | none (hand-rolled in `src/output/formatter.ts`) | `src/output/formatter.ts` (Phase G) |
-| JWT parser | manual base64url split (no dep) | `src/auth/jwt.ts` (Phase D) |
-| Log file when `--log-file` omitted | no log file written | `src/output/formatter.ts` + CLI (Phase G) |
-| Atomic-write temp-file suffix | `.tmp.<pid>.<rand>` | `src/util/fs-atomic.ts` (Phase C) |
-| Lock-file expiry | `max(OUTLOOK_CLI_LOGIN_TIMEOUT_MS, 30 min)` | `src/auth/lock.ts` (Phase D) |
+| Decision                           | Default picked                                  | Where to override                         |
+| ---------------------------------- | ----------------------------------------------- | ----------------------------------------- |
+| Binary name                        | `outlook-cli`                                   | `package.json#bin` (Phase A)              |
+| Test runner                        | `vitest`                                        | `package.json` + phase B onwards          |
+| Table library                      | none (hand-rolled in `src/output/formatter.ts`) | `src/output/formatter.ts` (Phase G)       |
+| JWT parser                         | manual base64url split (no dep)                 | `src/auth/jwt.ts` (Phase D)               |
+| Log file when `--log-file` omitted | no log file written                             | `src/output/formatter.ts` + CLI (Phase G) |
+| Atomic-write temp-file suffix      | `.tmp.<pid>.<rand>`                             | `src/util/fs-atomic.ts` (Phase C)         |
+| Lock-file expiry                   | `max(OUTLOOK_CLI_LOGIN_TIMEOUT_MS, 30 min)`     | `src/auth/lock.ts` (Phase D)              |
 
 ---
 

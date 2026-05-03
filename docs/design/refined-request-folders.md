@@ -13,7 +13,7 @@ backs them:
    arbitrary parent.
 2. **Move emails to folders** — move one or more messages to a destination folder
    identified by id, well-known folder name, or path. The move endpoint returns a
-   *new* message id in the destination folder; the tool surfaces the id mapping.
+   _new_ message id in the destination folder; the tool surfaces the id mapping.
 3. **List emails in a specific folder** — extend/replace the current `list-mail`
    folder restriction (today: a closed set of well-known names) so that any user
    folder reachable by name or path can be used, while preserving backward
@@ -188,7 +188,7 @@ and not supplied via their flags.
 - **Arguments:**
   - `<path>` — **required** positional. Must be a display-name path (`A/B/C`)
     or a bare name (treated as path length 1). Well-known aliases are NOT
-    valid create targets (cannot create a folder *named* `Inbox` at the root —
+    valid create targets (cannot create a folder _named_ `Inbox` at the root —
     would collide with the well-known one; see §6.2).
 - **Options:**
   - `--parent <name-or-path-or-id>` — anchor for the path. Default:
@@ -211,12 +211,22 @@ and not supplied via their flags.
   ```json
   {
     "created": [
-      { "Id": "AAMkAGI...Projects",  "DisplayName": "Projects", "Path": "Projects",
-        "ParentFolderId": "AAMkAGI...root", "PreExisting": false },
-      { "Id": "AAMkAGI...Alpha",     "DisplayName": "Alpha",    "Path": "Projects/Alpha",
-        "ParentFolderId": "AAMkAGI...Projects", "PreExisting": false }
+      {
+        "Id": "AAMkAGI...Projects",
+        "DisplayName": "Projects",
+        "Path": "Projects",
+        "ParentFolderId": "AAMkAGI...root",
+        "PreExisting": false
+      },
+      {
+        "Id": "AAMkAGI...Alpha",
+        "DisplayName": "Alpha",
+        "Path": "Projects/Alpha",
+        "ParentFolderId": "AAMkAGI...Projects",
+        "PreExisting": false
+      }
     ],
-    "leaf":    { "Id": "AAMkAGI...Alpha", "Path": "Projects/Alpha", "DisplayName": "Alpha" },
+    "leaf": { "Id": "AAMkAGI...Alpha", "Path": "Projects/Alpha", "DisplayName": "Alpha" },
     "idempotent": false
   }
   ```
@@ -344,17 +354,17 @@ The tool recognizes the following aliases — these resolve at the **Outlook
 server level** without a lookup call (Outlook accepts the literal token in the
 URL path):
 
-| Alias                       | Notes                                                |
-| --------------------------- | ---------------------------------------------------- |
-| `Inbox`                     | Read/write                                           |
-| `SentItems`                 | Read/write                                           |
-| `Drafts`                    | Read/write                                           |
-| `DeletedItems`              | Read/write                                           |
-| `Archive`                   | Read/write (not guaranteed on every tenant)          |
-| `JunkEmail`                 | Read/write                                           |
-| `Outbox`                    | Read only in practice                                |
-| `MsgFolderRoot`             | The mailbox root; **container for top-level folders**|
-| `RecoverableItemsDeletions` | Read only                                            |
+| Alias                       | Notes                                                 |
+| --------------------------- | ----------------------------------------------------- |
+| `Inbox`                     | Read/write                                            |
+| `SentItems`                 | Read/write                                            |
+| `Drafts`                    | Read/write                                            |
+| `DeletedItems`              | Read/write                                            |
+| `Archive`                   | Read/write (not guaranteed on every tenant)           |
+| `JunkEmail`                 | Read/write                                            |
+| `Outbox`                    | Read only in practice                                 |
+| `MsgFolderRoot`             | The mailbox root; **container for top-level folders** |
+| `RecoverableItemsDeletions` | Read only                                             |
 
 **Precedence when a user folder has the same DisplayName as a well-known
 alias:** the well-known alias wins at the **root** (e.g. `--folder Inbox`
@@ -459,28 +469,28 @@ derived from existing mandatory flags (timeouts, Chrome channel).
 
 New **optional** flags on existing commands:
 
-| Command       | Flag                   | Default      | Env var (optional mirror) |
-| ------------- | ---------------------- | ------------ | ------------------------- |
-| list-mail     | `--folder-id`          | (unset)      | —                         |
-| list-mail     | `--folder-parent`      | `MsgFolderRoot` | —                      |
-| list-folders  | `--parent`             | `MsgFolderRoot` | —                      |
-| list-folders  | `--recursive`          | `false`      | —                         |
-| list-folders  | `--include-hidden`     | `false`      | —                         |
-| list-folders  | `--top`                | `100`        | —                         |
-| find-folder   | `--parent`             | `MsgFolderRoot` | —                      |
-| find-folder   | `--case-sensitive`     | `false`      | —                         |
-| find-folder   | `--include-hidden`     | `false`      | —                         |
-| find-folder   | `--first-match`        | `false`      | —                         |
-| create-folder | `--parent`             | `MsgFolderRoot` | —                      |
-| create-folder | `--create-parents`     | `false`      | —                         |
-| create-folder | `--idempotent`         | `false`      | —                         |
-| create-folder | `--display-name`       | (last segment)| —                        |
-| move-mail     | `--to` / `--to-id`     | (required)   | —                         |
-| move-mail     | `--to-parent`          | `MsgFolderRoot` | —                      |
-| move-mail     | `--ids-from`           | (unset)      | —                         |
-| move-mail     | `--continue-on-error`  | `false`      | —                         |
-| move-mail     | `--stop-at`            | `1000`       | —                         |
-| move-mail     | `--first-match`        | `false`      | —                         |
+| Command       | Flag                  | Default         | Env var (optional mirror) |
+| ------------- | --------------------- | --------------- | ------------------------- |
+| list-mail     | `--folder-id`         | (unset)         | —                         |
+| list-mail     | `--folder-parent`     | `MsgFolderRoot` | —                         |
+| list-folders  | `--parent`            | `MsgFolderRoot` | —                         |
+| list-folders  | `--recursive`         | `false`         | —                         |
+| list-folders  | `--include-hidden`    | `false`         | —                         |
+| list-folders  | `--top`               | `100`           | —                         |
+| find-folder   | `--parent`            | `MsgFolderRoot` | —                         |
+| find-folder   | `--case-sensitive`    | `false`         | —                         |
+| find-folder   | `--include-hidden`    | `false`         | —                         |
+| find-folder   | `--first-match`       | `false`         | —                         |
+| create-folder | `--parent`            | `MsgFolderRoot` | —                         |
+| create-folder | `--create-parents`    | `false`         | —                         |
+| create-folder | `--idempotent`        | `false`         | —                         |
+| create-folder | `--display-name`      | (last segment)  | —                         |
+| move-mail     | `--to` / `--to-id`    | (required)      | —                         |
+| move-mail     | `--to-parent`         | `MsgFolderRoot` | —                         |
+| move-mail     | `--ids-from`          | (unset)         | —                         |
+| move-mail     | `--continue-on-error` | `false`         | —                         |
+| move-mail     | `--stop-at`           | `1000`          | —                         |
+| move-mail     | `--first-match`       | `false`         | —                         |
 
 The project-wide rule — **no fallback defaults for mandatory settings** — is
 respected: every default above is for a non-mandatory flag, and each default
@@ -489,25 +499,25 @@ outlook-cli.md` §8 policy).
 
 ## 10. Error classes and exit-code mapping
 
-| Scenario                                                         | Error class / code                                 | Exit |
-| ---------------------------------------------------------------- | -------------------------------------------------- | ---- |
-| Missing `<query>` on `find-folder`                               | `UsageError` / `BAD_USAGE`                         | 2    |
-| Missing `<path>` on `create-folder`                              | `UsageError` / `BAD_USAGE`                         | 2    |
-| Both `<id>` and `--ids-from` on `move-mail`                      | `UsageError` / `BAD_USAGE`                         | 2    |
-| Neither `--to` nor `--to-id` on `move-mail`                      | `UsageError` / `BAD_USAGE`                         | 2    |
-| Both `--folder` and `--folder-id` on `list-mail`                 | `UsageError` / `BAD_USAGE`                         | 2    |
-| Path with empty segment / invalid escape                         | `UsageError` / `FOLDER_PATH_INVALID`               | 2    |
-| Missing intermediate parent, no `--create-parents`               | `UsageError` / `FOLDER_MISSING_PARENT`             | 2    |
-| Ambiguous path match, no `--first-match`                         | `UsageError` / `FOLDER_AMBIGUOUS`                  | 2    |
-| Mandatory config absent (`--timeout`, `--chrome-channel`, etc.)  | `ConfigurationError`                               | 3    |
-| Interactive login cancelled or timed out                         | `AuthError`                                        | 4    |
-| 401 from folder / move / create after retry                      | `AuthError` / `AUTH_401_AFTER_RETRY`               | 4    |
-| 404 on folder lookup (path, id)                                  | `UpstreamError` / `UPSTREAM_FOLDER_NOT_FOUND`      | 5    |
-| 404 on source message during move                                | `UpstreamError` / `UPSTREAM_HTTP_404`              | 5    |
-| Any other 4xx/5xx from folder/move/create                        | `UpstreamError` / `UPSTREAM_HTTP_<status>`         | 5    |
-| Network / timeout / abort                                        | `UpstreamError` / `UPSTREAM_NETWORK` / `_TIMEOUT`  | 5    |
-| Pagination cap exceeded                                          | `UpstreamError` / `UPSTREAM_PAGINATION_LIMIT`      | 5    |
-| Folder already exists, no `--idempotent`                         | `FOLDER_ALREADY_EXISTS` (see §8 for class choice)  | 6    |
+| Scenario                                                        | Error class / code                                | Exit |
+| --------------------------------------------------------------- | ------------------------------------------------- | ---- |
+| Missing `<query>` on `find-folder`                              | `UsageError` / `BAD_USAGE`                        | 2    |
+| Missing `<path>` on `create-folder`                             | `UsageError` / `BAD_USAGE`                        | 2    |
+| Both `<id>` and `--ids-from` on `move-mail`                     | `UsageError` / `BAD_USAGE`                        | 2    |
+| Neither `--to` nor `--to-id` on `move-mail`                     | `UsageError` / `BAD_USAGE`                        | 2    |
+| Both `--folder` and `--folder-id` on `list-mail`                | `UsageError` / `BAD_USAGE`                        | 2    |
+| Path with empty segment / invalid escape                        | `UsageError` / `FOLDER_PATH_INVALID`              | 2    |
+| Missing intermediate parent, no `--create-parents`              | `UsageError` / `FOLDER_MISSING_PARENT`            | 2    |
+| Ambiguous path match, no `--first-match`                        | `UsageError` / `FOLDER_AMBIGUOUS`                 | 2    |
+| Mandatory config absent (`--timeout`, `--chrome-channel`, etc.) | `ConfigurationError`                              | 3    |
+| Interactive login cancelled or timed out                        | `AuthError`                                       | 4    |
+| 401 from folder / move / create after retry                     | `AuthError` / `AUTH_401_AFTER_RETRY`              | 4    |
+| 404 on folder lookup (path, id)                                 | `UpstreamError` / `UPSTREAM_FOLDER_NOT_FOUND`     | 5    |
+| 404 on source message during move                               | `UpstreamError` / `UPSTREAM_HTTP_404`             | 5    |
+| Any other 4xx/5xx from folder/move/create                       | `UpstreamError` / `UPSTREAM_HTTP_<status>`        | 5    |
+| Network / timeout / abort                                       | `UpstreamError` / `UPSTREAM_NETWORK` / `_TIMEOUT` | 5    |
+| Pagination cap exceeded                                         | `UpstreamError` / `UPSTREAM_PAGINATION_LIMIT`     | 5    |
+| Folder already exists, no `--idempotent`                        | `FOLDER_ALREADY_EXISTS` (see §8 for class choice) | 6    |
 
 ## 11. Acceptance Criteria
 
@@ -531,7 +541,7 @@ Each AC below must be backed by at least one test script under `test_scripts/`
    creates a new top-level folder; output shows `created[0].PreExisting == false`
    and `leaf.Id` is non-empty.
 7. **AC-CREATE-NESTED** — `outlook-cli create-folder "A/B/C" --parent Inbox
-   --create-parents` creates (or reuses) `Inbox/A`, `Inbox/A/B`, `Inbox/A/B/C`.
+--create-parents` creates (or reuses) `Inbox/A`, `Inbox/A/B`, `Inbox/A/B/C`.
 8. **AC-CREATE-IDEMPOTENT** — Re-running AC-CREATE-NESTED with `--idempotent`
    exits 0; `created[]` is empty, `idempotent == true`.
 9. **AC-MOVE-SINGLE** — `outlook-cli move-mail <id> --to "Inbox/Projects/Alpha"`
@@ -540,11 +550,11 @@ Each AC below must be backed by at least one test script under `test_scripts/`
 10. **AC-MOVE-MANY** — `outlook-cli move-mail --ids-from ids.txt --to-id <id>`
     moves every id; summary matches the count in the file.
 11. **AC-LISTMAIL-PATH** — `outlook-cli list-mail --folder "Inbox/Projects/Alpha"
-    -n 5` returns 5 messages from that folder.
+-n 5` returns 5 messages from that folder.
 12. **AC-LISTMAIL-ID** — `outlook-cli list-mail --folder-id AAMkAGI... -n 5`
     returns 5 messages (same IDs regardless of how the folder is addressed).
 13. **AC-LISTMAIL-WELLKNOWN-BACKCOMPAT** — `outlook-cli list-mail --folder Inbox
-    -n 3` continues to work exactly as before (no resolver hop).
+-n 3` continues to work exactly as before (no resolver hop).
 
 ### Failing / edge scenarios
 

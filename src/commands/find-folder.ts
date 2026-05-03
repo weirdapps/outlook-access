@@ -61,11 +61,7 @@ export async function run(
   // --anchor <garbage>` from raising a grammar error on the anchor when the
   // anchor would be silently ignored anyway.
   let finalSpec: FolderSpec = querySpec;
-  if (
-    querySpec.kind === 'path' &&
-    typeof opts.anchor === 'string' &&
-    opts.anchor.length > 0
-  ) {
+  if (querySpec.kind === 'path' && typeof opts.anchor === 'string' && opts.anchor.length > 0) {
     const anchorSpec: FolderSpec = parseFolderSpec(opts.anchor);
     finalSpec = { ...querySpec, parent: anchorSpec };
   }

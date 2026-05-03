@@ -20,11 +20,7 @@ import type {
 } from '../http/types';
 import type { SessionFile } from '../session/schema';
 import { atomicWriteBuffer } from '../util/fs-atomic';
-import {
-  assertWithinDir,
-  deduplicateFilename,
-  sanitizeAttachmentName,
-} from '../util/filename';
+import { assertWithinDir, deduplicateFilename, sanitizeAttachmentName } from '../util/filename';
 
 import { ensureSession, mapHttpError, UsageError } from './list-mail';
 

@@ -123,12 +123,8 @@ Exit codes:
   {
     "messageId": "...",
     "outDir": "/abs/path",
-    "saved": [
-      { "id": "...", "name": "report.pdf", "path": "/abs/path/report.pdf", "size": 12345 }
-    ],
-    "skipped": [
-      { "id": "...", "name": "logo.png", "reason": "inline" }
-    ]
+    "saved": [{ "id": "...", "name": "report.pdf", "path": "/abs/path/report.pdf", "size": 12345 }],
+    "skipped": [{ "id": "...", "name": "logo.png", "reason": "inline" }]
   }
   ```
 
@@ -264,25 +260,25 @@ Precedence (highest wins): CLI flag > environment variable > session file (for r
 
 **Mandatory configuration (NO fallback — raise `ConfigurationError` with exit code 3 if unset):**
 
-| Name | Env var | CLI flag | Purpose |
-|---|---|---|---|
-| HTTP timeout (ms) | `OUTLOOK_CLI_HTTP_TIMEOUT_MS` | `--timeout` | Per-REST-call timeout |
-| Login timeout (ms) | `OUTLOOK_CLI_LOGIN_TIMEOUT_MS` | `--login-timeout` | Max time to wait for user login + token capture |
-| Playwright Chrome channel | `OUTLOOK_CLI_CHROME_CHANNEL` | `--chrome-channel` | Which Chrome to launch (`chrome`, `msedge`, etc.) |
+| Name                      | Env var                        | CLI flag           | Purpose                                           |
+| ------------------------- | ------------------------------ | ------------------ | ------------------------------------------------- |
+| HTTP timeout (ms)         | `OUTLOOK_CLI_HTTP_TIMEOUT_MS`  | `--timeout`        | Per-REST-call timeout                             |
+| Login timeout (ms)        | `OUTLOOK_CLI_LOGIN_TIMEOUT_MS` | `--login-timeout`  | Max time to wait for user login + token capture   |
+| Playwright Chrome channel | `OUTLOOK_CLI_CHROME_CHANNEL`   | `--chrome-channel` | Which Chrome to launch (`chrome`, `msedge`, etc.) |
 
 **Optional configuration (defaults explicitly allowed by this spec):**
 
-| Name | Env var | CLI flag | Default |
-|---|---|---|---|
-| Session file path | `OUTLOOK_CLI_SESSION_FILE` | `--session-file` | `$HOME/.outlook-cli/session.json` |
-| Playwright profile dir | `OUTLOOK_CLI_PROFILE_DIR` | `--profile-dir` | `$HOME/.outlook-cli/playwright-profile` |
-| Output mode | — | `--json` / `--table` | `--json` |
-| Mail top N | — | `-n / --top` | `10` |
-| Mail folder | — | `--folder` | `Inbox` |
-| Calendar window start | `OUTLOOK_CLI_CAL_FROM` | `--from` | `now` |
-| Calendar window end | `OUTLOOK_CLI_CAL_TO` | `--to` | `now + 7d` |
-| Timezone | `OUTLOOK_CLI_TZ` | `--tz` | system timezone |
-| Body format | — | `--body` | `text` |
+| Name                   | Env var                    | CLI flag             | Default                                 |
+| ---------------------- | -------------------------- | -------------------- | --------------------------------------- |
+| Session file path      | `OUTLOOK_CLI_SESSION_FILE` | `--session-file`     | `$HOME/.outlook-cli/session.json`       |
+| Playwright profile dir | `OUTLOOK_CLI_PROFILE_DIR`  | `--profile-dir`      | `$HOME/.outlook-cli/playwright-profile` |
+| Output mode            | —                          | `--json` / `--table` | `--json`                                |
+| Mail top N             | —                          | `-n / --top`         | `10`                                    |
+| Mail folder            | —                          | `--folder`           | `Inbox`                                 |
+| Calendar window start  | `OUTLOOK_CLI_CAL_FROM`     | `--from`             | `now`                                   |
+| Calendar window end    | `OUTLOOK_CLI_CAL_TO`       | `--to`               | `now + 7d`                              |
+| Timezone               | `OUTLOOK_CLI_TZ`           | `--tz`               | system timezone                         |
+| Body format            | —                          | `--body`             | `text`                                  |
 
 Any mandatory value that is missing results in an immediate, typed `ConfigurationError` carrying the name of the missing setting and the precedence chain that was checked.
 

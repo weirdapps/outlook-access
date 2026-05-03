@@ -67,10 +67,7 @@ function toResult(
   };
 }
 
-export async function run(
-  deps: LoginDeps,
-  opts: LoginOptions = {},
-): Promise<LoginResult> {
+export async function run(deps: LoginDeps, opts: LoginOptions = {}): Promise<LoginResult> {
   const force = opts.force === true;
 
   const sharepointHost = opts.sharepointHost;
@@ -95,8 +92,7 @@ export async function run(
           'login: --sharepoint-host was set but doAuthCaptureWithSharepoint is not wired',
         );
       }
-      const { session, sharepointPath } =
-        await deps.doAuthCaptureWithSharepoint(sharepointHost);
+      const { session, sharepointPath } = await deps.doAuthCaptureWithSharepoint(sharepointHost);
       // saveSession is also called inside doAuthCaptureWithSharepoint, but we
       // re-call it here to keep the contract symmetric with the non-SharePoint
       // path. Atomic write is idempotent.

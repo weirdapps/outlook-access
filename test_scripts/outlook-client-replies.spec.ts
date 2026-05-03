@@ -82,9 +82,7 @@ describe('getMessage', () => {
     );
     await newClient().getMessage('AAMk-2', { select: ['Id', 'Subject'] });
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(decodeURIComponent(url.replace(/\+/g, '%20'))).toContain(
-      '$select=Id,Subject',
-    );
+    expect(decodeURIComponent(url.replace(/\+/g, '%20'))).toContain('$select=Id,Subject');
   });
 
   it('rejects empty messageId synchronously', async () => {
@@ -131,9 +129,7 @@ describe('updateMessage (PATCH)', () => {
   });
 
   it('rejects empty messageId synchronously', async () => {
-    await expect(newClient().updateMessage('', {})).rejects.toThrow(
-      /non-empty messageId/,
-    );
+    await expect(newClient().updateMessage('', {})).rejects.toThrow(/non-empty messageId/);
   });
 });
 
@@ -235,7 +231,11 @@ describe('createReply / createReplyAll / createForward', () => {
   it('all three reject empty messageId synchronously', async () => {
     const c = newClient();
     await expect(c.createReply('')).rejects.toThrow(/createReply requires a non-empty messageId/);
-    await expect(c.createReplyAll('')).rejects.toThrow(/createReplyAll requires a non-empty messageId/);
-    await expect(c.createForward('')).rejects.toThrow(/createForward requires a non-empty messageId/);
+    await expect(c.createReplyAll('')).rejects.toThrow(
+      /createReplyAll requires a non-empty messageId/,
+    );
+    await expect(c.createForward('')).rejects.toThrow(
+      /createForward requires a non-empty messageId/,
+    );
   });
 });

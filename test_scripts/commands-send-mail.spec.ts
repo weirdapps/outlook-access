@@ -41,7 +41,10 @@ const SESSION: SessionFile = {
   anchorMailbox: 'PUID:p@t',
 };
 
-function makeDeps(clientOverrides: Partial<OutlookClient> = {}, fileMap: Record<string, string> = {}) {
+function makeDeps(
+  clientOverrides: Partial<OutlookClient> = {},
+  fileMap: Record<string, string> = {},
+) {
   const client = {
     sendMail: vi.fn(async () => undefined),
     createDraft: vi.fn(async () => ({
@@ -80,23 +83,21 @@ function makeDeps(clientOverrides: Partial<OutlookClient> = {}, fileMap: Record<
 describe('send-mail — input validation', () => {
   it('rejects when --to is missing', async () => {
     const { deps } = makeDeps();
-    await expect(
-      run(deps, { subject: 's', html: '/tmp/b.html' }),
-    ).rejects.toBeInstanceOf(UsageError);
+    await expect(run(deps, { subject: 's', html: '/tmp/b.html' })).rejects.toBeInstanceOf(
+      UsageError,
+    );
   });
 
   it('rejects when --subject is missing', async () => {
     const { deps } = makeDeps();
-    await expect(
-      run(deps, { to: 'a@x.com', html: '/tmp/b.html' }),
-    ).rejects.toBeInstanceOf(UsageError);
+    await expect(run(deps, { to: 'a@x.com', html: '/tmp/b.html' })).rejects.toBeInstanceOf(
+      UsageError,
+    );
   });
 
   it('rejects when neither --html nor --text is provided', async () => {
     const { deps } = makeDeps();
-    await expect(
-      run(deps, { to: 'a@x.com', subject: 's' }),
-    ).rejects.toBeInstanceOf(UsageError);
+    await expect(run(deps, { to: 'a@x.com', subject: 's' })).rejects.toBeInstanceOf(UsageError);
   });
 
   it('rejects malformed recipient address (no @)', async () => {

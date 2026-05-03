@@ -12,15 +12,20 @@ import {
 // Build a fake-but-decodable JWT at runtime so the source has no hard-coded
 // token literal (security scanners flag literal JWTs even in tests).
 function b64url(s: string): string {
-  return Buffer.from(s).toString('base64')
-    .replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+  return Buffer.from(s)
+    .toString('base64')
+    .replace(/=+$/, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
 }
 const FAR_FUTURE_EXP = 4102444800; // 2100-01-01T00:00:00Z
 const FAKE_JWT_HEADER = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-const FAKE_JWT_PAYLOAD = b64url(JSON.stringify({
-  exp: FAR_FUTURE_EXP,
-  aud: 'https://nbg.sharepoint.com',
-}));
+const FAKE_JWT_PAYLOAD = b64url(
+  JSON.stringify({
+    exp: FAR_FUTURE_EXP,
+    aud: 'https://nbg.sharepoint.com',
+  }),
+);
 const FAKE_JWT_SIG = b64url('not-a-real-signature');
 const FAKE_JWT = `${FAKE_JWT_HEADER}.${FAKE_JWT_PAYLOAD}.${FAKE_JWT_SIG}`;
 

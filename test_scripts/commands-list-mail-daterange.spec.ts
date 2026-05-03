@@ -87,7 +87,8 @@ describe('list-mail --from / --to', () => {
     await run(deps, { top: 5, from, to });
 
     expect(client.listMessagesInFolder).toHaveBeenCalledTimes(1);
-    const [folderId, listOpts] = (client.listMessagesInFolder as ReturnType<typeof vi.fn>).mock.calls[0] as [string, { filter?: string }];
+    const [folderId, listOpts] = (client.listMessagesInFolder as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, { filter?: string }];
     expect(folderId).toBe('Inbox');
     expect(listOpts.filter).toContain('ReceivedDateTime ge 2026-04-01');
     expect(listOpts.filter).toContain('ReceivedDateTime lt 2026-05-01');
@@ -98,7 +99,8 @@ describe('list-mail --from / --to', () => {
     const { deps, client } = makeDeps();
     (client.listMessagesInFolder as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
     await run(deps, { from: 'now - 1d' });
-    const [, listOpts] = (client.listMessagesInFolder as ReturnType<typeof vi.fn>).mock.calls[0] as [string, { filter?: string }];
+    const [, listOpts] = (client.listMessagesInFolder as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, { filter?: string }];
     expect(listOpts.filter).toMatch(/^ReceivedDateTime ge \S+$/);
     expect(listOpts.filter).not.toContain(' and ');
   });
@@ -107,7 +109,8 @@ describe('list-mail --from / --to', () => {
     const { deps, client } = makeDeps();
     (client.listMessagesInFolder as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
     await run(deps, {});
-    const [, listOpts] = (client.listMessagesInFolder as ReturnType<typeof vi.fn>).mock.calls[0] as [string, { filter?: string }];
+    const [, listOpts] = (client.listMessagesInFolder as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, { filter?: string }];
     expect(listOpts.filter).toBeUndefined();
   });
 
@@ -121,7 +124,8 @@ describe('list-mail --from / --to', () => {
       from: '2026-04-01T00:00:00Z',
       to: '2026-05-01T00:00:00Z',
     });
-    const [folderId, opts] = (client.listMessagesInFolder as ReturnType<typeof vi.fn>).mock.calls[0] as [string, { filter?: string }];
+    const [folderId, opts] = (client.listMessagesInFolder as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, { filter?: string }];
     expect(folderId).toBe('AAMk=abc');
     expect(opts.filter).toContain('ReceivedDateTime ge 2026-04-01');
     expect(opts.filter).toContain('ReceivedDateTime lt 2026-05-01');
@@ -131,7 +135,8 @@ describe('list-mail --from / --to', () => {
     const { deps, client } = makeDeps();
     (client.listMessagesInFolder as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
     await run(deps, { from: 'now - 7d' });
-    const [, listOpts] = (client.listMessagesInFolder as ReturnType<typeof vi.fn>).mock.calls[0] as [string, { filter?: string }];
+    const [, listOpts] = (client.listMessagesInFolder as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, { filter?: string }];
     const match = (listOpts.filter ?? '').match(/ge (\S+)/);
     expect(match).not.toBeNull();
     const iso = match![1]!;
@@ -140,16 +145,12 @@ describe('list-mail --from / --to', () => {
 
   it('rejects malformed --from with UsageError', async () => {
     const { deps } = makeDeps();
-    await expect(run(deps, { from: 'not-a-date' })).rejects.toBeInstanceOf(
-      UsageError,
-    );
+    await expect(run(deps, { from: 'not-a-date' })).rejects.toBeInstanceOf(UsageError);
   });
 
   it('rejects malformed --to with UsageError', async () => {
     const { deps } = makeDeps();
-    await expect(run(deps, { to: '!!garbage!!' })).rejects.toBeInstanceOf(
-      UsageError,
-    );
+    await expect(run(deps, { to: '!!garbage!!' })).rejects.toBeInstanceOf(UsageError);
   });
 
   it('rejects --since combined with --from (fork-only mutual exclusion)', async () => {

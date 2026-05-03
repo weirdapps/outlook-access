@@ -23,10 +23,7 @@ import type { CliConfig } from '../config/config';
 import type { OutlookClient } from '../http/outlook-client';
 import type { MessageSummary } from '../http/types';
 import type { SessionFile } from '../session/schema';
-import {
-  extractCidReferences,
-  saveSignatureAssets,
-} from '../util/signature-assets';
+import { extractCidReferences, saveSignatureAssets } from '../util/signature-assets';
 
 import { ensureSession, mapHttpError, UsageError } from './list-mail';
 
@@ -154,9 +151,7 @@ export async function run(
         typeof a.ContentBytes === 'string' &&
         a.ContentBytes.length > 0,
     );
-    const matched = new Set(
-      matchedAttachments.map((a) => a.ContentId as string),
-    );
+    const matched = new Set(matchedAttachments.map((a) => a.ContentId as string));
     unmatchedCidRefs = cidRefs.filter((c) => !matched.has(c));
 
     if (matchedAttachments.length > 0) {

@@ -9,10 +9,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  createOutlookClient,
-  type SendMailPayload,
-} from '../src/http/outlook-client';
+import { createOutlookClient, type SendMailPayload } from '../src/http/outlook-client';
 import type { SessionFile } from '../src/session/schema';
 
 const JWT_SHAPED_TOKEN = 'aaaaaaaaaa.bbbbbbbbbb.cccccccccc';
@@ -131,7 +128,11 @@ describe('sendMail (immediate)', () => {
     fetchMock.mockResolvedValueOnce(
       makeResponse({
         status: 400,
-        body: { error: { message: 'echo back: {"Body":{"ContentType":"HTML","Content":"<p>secret</p>"}}' } },
+        body: {
+          error: {
+            message: 'echo back: {"Body":{"ContentType":"HTML","Content":"<p>secret</p>"}}',
+          },
+        },
       }),
     );
     const client = createOutlookClient({
@@ -141,9 +142,7 @@ describe('sendMail (immediate)', () => {
       onReauthNeeded: async () => buildFakeSession(),
     });
 
-    await expect(client.sendMail(SAMPLE_PAYLOAD)).rejects.toThrow(
-      /\[REDACTED-BODY\]/,
-    );
+    await expect(client.sendMail(SAMPLE_PAYLOAD)).rejects.toThrow(/\[REDACTED-BODY\]/);
   });
 });
 

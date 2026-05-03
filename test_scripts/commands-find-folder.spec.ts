@@ -12,10 +12,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { CliConfig } from '../src/config/config';
 import { UsageError } from '../src/commands/list-mail';
-import {
-  run as runFindFolder,
-  type FindFolderDeps,
-} from '../src/commands/find-folder';
+import { run as runFindFolder, type FindFolderDeps } from '../src/commands/find-folder';
 import type { OutlookClient } from '../src/http/outlook-client';
 import type { FolderSummary } from '../src/http/types';
 import type { SessionFile } from '../src/session/schema';
@@ -72,9 +69,7 @@ interface BuiltDeps {
   client: Partial<OutlookClient>;
 }
 
-function buildDeps(
-  clientOverrides: Partial<OutlookClient> = {},
-): BuiltDeps {
+function buildDeps(clientOverrides: Partial<OutlookClient> = {}): BuiltDeps {
   const client: Partial<OutlookClient> = { ...clientOverrides };
   const loadSession = vi.fn(async () => buildFakeSession());
   const saveSession = vi.fn(async () => undefined);
@@ -110,9 +105,7 @@ function folder(
 describe('find-folder: run()', () => {
   it('(1) `id:<raw>` positional calls client.getFolder with the raw id and tags ResolvedVia="id"', async () => {
     const rawId = 'AAMkAGI-opaque-id-xyz';
-    const getFolder = vi.fn(async (arg: string) =>
-      folder({ Id: arg, DisplayName: 'MyFolder' }),
-    );
+    const getFolder = vi.fn(async (arg: string) => folder({ Id: arg, DisplayName: 'MyFolder' }));
     const listFolders = vi.fn(async () => {
       throw new Error('listFolders must not be called for id:<raw> spec');
     });

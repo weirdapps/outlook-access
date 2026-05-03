@@ -91,11 +91,7 @@ function isValidCookie(v: unknown): v is Cookie {
 function isValidAccount(v: unknown): v is Account {
   if (v === null || typeof v !== 'object') return false;
   const a = v as Record<string, unknown>;
-  return (
-    isNonEmptyString(a.upn) &&
-    isNonEmptyString(a.puid) &&
-    isNonEmptyString(a.tenantId)
-  );
+  return isNonEmptyString(a.upn) && isNonEmptyString(a.puid) && isNonEmptyString(a.tenantId);
 }
 
 function isValidBearer(v: unknown): v is BearerInfo {

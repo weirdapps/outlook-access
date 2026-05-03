@@ -39,24 +39,18 @@ export function parseSharepointSession(json: string): SharepointSession {
   try {
     raw = JSON.parse(json);
   } catch (e) {
-    throw new SharepointSessionParseError(
-      `Invalid JSON: ${(e as Error).message}`,
-    );
+    throw new SharepointSessionParseError(`Invalid JSON: ${(e as Error).message}`);
   }
   if (typeof raw !== 'object' || raw === null) {
     throw new SharepointSessionParseError('Expected JSON object');
   }
   const obj = raw as Record<string, unknown>;
   if (obj.version !== 1) {
-    throw new SharepointSessionParseError(
-      `Unsupported version: ${String(obj.version)}`,
-    );
+    throw new SharepointSessionParseError(`Unsupported version: ${String(obj.version)}`);
   }
   for (const key of ['host', 'bearer', 'cookies', 'capturedAt', 'tokenExpiresAt']) {
     if (typeof obj[key] !== 'string' || (obj[key] as string).length === 0) {
-      throw new SharepointSessionParseError(
-        `Missing or invalid "${key}"`,
-      );
+      throw new SharepointSessionParseError(`Missing or invalid "${key}"`);
     }
   }
   return obj as unknown as SharepointSession;
@@ -66,9 +60,7 @@ export function serializeSharepointSession(s: SharepointSession): string {
   return JSON.stringify(s, null, 2);
 }
 
-export async function loadSharepointSession(
-  filePath: string,
-): Promise<SharepointSession | null> {
+export async function loadSharepointSession(filePath: string): Promise<SharepointSession | null> {
   try {
     const data = await fs.promises.readFile(filePath, 'utf8');
     return parseSharepointSession(data);

@@ -185,10 +185,10 @@ Risks the implementer must actively handle:
    and `secure`. Do not drop `httpOnly` cookies — they are required and are visible to
    `context.cookies()` even though they are hidden from `document.cookie`.
 4. **First-call race for token capture.** The Node side must subscribe to the
-   `exposeBinding` channel *before* navigating to `outlook.office.com/mail/`, and the
+   `exposeBinding` channel _before_ navigating to `outlook.office.com/mail/`, and the
    init-script must be registered via `context.addInitScript` (not `page.addInitScript`)
    so it applies to the very first document including any pre-login redirect chain. The
-   capture must return the *first* Bearer seen; subsequent calls may use the same token
+   capture must return the _first_ Bearer seen; subsequent calls may use the same token
    but there is no value in racing for a "fresher" one.
 5. **Browser-closed-mid-capture / MFA timeout.** Wrap the capture in a race against
    `OUTLOOK_CLI_LOGIN_TIMEOUT_MS` and a `page.on('close')` listener; surface exit 4
@@ -351,22 +351,22 @@ Details:
 
 Map from upstream signal -> our exit code / error class:
 
-| Signal | Exit | Class | Notes |
-|---|---|---|---|
-| HTTP 401 on first attempt | (retry) | — | Triggers re-auth exactly once. |
-| HTTP 401 on second attempt | 4 | `AuthError` | Do not re-open browser again. |
-| HTTP 403 | 5 | `UpstreamError` | Includes "conditional access" denials. No retry. |
-| HTTP 404 (bad id) | 5 | `UpstreamError` | Surface `requestedId` in error payload. |
-| HTTP 429 | 5 | `UpstreamError` | Include `Retry-After` if present; no auto-retry in this iteration. |
-| HTTP 5xx | 5 | `UpstreamError` | No auto-retry; user can re-run. |
-| Network / DNS / TLS | 5 | `UpstreamError` | Wrap the underlying Error; do not leak the token in any thrown error's `request` field. |
-| AbortError (timeout) | 5 | `UpstreamError` | Message: "HTTP timeout after Nms". |
-| Session file read error | 6 | `IoError` | `EACCES`, `ENOENT` on parent, etc. |
-| Session file write error | 6 | `IoError` | Same. |
-| Attachment target exists w/o `--overwrite` | 6 | `IoError` | Names the offending file. |
-| Missing mandatory config | 3 | `ConfigurationError` | Names the setting + full precedence chain checked. |
-| Invalid argv | 2 | (commander default) | `commander` handles this natively. |
-| User closes browser / login timeout | 4 | `AuthError` | Message: "login not completed". |
+| Signal                                     | Exit    | Class                | Notes                                                                                   |
+| ------------------------------------------ | ------- | -------------------- | --------------------------------------------------------------------------------------- |
+| HTTP 401 on first attempt                  | (retry) | —                    | Triggers re-auth exactly once.                                                          |
+| HTTP 401 on second attempt                 | 4       | `AuthError`          | Do not re-open browser again.                                                           |
+| HTTP 403                                   | 5       | `UpstreamError`      | Includes "conditional access" denials. No retry.                                        |
+| HTTP 404 (bad id)                          | 5       | `UpstreamError`      | Surface `requestedId` in error payload.                                                 |
+| HTTP 429                                   | 5       | `UpstreamError`      | Include `Retry-After` if present; no auto-retry in this iteration.                      |
+| HTTP 5xx                                   | 5       | `UpstreamError`      | No auto-retry; user can re-run.                                                         |
+| Network / DNS / TLS                        | 5       | `UpstreamError`      | Wrap the underlying Error; do not leak the token in any thrown error's `request` field. |
+| AbortError (timeout)                       | 5       | `UpstreamError`      | Message: "HTTP timeout after Nms".                                                      |
+| Session file read error                    | 6       | `IoError`            | `EACCES`, `ENOENT` on parent, etc.                                                      |
+| Session file write error                   | 6       | `IoError`            | Same.                                                                                   |
+| Attachment target exists w/o `--overwrite` | 6       | `IoError`            | Names the offending file.                                                               |
+| Missing mandatory config                   | 3       | `ConfigurationError` | Names the setting + full precedence chain checked.                                      |
+| Invalid argv                               | 2       | (commander default)  | `commander` handles this natively.                                                      |
+| User closes browser / login timeout        | 4       | `AuthError`          | Message: "login not completed".                                                         |
 
 Every thrown error includes `{ code, exitCode, cause? }` and is caught by a top-level
 `main()` that does the JSON / stderr formatting and `process.exit(err.exitCode)`.
@@ -375,18 +375,18 @@ Every thrown error includes `{ code, exitCode, cause? }` and is caught by a top-
 
 ## 5. Risk register
 
-| Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
-| Bearer token expires between `auth-check` and the real REST call | High | Medium | Gate on `now + 60 s >= expiresAt` per §6.1; on 401, auto re-auth + retry once (§6.4). |
-| MFA re-prompted on silent re-login (e.g. expired conditional-access session) | Medium | Medium | Headed Chrome stays open for up to `OUTLOOK_CLI_LOGIN_TIMEOUT_MS`; user completes MFA normally. Never silence MFA UI. |
-| Outlook UI changes break the "inbox reached" DOM sentinel | Medium | High | Detect by URL regex first (`^https://outlook.office.com/mail/`), DOM sentinel second. Keep the DOM probe loose (`div[role="main"], div[role="option"]`). Also treat "first captured Bearer" as a sufficient signal — if we already have a token, we don't *need* DOM confirmation. |
-| Captured Bearer is missing a required scope (e.g. no `Calendars.Read`) | Low-Medium | High | The OWA Bearer ships with scopes for the full Outlook web surface; calendar scopes are included. Validate with an `auth-check` that hits both `/me/messages?$top=1` and `/me/calendarview?...&$top=1` and surfaces the first failure. |
-| Cookie domain mismatch (harvested cookies from `.office.com` don't satisfy `outlook.office.com`) | Low | High | Filter `context.cookies()` to `.office.com`, `.outlook.office.com`, `.login.microsoftonline.com` — broad enough to cover all paths; cookie library honors domain suffix matching per RFC 6265 when serialized. Verify in test. |
-| Lock file stale after crash / SIGKILL | Medium | Low | Store PID in lock; on conflict, `process.kill(pid, 0)` — if it throws `ESRCH`, treat as stale and overwrite. Also expire locks older than `max(login_timeout, 30 min)`. |
-| Browser window closed mid-capture (user X's out) | Medium | Low | Race capture promise against `page.on('close')` and `context.on('close')`; reject with `AuthError("login not completed")` -> exit 4. Do not touch existing session file. |
-| First API request is not a `fetch` call (e.g. done by a service worker in a way we don't see) | Low | Medium | Secondary `XMLHttpRequest` hook in the init-script as a defense-in-depth; additionally, `page.on('request')` listener in Node as a tertiary fallback. Surface a clear error if no Bearer is captured within the login timeout. |
-| Secrets leak via error messages / log file | Low | High | `ConfigurationError`, `UpstreamError`, `AuthError` all sanitize: the Bearer token and cookie values are never included in `.message`, `.stack`, or any log record. AC-NO-SECRET-LEAK covers this. |
-| Persistent profile corrupted on disk (partial write / disk full) | Very Low | Medium | Spec allows `--force` to rebuild; document that a user can delete `$HOME/.outlook-cli/playwright-profile/` to reset. Do not attempt self-repair. |
+| Risk                                                                                             | Likelihood | Impact | Mitigation                                                                                                                                                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------ | ---------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bearer token expires between `auth-check` and the real REST call                                 | High       | Medium | Gate on `now + 60 s >= expiresAt` per §6.1; on 401, auto re-auth + retry once (§6.4).                                                                                                                                                                                              |
+| MFA re-prompted on silent re-login (e.g. expired conditional-access session)                     | Medium     | Medium | Headed Chrome stays open for up to `OUTLOOK_CLI_LOGIN_TIMEOUT_MS`; user completes MFA normally. Never silence MFA UI.                                                                                                                                                              |
+| Outlook UI changes break the "inbox reached" DOM sentinel                                        | Medium     | High   | Detect by URL regex first (`^https://outlook.office.com/mail/`), DOM sentinel second. Keep the DOM probe loose (`div[role="main"], div[role="option"]`). Also treat "first captured Bearer" as a sufficient signal — if we already have a token, we don't _need_ DOM confirmation. |
+| Captured Bearer is missing a required scope (e.g. no `Calendars.Read`)                           | Low-Medium | High   | The OWA Bearer ships with scopes for the full Outlook web surface; calendar scopes are included. Validate with an `auth-check` that hits both `/me/messages?$top=1` and `/me/calendarview?...&$top=1` and surfaces the first failure.                                              |
+| Cookie domain mismatch (harvested cookies from `.office.com` don't satisfy `outlook.office.com`) | Low        | High   | Filter `context.cookies()` to `.office.com`, `.outlook.office.com`, `.login.microsoftonline.com` — broad enough to cover all paths; cookie library honors domain suffix matching per RFC 6265 when serialized. Verify in test.                                                     |
+| Lock file stale after crash / SIGKILL                                                            | Medium     | Low    | Store PID in lock; on conflict, `process.kill(pid, 0)` — if it throws `ESRCH`, treat as stale and overwrite. Also expire locks older than `max(login_timeout, 30 min)`.                                                                                                            |
+| Browser window closed mid-capture (user X's out)                                                 | Medium     | Low    | Race capture promise against `page.on('close')` and `context.on('close')`; reject with `AuthError("login not completed")` -> exit 4. Do not touch existing session file.                                                                                                           |
+| First API request is not a `fetch` call (e.g. done by a service worker in a way we don't see)    | Low        | Medium | Secondary `XMLHttpRequest` hook in the init-script as a defense-in-depth; additionally, `page.on('request')` listener in Node as a tertiary fallback. Surface a clear error if no Bearer is captured within the login timeout.                                                     |
+| Secrets leak via error messages / log file                                                       | Low        | High   | `ConfigurationError`, `UpstreamError`, `AuthError` all sanitize: the Bearer token and cookie values are never included in `.message`, `.stack`, or any log record. AC-NO-SECRET-LEAK covers this.                                                                                  |
+| Persistent profile corrupted on disk (partial write / disk full)                                 | Very Low   | Medium | Spec allows `--force` to rebuild; document that a user can delete `$HOME/.outlook-cli/playwright-profile/` to reset. Do not attempt self-repair.                                                                                                                                   |
 
 ---
 

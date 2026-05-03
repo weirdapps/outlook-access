@@ -77,7 +77,8 @@ describe('list-mail --just-count', () => {
     expect(Array.isArray(result)).toBe(false);
     expect(result).toEqual({ count: 4273, exact: true });
     expect(client.countMessagesInFolder).toHaveBeenCalledTimes(1);
-    const [folderId, opts] = (client.countMessagesInFolder as ReturnType<typeof vi.fn>).mock.calls[0] as [string, { filter?: string }];
+    const [folderId, opts] = (client.countMessagesInFolder as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, { filter?: string }];
     expect(folderId).toBe('Inbox');
     expect(opts.filter).toBeUndefined();
     // The list paths must NOT be invoked in count mode.
@@ -94,7 +95,10 @@ describe('list-mail --just-count', () => {
 
     await run(deps, { justCount: true, folderId: 'AAMk-raw' });
 
-    const [folderId] = (client.countMessagesInFolder as ReturnType<typeof vi.fn>).mock.calls[0] as [string, unknown];
+    const [folderId] = (client.countMessagesInFolder as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      unknown,
+    ];
     expect(folderId).toBe('AAMk-raw');
     expect(client.listMessagesInFolder).not.toHaveBeenCalled();
   });
@@ -122,7 +126,10 @@ describe('list-mail --just-count', () => {
     });
 
     expect(result).toEqual({ count: 7, exact: true });
-    const [folderId] = (client.countMessagesInFolder as ReturnType<typeof vi.fn>).mock.calls[0] as [string, unknown];
+    const [folderId] = (client.countMessagesInFolder as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      unknown,
+    ];
     expect(folderId).toBe('id-Projects');
   });
 
@@ -139,7 +146,10 @@ describe('list-mail --just-count', () => {
       to: '2026-05-01T00:00:00Z',
     });
 
-    const [, opts] = (client.countMessagesInFolder as ReturnType<typeof vi.fn>).mock.calls[0] as [string, { filter?: string }];
+    const [, opts] = (client.countMessagesInFolder as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      { filter?: string },
+    ];
     expect(opts.filter).toContain('ReceivedDateTime ge 2026-04-01');
     expect(opts.filter).toContain('ReceivedDateTime lt 2026-05-01');
   });
@@ -151,9 +161,10 @@ describe('list-mail --just-count', () => {
       exact: true,
     });
     // top: 5000 would normally throw (>1000) — in count mode it's a no-op.
-    await expect(
-      run(deps, { justCount: true, top: 5000 }),
-    ).resolves.toEqual({ count: 0, exact: true });
+    await expect(run(deps, { justCount: true, top: 5000 })).resolves.toEqual({
+      count: 0,
+      exact: true,
+    });
   });
 
   it('propagates exact:false when the server did not honor $count=true', async () => {

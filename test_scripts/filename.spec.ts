@@ -69,9 +69,7 @@ describe('sanitizeAttachmentName', () => {
 
   it('returns "attachment" for null/undefined coerced input', () => {
     expect(sanitizeAttachmentName(null as unknown as string)).toBe('attachment');
-    expect(sanitizeAttachmentName(undefined as unknown as string)).toBe(
-      'attachment',
-    );
+    expect(sanitizeAttachmentName(undefined as unknown as string)).toBe('attachment');
   });
 
   it('strips leading dots and trailing dots/spaces', () => {
@@ -127,11 +125,9 @@ describe('assertWithinDir', () => {
   });
 
   it('throws "path traversal attempt" when filename escapes baseDir', () => {
-    expect(() => assertWithinDir(baseDir, '../etc/passwd')).toThrowError(
+    expect(() => assertWithinDir(baseDir, '../etc/passwd')).toThrowError(/path traversal attempt/);
+    expect(() => assertWithinDir(baseDir, '..' + path.sep + 'escape.txt')).toThrowError(
       /path traversal attempt/,
     );
-    expect(() =>
-      assertWithinDir(baseDir, '..' + path.sep + 'escape.txt'),
-    ).toThrowError(/path traversal attempt/);
   });
 });

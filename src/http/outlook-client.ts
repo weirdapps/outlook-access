@@ -15,11 +15,7 @@
 
 import type { Cookie, SessionFile } from '../session/schema';
 import { UpstreamError } from '../config/errors';
-import {
-  MAX_FOLDER_PAGES,
-  MAX_FOLDERS_VISITED,
-  DEFAULT_LIST_TOP,
-} from '../folders/types';
+import { MAX_FOLDER_PAGES, MAX_FOLDERS_VISITED, DEFAULT_LIST_TOP } from '../folders/types';
 import {
   ApiError,
   AuthError,
@@ -244,10 +240,7 @@ export interface OutlookClient {
    * value verbatim. The upstream response contains the moved message with
    * a NEW id — it is returned as-is.
    */
-  moveMessage(
-    messageId: string,
-    destinationFolderId: string,
-  ): Promise<MessageSummary>;
+  moveMessage(messageId: string, destinationFolderId: string): Promise<MessageSummary>;
 
   /**
    * List messages across multiple pages by following `@odata.nextLink`.
@@ -334,10 +327,7 @@ export interface OutlookClient {
    * PATCH a draft message (subject / body / recipients). Used by reply/forward
    * after `createReply` etc returns the auto-quoted draft.
    */
-  updateMessage(
-    messageId: string,
-    patch: UpdateMessagePatch,
-  ): Promise<GetMessageResult>;
+  updateMessage(messageId: string, patch: UpdateMessagePatch): Promise<GetMessageResult>;
 
   /**
    * Create a reply DRAFT via `POST /me/messages/{id}/createReply`. Returns
@@ -456,20 +446,12 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
       ? urlOrPath
       : (() => {
           if (!urlOrPath.startsWith('/')) {
-            throw new Error(
-              `outlook-client: path must start with '/': ${urlOrPath}`,
-            );
+            throw new Error(`outlook-client: path must start with '/': ${urlOrPath}`);
           }
           return `${BASE_URL}${urlOrPath}`;
         })();
 
-    const firstResp = await executeFetch(
-      method,
-      url,
-      body,
-      session,
-      opts.httpTimeoutMs,
-    );
+    const firstResp = await executeFetch(method, url, body, session, opts.httpTimeoutMs);
 
     if (firstResp.status === 401) {
       if (opts.noAutoReauth) {
@@ -483,13 +465,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
       const refreshed = await opts.onReauthNeeded();
       session = refreshed;
 
-      const retryResp = await executeFetch(
-        method,
-        url,
-        body,
-        session,
-        opts.httpTimeoutMs,
-      );
+      const retryResp = await executeFetch(method, url, body, session, opts.httpTimeoutMs);
       if (retryResp.status === 401) {
         await throwForResponse(retryResp, url, /*authReason*/ 'AFTER_RETRY');
       }
@@ -499,10 +475,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     return await handleSuccessOrThrow<T>(firstResp, url);
   }
 
-  async function doGet<T>(
-    path: string,
-    query?: Record<string, QueryValue>,
-  ): Promise<T> {
+  async function doGet<T>(path: string, query?: Record<string, QueryValue>): Promise<T> {
     if (!path.startsWith('/')) {
       throw new Error(`outlook-client: path must start with '/': ${path}`);
     }
@@ -515,10 +488,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
    * contract — same 401-retry-once envelope, same error mapping. The JSON
    * body is serialised by `executeFetch`.
    */
-  async function doPost<TBody, TRes>(
-    path: string,
-    body: TBody,
-  ): Promise<TRes> {
+  async function doPost<TBody, TRes>(path: string, body: TBody): Promise<TRes> {
     if (!path.startsWith('/')) {
       throw new Error(`outlook-client: path must start with '/': ${path}`);
     }
@@ -530,10 +500,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
    * PATCH a JSON resource. Same envelope/error contract as doPost; used by
    * `updateMessage` to mutate draft Body/Subject/Recipients before sending.
    */
-  async function doPatch<TBody, TRes>(
-    path: string,
-    body: TBody,
-  ): Promise<TRes> {
+  async function doPatch<TBody, TRes>(path: string, body: TBody): Promise<TRes> {
     if (!path.startsWith('/')) {
       throw new Error(`outlook-client: path must start with '/': ${path}`);
     }
@@ -555,10 +522,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
    * Each page's GET rides the shared `doRequest` envelope, so a 401 on page
    * N is transparently retried after a single re-auth.
    */
-  async function* listAll<T>(
-    path: string,
-    query?: Record<string, string>,
-  ): AsyncGenerator<T> {
+  async function* listAll<T>(path: string, query?: Record<string, string>): AsyncGenerator<T> {
     if (!path.startsWith('/')) {
       throw new Error(`outlook-client: path must start with '/': ${path}`);
     }
@@ -598,15 +562,11 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
       if (parsed.hostname !== ALLOWED_HOST) {
         throw new UpstreamError({
           code: 'UPSTREAM_PAGINATION_LIMIT',
-          message:
-            `@odata.nextLink host '${parsed.hostname}' is not '${ALLOWED_HOST}'.`,
+          message: `@odata.nextLink host '${parsed.hostname}' is not '${ALLOWED_HOST}'.`,
         });
       }
 
-      const page: ODataListResponse<T> = await doRequest<ODataListResponse<T>>(
-        'GET',
-        url,
-      );
+      const page: ODataListResponse<T> = await doRequest<ODataListResponse<T>>('GET', url);
       const items = Array.isArray(page.value) ? page.value : [];
       for (const item of items) {
         yield item;
@@ -623,10 +583,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
   // Public semantic methods (folder feature — §10.4)
   // -------------------------------------------------------------------------
 
-  async function listFolders(
-    parentId: string,
-    top?: number,
-  ): Promise<FolderSummary[]> {
+  async function listFolders(parentId: string, top?: number): Promise<FolderSummary[]> {
     if (typeof parentId !== 'string' || parentId.length === 0) {
       throw new Error('outlook-client: listFolders requires a non-empty parentId');
     }
@@ -635,8 +592,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
       query.$top = String(Math.floor(top));
     }
 
-    const path =
-      `/api/v2.0/me/MailFolders/${encodeURIComponent(parentId)}/childfolders`;
+    const path = `/api/v2.0/me/MailFolders/${encodeURIComponent(parentId)}/childfolders`;
 
     const collected: FolderSummary[] = [];
     try {
@@ -682,10 +638,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     }
   }
 
-  async function createFolder(
-    parentId: string,
-    displayName: string,
-  ): Promise<FolderSummary> {
+  async function createFolder(parentId: string, displayName: string): Promise<FolderSummary> {
     if (typeof parentId !== 'string' || parentId.length === 0) {
       throw new Error('outlook-client: createFolder requires a non-empty parentId');
     }
@@ -730,12 +683,9 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
       throw new Error('outlook-client: moveMessage requires a non-empty messageId');
     }
     if (typeof destinationFolderId !== 'string' || destinationFolderId.length === 0) {
-      throw new Error(
-        'outlook-client: moveMessage requires a non-empty destinationFolderId',
-      );
+      throw new Error('outlook-client: moveMessage requires a non-empty destinationFolderId');
     }
-    const path =
-      `/api/v2.0/me/messages/${encodeURIComponent(messageId)}/move`;
+    const path = `/api/v2.0/me/messages/${encodeURIComponent(messageId)}/move`;
     const body: MoveMessageRequest = { DestinationId: destinationFolderId };
     try {
       return await doPost<MoveMessageRequest, MessageSummary>(path, body);
@@ -766,13 +716,10 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     opts: ListMessagesInFolderOptions,
   ): Promise<MessageSummary[]> {
     if (typeof folderId !== 'string' || folderId.length === 0) {
-      throw new Error(
-        'outlook-client: listMessagesInFolder requires a non-empty folderId',
-      );
+      throw new Error('outlook-client: listMessagesInFolder requires a non-empty folderId');
     }
     const query = buildMessagesQuery(opts);
-    const path =
-      `/api/v2.0/me/MailFolders/${encodeURIComponent(folderId)}/messages`;
+    const path = `/api/v2.0/me/MailFolders/${encodeURIComponent(folderId)}/messages`;
     try {
       const resp = await doGet<ODataListResponse<MessageSummary>>(path, query);
       return Array.isArray(resp.value) ? resp.value : [];
@@ -787,9 +734,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     maxResults: number,
   ): Promise<ListMessagesInFolderAllResult> {
     if (typeof folderId !== 'string' || folderId.length === 0) {
-      throw new Error(
-        'outlook-client: listMessagesInFolderAll requires a non-empty folderId',
-      );
+      throw new Error('outlook-client: listMessagesInFolderAll requires a non-empty folderId');
     }
     if (!Number.isInteger(maxResults) || maxResults < 1) {
       throw new Error(
@@ -797,8 +742,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
       );
     }
     const query = buildMessagesQuery(opts);
-    const path =
-      `/api/v2.0/me/MailFolders/${encodeURIComponent(folderId)}/messages`;
+    const path = `/api/v2.0/me/MailFolders/${encodeURIComponent(folderId)}/messages`;
 
     const messages: MessageSummary[] = [];
     let url: string | null = buildUrl(path, query);
@@ -820,13 +764,13 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
         if (parsed.hostname !== ALLOWED_HOST) {
           throw new UpstreamError({
             code: 'UPSTREAM_PAGINATION_LIMIT',
-            message:
-              `@odata.nextLink host '${parsed.hostname}' is not '${ALLOWED_HOST}'.`,
+            message: `@odata.nextLink host '${parsed.hostname}' is not '${ALLOWED_HOST}'.`,
           });
         }
 
-        const page: ODataListResponse<MessageSummary> =
-          await doRequest<ODataListResponse<MessageSummary>>('GET', url);
+        const page: ODataListResponse<MessageSummary> = await doRequest<
+          ODataListResponse<MessageSummary>
+        >('GET', url);
         const items = Array.isArray(page.value) ? page.value : [];
         const remaining = maxResults - messages.length;
         if (items.length > remaining) {
@@ -855,9 +799,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     opts: CountMessagesInFolderOptions = {},
   ): Promise<CountMessagesResult> {
     if (typeof folderId !== 'string' || folderId.length === 0) {
-      throw new Error(
-        'outlook-client: countMessagesInFolder requires a non-empty folderId',
-      );
+      throw new Error('outlook-client: countMessagesInFolder requires a non-empty folderId');
     }
     const query: Record<string, QueryValue> = {
       $count: 'true',
@@ -867,8 +809,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     if (typeof opts.filter === 'string' && opts.filter.length > 0) {
       query.$filter = opts.filter;
     }
-    const path =
-      `/api/v2.0/me/MailFolders/${encodeURIComponent(folderId)}/messages`;
+    const path = `/api/v2.0/me/MailFolders/${encodeURIComponent(folderId)}/messages`;
     try {
       const resp = await doGet<ODataListResponse<MessageSummary>>(path, query);
       const serverCount = resp['@odata.count'];
@@ -909,10 +850,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
       query.$select = opts.select.join(',');
     }
     try {
-      const resp = await doGet<ODataListResponse<MessageSummary>>(
-        '/api/v2.0/me/messages',
-        query,
-      );
+      const resp = await doGet<ODataListResponse<MessageSummary>>('/api/v2.0/me/messages', query);
       const messages = Array.isArray(resp.value) ? resp.value : [];
       // Client-side sort. Default ReceivedDateTime asc; honor "desc" if
       // requested. Other orderBy expressions fall back to default.
@@ -932,10 +870,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     }
   }
 
-  async function sendMail(
-    payload: SendMailPayload,
-    opts: SendMailOptions = {},
-  ): Promise<void> {
+  async function sendMail(payload: SendMailPayload, opts: SendMailOptions = {}): Promise<void> {
     const body = {
       Message: payload,
       SaveToSentItems: opts.saveToSentItems !== false,
@@ -947,9 +882,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     }
   }
 
-  async function createDraft(
-    payload: SendMailPayload,
-  ): Promise<CreateDraftResult> {
+  async function createDraft(payload: SendMailPayload): Promise<CreateDraftResult> {
     try {
       const resp = await doPost<
         SendMailPayload,
@@ -967,15 +900,10 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
 
   async function sendDraft(messageId: string): Promise<void> {
     if (typeof messageId !== 'string' || messageId.length === 0) {
-      throw new Error(
-        'outlook-client: sendDraft requires a non-empty messageId',
-      );
+      throw new Error('outlook-client: sendDraft requires a non-empty messageId');
     }
     try {
-      await doPost(
-        `/api/v2.0/me/messages/${encodeURIComponent(messageId)}/send`,
-        {},
-      );
+      await doPost(`/api/v2.0/me/messages/${encodeURIComponent(messageId)}/send`, {});
     } catch (err) {
       throw mapHttpToCliError(err);
     }
@@ -1042,13 +970,9 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     return createReplyKind(messageId, 'createForward');
   }
 
-  async function listMessageAttachments(
-    messageId: string,
-  ): Promise<MessageAttachment[]> {
+  async function listMessageAttachments(messageId: string): Promise<MessageAttachment[]> {
     if (typeof messageId !== 'string' || messageId.length === 0) {
-      throw new Error(
-        'outlook-client: listMessageAttachments requires a non-empty messageId',
-      );
+      throw new Error('outlook-client: listMessageAttachments requires a non-empty messageId');
     }
     const path = `/api/v2.0/me/messages/${encodeURIComponent(messageId)}/attachments`;
     try {
@@ -1064,9 +988,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     attachment: SendFileAttachment,
   ): Promise<MessageAttachment> {
     if (typeof messageId !== 'string' || messageId.length === 0) {
-      throw new Error(
-        'outlook-client: addMessageAttachment requires a non-empty messageId',
-      );
+      throw new Error('outlook-client: addMessageAttachment requires a non-empty messageId');
     }
     const path = `/api/v2.0/me/messages/${encodeURIComponent(messageId)}/attachments`;
     try {
@@ -1177,10 +1099,7 @@ function mapHttpToCliError(err: unknown): unknown {
 // URL construction
 // ---------------------------------------------------------------------------
 
-function buildUrl(
-  path: string,
-  query: Record<string, QueryValue> | undefined,
-): string {
+function buildUrl(path: string, query: Record<string, QueryValue> | undefined): string {
   const base = `${BASE_URL}${path}`;
   if (!query) return base;
 
@@ -1197,14 +1116,9 @@ function buildUrl(
 // Header / cookie construction
 // ---------------------------------------------------------------------------
 
-function buildHeaders(
-  s: SessionFile,
-  method: 'GET' | 'POST' | 'PATCH',
-): Record<string, string> {
+function buildHeaders(s: SessionFile, method: 'GET' | 'POST' | 'PATCH'): Record<string, string> {
   const rawToken = s.bearer.token ?? '';
-  const authValue = rawToken.startsWith('Bearer ')
-    ? rawToken
-    : `Bearer ${rawToken}`;
+  const authValue = rawToken.startsWith('Bearer ') ? rawToken : `Bearer ${rawToken}`;
 
   const headers: Record<string, string> = {
     Authorization: authValue,
@@ -1295,11 +1209,7 @@ async function executeFetch(
   }
 }
 
-function mapFetchException(
-  cause: unknown,
-  url: string,
-  timeoutMs: number,
-): NetworkError {
+function mapFetchException(cause: unknown, url: string, timeoutMs: number): NetworkError {
   // AbortError from AbortSignal.timeout → timed-out request.
   if (isAbortLike(cause)) {
     return new NetworkError({
@@ -1332,10 +1242,7 @@ function isAbortLike(cause: unknown): boolean {
 // Response handling
 // ---------------------------------------------------------------------------
 
-async function handleSuccessOrThrow<T>(
-  response: Response,
-  url: string,
-): Promise<T> {
+async function handleSuccessOrThrow<T>(response: Response, url: string): Promise<T> {
   if (response.ok) {
     // Treat a 204 or empty body as null. Callers that care use typed
     // command-level wrappers; this client just returns what JSON.parse gives.
@@ -1425,9 +1332,7 @@ function getRequestId(response: Response): string | undefined {
   // Outlook emits `request-id`; Graph-bridge sometimes emits
   // `x-ms-request-id`. Check both.
   const headers = response.headers;
-  return (
-    headers.get('request-id') ?? headers.get('x-ms-request-id') ?? undefined
-  );
+  return headers.get('request-id') ?? headers.get('x-ms-request-id') ?? undefined;
 }
 
 async function safeReadText(response: Response): Promise<string> {
