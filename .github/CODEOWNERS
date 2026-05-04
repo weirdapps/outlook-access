@@ -1,0 +1,8 @@
+# Default owner for everything in the repo
+* @weirdapps
+
+# Critical paths require explicit review
+/.github/workflows/ @weirdapps
+/.github/dependabot.yml @weirdapps
+/sonar-project.properties @weirdapps
+/.pre-commit-config.yaml @weirdapps
