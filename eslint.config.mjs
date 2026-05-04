@@ -5,6 +5,7 @@ import js from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import prettier from 'eslint-config-prettier';
+import globals from 'globals';
 
 export default [
   // Recommended base
@@ -18,6 +19,10 @@ export default [
       parserOptions: {
         ecmaVersion: 2022,
         sourceType: 'module',
+      },
+      globals: {
+        ...globals.node,
+        ...globals.es2024,
       },
     },
     plugins: {
@@ -35,6 +40,8 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
+      // Disable no-undef for TypeScript files - TypeScript's compiler handles this
+      'no-undef': 'off',
     },
   },
 
@@ -44,6 +51,10 @@ export default [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
+      globals: {
+        ...globals.node,
+        ...globals.es2024,
+      },
     },
     rules: {
       'no-unused-vars': [
