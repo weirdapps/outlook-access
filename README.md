@@ -368,7 +368,7 @@ with `code`, optional `message`, and setting-specific fields (e.g.
 
 ## Project layout
 
-```
+```text
 src/
   cli.ts                 # commander wiring, global options, error mapping
   auth/                  # Playwright login flow, token capture
@@ -379,11 +379,12 @@ src/
   output/                # JSON / table formatter
   config/                # loadConfig, env + flag precedence, defaults
   util/                  # redaction, filename safety, misc helpers
-test_scripts/            # vitest suites (208 tests)
+test_scripts/            # vitest suites (388 tests across 34 spec files)
 docs/
   design/                # refined specs, plans, project-design, config guide
   reference/             # codebase scans
   research/              # deep-dive docs on Outlook REST v2.0 quirks
+  superpowers/           # workflow notes for repo automation
 ```
 
 Every meaningful behavior is documented in
@@ -392,6 +393,21 @@ phase of work has a `plan-NNN-*.md` alongside it.
 
 ---
 
+## Origin
+
+Forked from [BikS2013/outlook-tool](https://github.com/BikS2013/outlook-tool)
+by Giorgos Marinos, whose core insight — capturing an Outlook-web bearer
+token via headed Playwright and reusing it against the `outlook.office.com/api/v2.0`
+REST surface — made this approach viable.
+
+The codebase has since been substantially rewritten and extended: folder
+management, send/reply/forward with signature + inline-image support,
+silent token renewal, atomic session storage with file locking, redaction
+on every error path, and a 388-test vitest suite.
+
+---
+
 ## License
 
-ISC.
+MIT. See [LICENSE](LICENSE) for full text and dual copyright (original
+upstream + this fork's substantial rewrite).
