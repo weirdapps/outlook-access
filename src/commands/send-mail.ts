@@ -153,7 +153,6 @@ export async function run(deps: SendMailDeps, opts: SendMailOptions = {}): Promi
   // the default location. Plain-text bodies skip injection (signature is HTML).
   let signatureApplied = false;
   let signatureInlineAttachments: SendFileAttachment[] = [];
-  let signatureUnmatchedCidRefs: string[] = [];
   if (opts.noSignature !== true && bodyContentType === 'HTML') {
     const home = (deps.homeDir ?? os.homedir)();
     const sigPath = opts.signature ?? path.join(home, DEFAULT_SIGNATURE_REL);
@@ -173,7 +172,7 @@ export async function run(deps: SendMailDeps, opts: SendMailOptions = {}): Promi
           reader,
         });
         signatureInlineAttachments = sigAssets.attachments;
-        signatureUnmatchedCidRefs = sigAssets.unmatchedRefs;
+        const _signatureUnmatchedCidRefs = sigAssets.unmatchedRefs;
         if (sigAssets.unmatchedRefs.length > 0) {
           process.stderr.write(
             `send-mail: warning — ${sigAssets.unmatchedRefs.length} cid: reference(s) ` +

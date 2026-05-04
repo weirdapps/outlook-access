@@ -86,7 +86,7 @@ export async function captureSharepointFromContext(
     let request;
     try {
       request = await requestPromise;
-    } catch (err) {
+    } catch {
       throw new SharepointCaptureError(
         'SHAREPOINT_TIMEOUT',
         `Timed out after ${timeoutMs}ms waiting for SharePoint Bearer header from ${host}`,

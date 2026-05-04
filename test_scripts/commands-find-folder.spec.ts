@@ -125,7 +125,7 @@ describe('find-folder: run()', () => {
   });
 
   it('(2) well-known alias positional (`Inbox`) calls client.getFolder("Inbox") with ResolvedVia="wellknown"', async () => {
-    const getFolder = vi.fn(async (arg: string) =>
+    const getFolder = vi.fn(async (_arg: string) =>
       folder({ Id: 'inbox-real-id', DisplayName: 'Inbox', WellKnownName: 'inbox' }),
     );
     const listFolders = vi.fn(async () => {

@@ -21,7 +21,6 @@ import type {
   CreateReplyResult,
   OutlookClient,
   SendBody,
-  SendBodyContentType,
   SendEmailAddress,
   SendFileAttachment,
   UpdateMessagePatch,
@@ -111,13 +110,13 @@ export async function run(
 
   // -------- User body --------
   const reader = deps.readFile ?? ((p: string) => fs.readFile(p));
-  let userBodyContentType: SendBodyContentType;
   let userBody: string;
+  let _userBodyContentType: string;
   if (hasHtml) {
-    userBodyContentType = 'HTML';
+    _userBodyContentType = 'HTML';
     userBody = await readBodyFile(reader, opts.html as string, '--html', kind);
   } else {
-    userBodyContentType = 'Text';
+    _userBodyContentType = 'Text';
     userBody = await readBodyFile(reader, opts.text as string, '--text', kind);
     // Wrap text body in <p> so we can splice it into the HTML quoted draft.
     userBody = `<p>${escapeHtml(userBody).replace(/\n/g, '<br>')}</p>`;

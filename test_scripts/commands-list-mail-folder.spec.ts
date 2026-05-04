@@ -14,7 +14,7 @@ import * as listMail from '../src/commands/list-mail';
 import { UsageError } from '../src/commands/list-mail';
 import type { CliConfig } from '../src/config/config';
 import type { OutlookClient } from '../src/http/outlook-client';
-import type { FolderSummary, MessageSummary, ODataListResponse } from '../src/http/types';
+import type { FolderSummary, MessageSummary } from '../src/http/types';
 import type { SessionFile } from '../src/session/schema';
 
 // ---------------------------------------------------------------------------

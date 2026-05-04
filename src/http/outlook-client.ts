@@ -1253,7 +1253,7 @@ async function handleSuccessOrThrow<T>(response: Response, url: string): Promise
     }
     try {
       return JSON.parse(text) as T;
-    } catch (cause) {
+    } catch {
       throw new ApiError({
         code: 'INVALID_JSON',
         message: `Upstream returned non-JSON body (status ${response.status})`,

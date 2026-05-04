@@ -43,6 +43,7 @@ describe('sanitizeAttachmentName', () => {
 
   it('strips ASCII control chars', () => {
     const s = sanitizeAttachmentName('name\x00\x01\x1f.txt');
+    // eslint-disable-next-line no-control-regex -- testing control char removal
     expect(s).not.toMatch(/[\x00-\x1F]/);
   });
 

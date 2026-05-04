@@ -13,6 +13,7 @@ export const WINDOWS_RESERVED: RegExp = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.
  *   Windows-forbidden: < > : " | ? *
  *   ASCII control    : \x00-\x1F  (also strip DEL \x7F below)
  */
+// eslint-disable-next-line no-control-regex -- intentionally matches control chars for filename sanitization
 export const ILLEGAL_CHARS: RegExp = /[/\\:*?"<>|\x00-\x1F\x7F]/g;
 
 /**

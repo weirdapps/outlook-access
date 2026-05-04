@@ -19,6 +19,7 @@ export interface AuthCheckDeps {
   createClient: (s: SessionFile) => OutlookClient;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- placeholder for future options
 export interface AuthCheckOptions {
   // No per-command options.
 }

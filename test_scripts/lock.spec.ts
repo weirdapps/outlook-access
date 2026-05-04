@@ -69,7 +69,7 @@ describe('acquireLock', () => {
       process.kill(999999, 0);
       isAlive = true;
     } catch {
-      isAlive = false;
+      // Process does not exist, isAlive remains false
     }
     if (isAlive) {
       // Unlikely — but if the test host genuinely has PID 999999, skip the

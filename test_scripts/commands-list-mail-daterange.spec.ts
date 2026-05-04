@@ -6,7 +6,7 @@ import { describe, it, expect, vi } from 'vitest';
 
 import { run, UsageError } from '../src/commands/list-mail';
 import type { OutlookClient } from '../src/http/outlook-client';
-import type { MessageSummary, ODataListResponse } from '../src/http/types';
+import type { MessageSummary } from '../src/http/types';
 import type { SessionFile } from '../src/session/schema';
 import type { CliConfig } from '../src/config/config';
 

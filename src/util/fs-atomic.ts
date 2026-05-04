@@ -138,7 +138,7 @@ async function writeAtomic(
       await fs.promises.access(finalPath);
       exists = true;
     } catch {
-      exists = false;
+      // File does not exist, exists remains false
     }
     if (exists) {
       await unlinkBestEffort(tmp);

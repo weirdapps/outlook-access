@@ -8,7 +8,7 @@ import { AuthError as CliAuthError, OutlookCliError, UpstreamError } from '../co
 import type { OutlookClient } from '../http/outlook-client';
 import { ApiError, AuthError as HttpAuthError, NetworkError } from '../http/errors';
 import { buildReceivedDateFilter, FilterError } from '../http/filter-builder';
-import type { MessageSummary, ODataListResponse } from '../http/types';
+import type { MessageSummary } from '../http/types';
 import type { SessionFile } from '../session/schema';
 import { isExpired } from '../session/store';
 import { parseFolderSpec, resolveFolder } from '../folders/resolver';
