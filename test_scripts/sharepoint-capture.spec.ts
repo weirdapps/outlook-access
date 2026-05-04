@@ -70,7 +70,6 @@ describe('captureSharepointFromContext', () => {
     const context = makeFakeContext(page, cookies);
 
     const session = await captureSharepointFromContext(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       context as any,
       'nbg.sharepoint.com',
       30_000,
@@ -90,7 +89,6 @@ describe('captureSharepointFromContext', () => {
     const page = makeFakePage({ url: () => 'x', headers: () => ({}) });
     const context = makeFakeContext(page);
     await expect(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       captureSharepointFromContext(context as any, 'evil.example.com', 30_000),
     ).rejects.toThrow(SharepointCaptureError);
   });
@@ -103,7 +101,6 @@ describe('captureSharepointFromContext', () => {
     };
     const context = makeFakeContext(page as unknown as ReturnType<typeof makeFakePage>);
     await expect(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       captureSharepointFromContext(context as any, 'tenant.sharepoint.com', 30_000),
     ).rejects.toThrow(/SharePoint Bearer/);
   });
