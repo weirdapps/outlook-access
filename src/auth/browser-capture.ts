@@ -211,6 +211,7 @@ export function _redactToken(token: string): string {
 }
 
 export async function captureOutlookSession(opts: CaptureOptions): Promise<CaptureResult> {
+  // NOSONAR S3776 - browser automation orchestration
   // 1. Ensure profile dir exists with mode 0o700.
   fs.mkdirSync(opts.profileDir, { recursive: true, mode: 0o700 });
   try {

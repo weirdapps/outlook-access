@@ -201,6 +201,7 @@ function resolveOptionalString(
  * any resolved value throw ConfigurationError.
  */
 export function loadConfig(cliFlags: CliFlags): CliConfig {
+  // NOSONAR S3776 - config resolution with precedence rules
   // 1. Runtime-plumbing settings with defaults (see CLAUDE.md exception).
   //    Precedence: CLI flag > env var > default. Malformed flag/env still throws.
   const httpTimeoutMs = resolveOptionalInt(

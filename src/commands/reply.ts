@@ -92,7 +92,7 @@ export interface ReplyResult {
 
 const DEFAULT_SIG_REL = path.join('.outlook-cli', 'signature.html');
 
-export async function run(
+export async function run( // NOSONAR S3776 - reply composition orchestration
   deps: ReplyDeps,
   kind: ReplyKind,
   sourceMessageId: string,

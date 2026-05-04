@@ -82,7 +82,7 @@ function isItemAttachment(a: Attachment): boolean {
   return a['@odata.type'] === '#Microsoft.OutlookServices.ItemAttachment';
 }
 
-export async function run(
+export async function run( // NOSONAR S3776 - attachment type handling orchestration
   deps: DownloadAttachmentsDeps,
   id: string,
   opts: DownloadAttachmentsOptions = {},

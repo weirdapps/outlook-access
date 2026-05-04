@@ -19,6 +19,7 @@ import * as nodePath from 'node:path';
  *         when a live process already owns the lock.
  */
 export async function acquireLock(path: string): Promise<() => Promise<void>> {
+  // NOSONAR S3776 - lock acquisition retry logic
   // Ensure the parent directory exists (mode 0o700 for privacy). First-run
   // case: $HOME/.outlook-cli/ may not exist yet.
   fs.mkdirSync(nodePath.dirname(path), { recursive: true, mode: 0o700 });

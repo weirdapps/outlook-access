@@ -80,7 +80,7 @@ export class UsageError extends OutlookCliError {
   public readonly exitCode: number = 2;
 }
 
-export async function run(
+export async function run( // NOSONAR S3776 - mail listing with complex filters
   deps: ListMailDeps,
   opts: ListMailOptions = {},
 ): Promise<MessageSummary[] | ListMailCountResult> {

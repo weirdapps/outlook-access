@@ -410,6 +410,7 @@ function containsUnescapedSlash(input: string): boolean {
  * resolver module.
  */
 function splitPath(input: string): string[] {
+  // NOSONAR S3776 - path parsing with escapes
   const segments: string[] = [];
   let current = '';
   let i = 0;

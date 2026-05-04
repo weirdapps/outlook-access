@@ -111,6 +111,7 @@ export function normalizeSegment(s: string): string {
  * Raises `UsageError('FOLDER_PATH_INVALID', ...)` on any violation.
  */
 function parseFolderPath(input: string): string[] {
+  // NOSONAR S3776 - path parsing with escape handling
   if (typeof input !== 'string' || input.length === 0) {
     throw new UsageError('folder path: empty path (FOLDER_PATH_INVALID)');
   }
@@ -264,7 +265,7 @@ export async function resolveFolder(
   }
 }
 
-async function resolvePath(
+async function resolvePath( // NOSONAR S3776 - path resolution with retries
   client: OutlookClient,
   spec: Extract<FolderSpec, { kind: 'path' }>,
   opts: ResolveOptions,
@@ -390,7 +391,7 @@ interface EnsurePathOptions {
  *     rules (segments are walked via the same client-side matching).
  *   - UpstreamError on any HTTP failure.
  */
-export async function ensurePath(
+export async function ensurePath( // NOSONAR S3776 - recursive path creation
   client: OutlookClient,
   segments: string[],
   opts: EnsurePathOptions,

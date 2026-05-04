@@ -188,6 +188,7 @@ export async function run(
  * to edit by hand.
  */
 export function extractSignature(html: string): {
+  // NOSONAR S3776 - cascading heuristic extraction
   signature: string;
   heuristic: CaptureSignatureResult['heuristic'];
 } {

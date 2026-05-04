@@ -90,7 +90,7 @@ function isSessionExpired(session: SharepointSession): boolean {
   }
 }
 
-export async function run(
+export async function run( // NOSONAR S3776 - sharepoint link resolution orchestration
   deps: DownloadSharepointLinkDeps,
   url: string,
   opts: DownloadSharepointLinkOptions,

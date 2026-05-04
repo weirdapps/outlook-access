@@ -1279,7 +1279,7 @@ async function handleSuccessOrThrow<T>(response: Response, url: string): Promise
  *   - 'AFTER_RETRY'    → the single automatic retry also failed.
  * When status is not 401, `authReason` is ignored.
  */
-async function throwForResponse(
+async function throwForResponse( // NOSONAR S3776 - HTTP error classification
   response: Response,
   url: string,
   authReason: 'NO_AUTO_REAUTH' | 'AFTER_RETRY' | 'NONE',

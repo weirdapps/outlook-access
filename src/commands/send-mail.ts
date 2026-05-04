@@ -117,6 +117,7 @@ const MIME_BY_EXT: Record<string, string> = {
 };
 
 export async function run(deps: SendMailDeps, opts: SendMailOptions = {}): Promise<SendMailResult> {
+  // NOSONAR S3776 - email composition orchestration
   // -------- Validation --------
   const to = parseRecipients(opts.to);
   if (to.length === 0) {

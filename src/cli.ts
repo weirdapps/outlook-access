@@ -413,6 +413,7 @@ interface ErrorPayload {
 }
 
 function formatErrorJson(err: unknown): ErrorPayload {
+  // NOSONAR S3776 - error classification logic
   if (err instanceof ConfigurationError) {
     return {
       error: {

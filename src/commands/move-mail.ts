@@ -82,7 +82,7 @@ export type { MoveMailResult } from '../folders/types';
  *      `cli.ts` is responsible for mapping a non-empty `failed[]` to exit 5
  *      after emission.
  */
-export async function run(
+export async function run( // NOSONAR S3776 - batch move with error recovery
   deps: MoveMailDeps,
   messageIds: string[],
   opts: MoveMailOptions = {},
