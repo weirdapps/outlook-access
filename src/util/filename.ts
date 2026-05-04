@@ -60,8 +60,8 @@ export function sanitizeAttachmentName(raw: string): string {
   name = name.replace(ILLEGAL_CHARS, '_');
 
   // 4. Strip leading dots (would create hidden files on POSIX); strip trailing
-  //    dots and spaces (illegal on Windows).
-  name = name.replace(/^\.+/, '').replace(/[\s.]+$/, '');
+  //    dots and spaces (illegal on Windows). Use lazy quantifiers to prevent ReDoS.
+  name = name.replace(/^\.+?/, '').replace(/[\s.]+?$/, '');
 
   // 5. Reject Windows reserved device names by prefixing with '_'.
   if (WINDOWS_RESERVED.test(name)) {

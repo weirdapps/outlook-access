@@ -217,8 +217,9 @@ export function extractSignature(html: string): {
 
   // 4. Reply marker split — take content BEFORE the first reply marker.
   // "On <date> ... wrote:" / "From: " / "Sent: " / "-----Original Message-----"
+  // Use lazy quantifiers to prevent ReDoS backtracking.
   const replyMarkerRe =
-    /(<div[^>]*>\s*-{2,}\s*Original Message\s*-{2,})|(<p[^>]*>On\s+[^<]+wrote:)|(<div[^>]*>From:\s)|(<p[^>]*>From:\s)/i;
+    /(<div[^>]*>\s*-{2,}\s*Original Message\s*-{2,}?)|(<p[^>]*>On\s+[^<]+?wrote:)|(<div[^>]*>From:\s)|(<p[^>]*>From:\s)/i;
   const m = html.match(replyMarkerRe);
   if (m && typeof m.index === 'number' && m.index > 0) {
     const before = html.slice(0, m.index).trim();
