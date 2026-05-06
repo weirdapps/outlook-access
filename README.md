@@ -1,8 +1,8 @@
 # outlook-cli
 
-A TypeScript command-line tool for reading Outlook mail and calendar, and
-managing mail folders, by reusing an interactively captured Outlook-web
-session — no app registration, no tenant admin, no API keys.
+A TypeScript command-line tool for reading, sending, and organizing Outlook
+mail and calendar, by reusing an interactively captured Outlook-web session
+— no app registration, no tenant admin, no API keys.
 
 ---
 
@@ -34,8 +34,16 @@ That is what this tool does.
   (mode `0600`, parent dir `0700`).
 - `auth-check` — non-interactive verification that the cached session is still
   accepted.
-- `list-mail`, `get-mail`, `download-attachments` — inbox + message access,
-  including saving attachments to a directory.
+- `list-mail`, `get-mail`, `get-thread`, `download-attachments` — inbox +
+  message access, including full conversation threading and saving attachments
+  to a directory.
+- `send-mail` — compose and send new emails with HTML body, attachments, and
+  automatic signature. Default: creates a draft and activates Outlook desktop;
+  `--send-now` dispatches immediately.
+- `reply`, `reply-all`, `forward` — respond to or forward messages with
+  auto-quoted original content and signature. Same draft-first default.
+- `capture-signature` — extract your email signature from a sent message and
+  save to `~/.outlook-cli/signature.html` for automatic appending.
 - `list-calendar`, `get-event` — calendar window listing and single-event retrieval.
 - `list-folders`, `find-folder`, `create-folder`, `move-mail` — full folder
   management: list, resolve by name/path/id, create (idempotently), and move
@@ -46,9 +54,9 @@ That is what this tool does.
 
 ### What it deliberately does **not** do
 
-- It does not send mail, delete messages, or modify calendar events. It is a
-  **read + organize** surface, not a full client.
-- It does not persist anything upstream. The session file is local-only.
+- It does not delete messages or modify calendar events.
+- It does not persist anything upstream beyond sent messages. The session file
+  is local-only.
 - It does not bypass conditional access, MFA, or any tenant policy — you log in
   exactly the way the browser would.
 
@@ -176,7 +184,7 @@ npm run cli -- <subcommand> [options]
 ## Run the tests
 
 ```bash
-npm test               # vitest run — 208 tests across 17 files
+npm test               # vitest run — 388 tests across 34 files
 npm run test:watch     # incremental
 ```
 
@@ -275,6 +283,53 @@ outlook-cli list-mail \
 safety cap (default 10000, max 100000). When the cap is hit and more
 results remain, a `max_results_reached` warning is emitted on stderr and
 the partial result is returned.
+
+### Send, reply, forward
+
+```bash
+# Compose a new email (opens as draft in Outlook desktop)
+outlook-cli send-mail \
+  --to "alice@example.com" "bob@example.com" \
+  --cc "carol@example.com" \
+  --subject "Q2 review" \
+  --html body.html
+
+# Send immediately (skip the draft)
+outlook-cli send-mail \
+  --to "alice@example.com" \
+  --subject "quick update" \
+  --html body.html \
+  --send-now
+
+# Attach files (combined cap 30 MB)
+outlook-cli send-mail \
+  --to "alice@example.com" \
+  --subject "report attached" \
+  --html body.html \
+  --attach report.pdf --attach slides.pptx
+
+# Reply to a message (auto-quotes original, appends signature)
+outlook-cli reply AAMkAGI... --html reply.html
+
+# Reply-all (recipients pre-populated by M365)
+outlook-cli reply-all AAMkAGI... --html reply.html --send-now
+
+# Forward (--to is required)
+outlook-cli forward AAMkAGI... \
+  --to "dave@example.com" \
+  --html note.html
+
+# Extract your signature from the latest sent message
+outlook-cli capture-signature
+# or from a specific message
+outlook-cli capture-signature --from-message AAMkAGI...
+```
+
+All send commands default to **draft-first** — the message is created as a
+draft and Outlook desktop is activated so you can review before sending.
+Pass `--send-now` to dispatch immediately. Automatic CC-self is on by default;
+suppress with `--no-cc-self`. Signature from `~/.outlook-cli/signature.html`
+is appended automatically; suppress with `--no-signature`.
 
 ### Calendar
 
@@ -379,7 +434,7 @@ src/
   output/                # JSON / table formatter
   config/                # loadConfig, env + flag precedence, defaults
   util/                  # redaction, filename safety, misc helpers
-test_scripts/            # vitest suites (388 tests across 34 spec files)
+test_scripts/            # vitest suites — 388 tests across 34 spec files
 docs/
   design/                # refined specs, plans, project-design, config guide
   reference/             # codebase scans
