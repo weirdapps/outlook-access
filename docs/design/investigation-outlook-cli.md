@@ -293,7 +293,7 @@ Why this over alternatives:
   and we resolve our capture promise on the first match.
 - The init-script itself: wrap `window.fetch`, read `init.headers` or (if Headers
   instance) `init.headers.get('authorization')`, if the URL starts with
-  `https://outlook.office.com/` and the header starts with `Bearer `, call
+  `https://outlook.office.com/` and the header starts with `Bearer`, call
   `window.__outlookCliReportAuth({ url, auth })`. Keep the wrapper idempotent (guard
   with a `__outlookCliHooked` flag) so HMR / re-navigation doesn't double-wrap.
 - We must also handle requests that use a `Request` object (first arg is a `Request`
@@ -392,7 +392,7 @@ Every thrown error includes `{ code, exitCode, cause? }` and is caught by a top-
 
 ## 6. Technical Research Guidance
 
-```
+```text
 Research needed: Yes
 
 Topic: Playwright addInitScript + exposeBinding for reliable first-call Bearer capture
@@ -421,4 +421,4 @@ Depth: medium
 - **Open research:** two focused topics — Playwright capture pattern and Outlook v2
   attachment subtypes — flagged for Phase 3b before implementation begins.
 
-Absolute output path: `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/investigation-outlook-cli.md`
+Absolute output path: `<upstream-repo>/docs/design/investigation-outlook-cli.md`

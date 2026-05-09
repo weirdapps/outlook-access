@@ -76,12 +76,12 @@ describe('extractSignature — heuristic priority', () => {
       <p>Hi team,</p>
       <p>body content here</p>
       <div id="Signature">
-        <b>Dimitrios Plessas</b><br>AGM, NBG
+        <b>Jane Doe</b><br>Director, Acme Corp
       </div>
     `;
     const out = extractSignature(html);
     expect(out.heuristic).toBe('div-signature');
-    expect(out.signature).toContain('Dimitrios Plessas');
+    expect(out.signature).toContain('Jane Doe');
     expect(out.signature).not.toContain('body content here');
   });
 
@@ -89,23 +89,23 @@ describe('extractSignature — heuristic priority', () => {
     const html = `
       <p>Some body.</p>
       <div class="elementToProof">
-        <b>D. Plessas</b>
+        <b>J. Doe</b>
       </div>
     `;
     const out = extractSignature(html);
     expect(out.heuristic).toBe('div-elementtoproof');
-    expect(out.signature).toContain('D. Plessas');
+    expect(out.signature).toContain('J. Doe');
   });
 
   it('3. last <hr> when no signature div', () => {
     const html = `
       <p>Body content here.</p>
       <hr>
-      <b>Dimitrios Plessas</b>
+      <b>Jane Doe</b>
     `;
     const out = extractSignature(html);
     expect(out.heuristic).toBe('last-hr');
-    expect(out.signature).toContain('Dimitrios Plessas');
+    expect(out.signature).toContain('Jane Doe');
     expect(out.signature).not.toContain('Body content here');
   });
 
@@ -194,11 +194,11 @@ describe('capture-signature command', () => {
   it('returns extracted signature in result for verification', async () => {
     const { deps } = makeDeps(
       'AAMk-1',
-      '<p>body</p><div id="Signature"><b>Καλημέρα — Plessas</b></div>',
+      '<p>body</p><div id="Signature"><b>Καλημέρα — Doe</b></div>',
     );
     const result = await run(deps);
     expect(result.signature).toContain('Καλημέρα');
-    expect(result.signature).toContain('Plessas');
+    expect(result.signature).toContain('Doe');
     expect(result.sourceMessageId).toBe('AAMk-1');
   });
 });

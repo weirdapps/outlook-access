@@ -140,6 +140,7 @@
 - [ ] **Step 2.4:** Run test → passes
 
 - [ ] **Step 2.5:** Commit
+
   ```bash
   git add src/util/open-outlook.ts test_scripts/util-open-outlook.spec.ts
   git commit -m "feat(util): add activateOutlookApp helper"
@@ -162,6 +163,7 @@
 - [ ] **Step 3.4:** Run tests → pass.
 
 - [ ] **Step 3.5:** Commit
+
   ```bash
   git commit -m "feat(errors): redact Body/HtmlBody from error stderr"
   ```
@@ -233,6 +235,7 @@
 - [ ] **Step 4.5:** Add to return statement at bottom of `createOutlookClient`
 
 - [ ] **Step 4.6:** Tests pass; commit
+
   ```bash
   git commit -m "feat(client): add sendMail() — immediate POST /me/sendmail"
   ```
@@ -294,6 +297,7 @@
   ```
 
 - [ ] **Step 5.5:** Wire to return statement; tests pass; commit
+
   ```bash
   git commit -m "feat(client): add createDraft + sendDraft for staged-send workflow"
   ```
@@ -331,6 +335,7 @@
   - Dispatch (dry-run / send-now / draft)
 
 - [ ] **Step 6.4:** Tests pass; commit
+
   ```bash
   git commit -m "feat(send-mail): command implementation with draft-first default"
   ```
@@ -396,7 +401,7 @@
   ```bash
   echo '<p>test draft from outlook-cli</p>' > /tmp/test-body.html
   outlook-cli --quiet send-mail \
-    --to dimitrios.plessas@nbg.gr \
+    --to you@example.com \
     --subject "test draft from outlook-cli" \
     --html /tmp/test-body.html
   ```
@@ -411,7 +416,7 @@
 
   ```bash
   outlook-cli --quiet send-mail \
-    --to dimitrios.plessas@nbg.gr \
+    --to you@example.com \
     --subject "test immediate send from outlook-cli" \
     --html /tmp/test-body.html \
     --send-now
@@ -428,7 +433,7 @@
   ```bash
   echo "test attachment content" > /tmp/test-attach.txt
   outlook-cli --quiet send-mail \
-    --to dimitrios.plessas@nbg.gr \
+    --to you@example.com \
     --subject "test attachment from outlook-cli" \
     --html /tmp/test-body.html \
     --attach /tmp/test-attach.txt \
@@ -443,14 +448,16 @@
   - `--dry-run` → JSON payload printed, no mail sent
 
 - [ ] **Step 8.6:** Greek text round-trip
+
   ```bash
   echo '<p>Καλημέρα — δοκιμή ελληνικών</p>' > /tmp/test-greek.html
   outlook-cli send-mail \
-    --to dimitrios.plessas@nbg.gr \
+    --to you@example.com \
     --subject "δοκιμή ελληνικών from outlook-cli" \
     --html /tmp/test-greek.html \
     --send-now
   ```
+
   Expected: subject and body both display Greek correctly in Outlook.
 
 ---
@@ -486,6 +493,7 @@
   ```
 
 - [ ] **Step 9.3:** Commit
+
   ```bash
   git commit -m "chore: bump to 1.3.0 + CHANGELOG B1"
   ```
@@ -513,6 +521,7 @@
   ```
 
 - [ ] **Step 10.4:** Switch master, rebuild, verify
+
   ```bash
   git checkout master && git pull --ff-only && npm run build
   outlook-cli --version  # 1.3.0

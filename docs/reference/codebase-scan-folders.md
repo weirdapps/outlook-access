@@ -74,7 +74,7 @@ exact plug-in points for `list-folders`, `find-folder`, `create-folder`,
 **File:** `src/http/outlook-client.ts`
 **Public surface:** `OutlookClient` interface (line 31) — currently a single method:
 
-```
+```text
 get<T>(path: string, query?: Record<string, QueryValue>): Promise<T>
 ```
 
@@ -232,13 +232,13 @@ To ship folder support, the work MUST touch:
 
 **New files:**
 
-8. `src/folders/resolver.ts` — `resolveFolder`, `listChildren`, `createFolderPath`, `parseFolderPath`, `buildFolderPath`, `matchesWellKnownAlias`.
-9. `src/folders/types.ts` — `FolderSpec`, `ResolvedFolder`, `CreateResult`, `MoveResult` (CLI-layer shapes; REST wire types live in `src/http/types.ts`).
-10. `src/commands/list-folders.ts`
-11. `src/commands/find-folder.ts`
-12. `src/commands/create-folder.ts`
-13. `src/commands/move-mail.ts`
-14. `test_scripts/ac-folders-*.ts` — one script per acceptance criterion (AC-LISTFOLDERS-ROOT … AC-401-RETRY-FOLDERS).
+1. `src/folders/resolver.ts` — `resolveFolder`, `listChildren`, `createFolderPath`, `parseFolderPath`, `buildFolderPath`, `matchesWellKnownAlias`.
+2. `src/folders/types.ts` — `FolderSpec`, `ResolvedFolder`, `CreateResult`, `MoveResult` (CLI-layer shapes; REST wire types live in `src/http/types.ts`).
+3. `src/commands/list-folders.ts`
+4. `src/commands/find-folder.ts`
+5. `src/commands/create-folder.ts`
+6. `src/commands/move-mail.ts`
+7. `test_scripts/ac-folders-*.ts` — one script per acceptance criterion (AC-LISTFOLDERS-ROOT … AC-401-RETRY-FOLDERS).
 
 **Untouched (verified):** `src/auth/*`, `src/session/*`, `src/config/config.ts`, `src/output/formatter.ts`, `src/util/*`.
 
@@ -260,4 +260,4 @@ To ship folder support, the work MUST touch:
 
 7. **401 retry-once envelope is owned by the HTTP client, not the commands.** `createOutlookClient` mutates its `session` reference on successful re-auth; a second 401 raises `HttpAuthError{reason: 'AFTER_RETRY'}` which `mapHttpError` in `list-mail.ts` converts to `CliAuthError{code: 'AUTH_401_AFTER_RETRY'}`. Folder commands inherit this transparently — they MUST NOT catch 401 themselves.
 
-Absolute output path: `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/reference/codebase-scan-folders.md`
+Absolute output path: `<upstream-repo>/docs/reference/codebase-scan-folders.md`

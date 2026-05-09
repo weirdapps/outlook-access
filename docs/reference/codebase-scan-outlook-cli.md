@@ -18,7 +18,7 @@ Playwright-driven login, Bearer/cookie capture, and read-only REST commands).
   - `ts-node@^10.9.2`
   - `typescript@^6.0.3`
 - **Build/test scripts**: none defined beyond the placeholder `npm test`. No `bin` entry in `package.json`.
-- **Directory layout** (root: `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/`):
+- **Directory layout** (root: `<upstream-repo>/`):
   - `CLAUDE.md` — project conventions (copy of the global Structure & Conventions).
   - `package.json`, `package-lock.json`, `tsconfig.json`.
   - `test_scripts/outlook_read_recent.ts` — the single existing implementation.
@@ -104,7 +104,7 @@ Baseline Playwright script. Behavior:
 
 No `src/` exists yet. Propose creating one and switching `tsconfig.json#include` to cover both `src/**/*.ts` and `test_scripts/**/*.ts`:
 
-```
+```text
 src/
   cli.ts                    # argv parser + command dispatch (bin entry)
   commands/
@@ -182,4 +182,4 @@ No Microsoft Graph SDK or MSAL library is needed — spec NG4 / NG5 explicitly r
 - Missing dev deps to add: `commander` (argv), `jwt-decode` (claim extraction), and a table formatter (`cli-table3` or hand-rolled). A test runner decision (`vitest` vs. `@playwright/test`) is pending for the design phase.
 - Conventions artifacts not yet in place: `Issues - Pending Items.md`, `docs/design/project-design.md`, `docs/design/project-functions.MD`, `CLAUDE.md` tool-registration block. All will be created as the project progresses.
 
-Absolute output path: `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/reference/codebase-scan-outlook-cli.md`
+Absolute output path: `<upstream-repo>/docs/reference/codebase-scan-outlook-cli.md`

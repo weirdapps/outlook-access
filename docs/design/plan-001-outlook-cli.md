@@ -3,12 +3,12 @@
 Plan date: 2026-04-21
 Inputs consumed (in priority order):
 
-1. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/refined-request-outlook-cli.md`
-2. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/investigation-outlook-cli.md`
-3. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/research/playwright-token-capture.md`
-4. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/research/outlook-v2-attachments.md`
-5. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/reference/codebase-scan-outlook-cli.md`
-6. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/CLAUDE.md`
+1. `<upstream-repo>/docs/design/refined-request-outlook-cli.md`
+2. `<upstream-repo>/docs/design/investigation-outlook-cli.md`
+3. `<upstream-repo>/docs/research/playwright-token-capture.md`
+4. `<upstream-repo>/docs/research/outlook-v2-attachments.md`
+5. `<upstream-repo>/docs/reference/codebase-scan-outlook-cli.md`
+6. `<upstream-repo>/CLAUDE.md`
 
 ---
 
@@ -26,11 +26,11 @@ Phases are ordered by dependency, not by chronology. Where two phases can execut
 
 - **Goal**: Prepare the TypeScript build surface so every later phase compiles and the CLI binary is discoverable.
 - **Files created/modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/package.json` (add `bin`, `scripts.build`, `scripts.dev`, `scripts.test`, install new deps)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/tsconfig.json` (widen `include` to `["src/**/*.ts", "test_scripts/**/*.ts"]`)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/cli.ts` (stub with `#!/usr/bin/env node` + commander skeleton — body filled in Phase G)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/.gitignore` (exclude `node_modules/`, `dist/`, `.playwright-profile/`, `.playwright/`, `.playwright-cli/`, `outlook_report.json`)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/Issues - Pending Items.md` (created, empty sections)
+  - `<upstream-repo>/package.json` (add `bin`, `scripts.build`, `scripts.dev`, `scripts.test`, install new deps)
+  - `<upstream-repo>/tsconfig.json` (widen `include` to `["src/**/*.ts", "test_scripts/**/*.ts"]`)
+  - `<upstream-repo>/src/cli.ts` (stub with `#!/usr/bin/env node` + commander skeleton — body filled in Phase G)
+  - `<upstream-repo>/.gitignore` (exclude `node_modules/`, `dist/`, `.playwright-profile/`, `.playwright/`, `.playwright-cli/`, `outlook_report.json`)
+  - `<upstream-repo>/Issues - Pending Items.md` (created, empty sections)
 - **Dependencies**: none
 - **Can be parallelized with**: — (must run first)
 - **Verification**:
@@ -43,9 +43,9 @@ Phases are ordered by dependency, not by chronology. Where two phases can execut
 
 - **Goal**: Resolve every configuration value via the strict flag > env precedence chain, raising `ConfigurationError` when a mandatory setting is missing.
 - **Files created/modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/config/config.ts` (loader exposing `loadConfig(argvFlags)` returning a typed `Config` object)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/config/errors.ts` (`ConfigurationError`, `AuthError`, `UpstreamError`, `IoError` classes, each with `code`, `exitCode`, `cause?`, sanitized `message`)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/unit/config.spec.ts`
+  - `<upstream-repo>/src/config/config.ts` (loader exposing `loadConfig(argvFlags)` returning a typed `Config` object)
+  - `<upstream-repo>/src/config/errors.ts` (`ConfigurationError`, `AuthError`, `UpstreamError`, `IoError` classes, each with `code`, `exitCode`, `cause?`, sanitized `message`)
+  - `<upstream-repo>/test_scripts/unit/config.spec.ts`
 - **Dependencies**: Phase A
 - **Can be parallelized with**: Phase C, Phase E (types only — no runtime collisions)
 - **Verification**:
@@ -57,10 +57,10 @@ Phases are ordered by dependency, not by chronology. Where two phases can execut
 
 - **Goal**: Persist and read the session file with schema validation, atomic `write + rename`, mode `0600` on file / `0700` on dir.
 - **Files created/modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/session/schema.ts` (TypeScript types matching spec §7.2 + a `validateSessionJson(raw)` function that rejects missing / mismatched fields)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/session/store.ts` (`readSession(path)`, `writeSession(path, session)`, `deleteSession(path)`; `writeSession` uses `open(wx, 0o600) + rename`; parent dir `mkdir(..., { mode: 0o700 })` + defensive `chmod 0o700`)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/util/fs-atomic.ts` (shared `atomicWrite(path, buffer, { mode, overwrite })` used by session store + attachment download)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/unit/session-store.spec.ts`
+  - `<upstream-repo>/src/session/schema.ts` (TypeScript types matching spec §7.2 + a `validateSessionJson(raw)` function that rejects missing / mismatched fields)
+  - `<upstream-repo>/src/session/store.ts` (`readSession(path)`, `writeSession(path, session)`, `deleteSession(path)`; `writeSession` uses `open(wx, 0o600) + rename`; parent dir `mkdir(..., { mode: 0o700 })` + defensive `chmod 0o700`)
+  - `<upstream-repo>/src/util/fs-atomic.ts` (shared `atomicWrite(path, buffer, { mode, overwrite })` used by session store + attachment download)
+  - `<upstream-repo>/test_scripts/unit/session-store.spec.ts`
 - **Dependencies**: Phase A
 - **Can be parallelized with**: Phase B, Phase E
 - **Verification**:
@@ -72,12 +72,12 @@ Phases are ordered by dependency, not by chronology. Where two phases can execut
 
 - **Goal**: Acquire a fresh Bearer + cookie jar via headed Chrome; persist via Phase C; enforce single-browser concurrency via a PID lock.
 - **Files created/modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/auth/browser-capture.ts` (exports `INIT_SCRIPT_TEXT` and `captureFirstBearerToken(context, page, timeoutMs)` per `docs/research/playwright-token-capture.md §9`)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/auth/jwt.ts` (manual base64url split, extracts `exp`, `puid`, `tid`, `aud`, `scp` claims)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/auth/lock.ts` (acquire/release advisory PID lock at `<sessionDir>/.browser.lock` — `open('wx')`, stale detection via `process.kill(pid, 0)` returning `ESRCH`, expiry on age > login-timeout)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/auth/login-flow.ts` (orchestrator: acquire lock → `launchPersistentContext({ channel, headless:false })` → `exposeBinding` → `addInitScript` → `page.goto('https://outlook.office.com/mail/')` → race against close + timeout → filter cookies for `.office.com|.outlook.office.com|login.microsoftonline.com` → build session object → release lock)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/unit/jwt.spec.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/unit/lock.spec.ts`
+  - `<upstream-repo>/src/auth/browser-capture.ts` (exports `INIT_SCRIPT_TEXT` and `captureFirstBearerToken(context, page, timeoutMs)` per `docs/research/playwright-token-capture.md §9`)
+  - `<upstream-repo>/src/auth/jwt.ts` (manual base64url split, extracts `exp`, `puid`, `tid`, `aud`, `scp` claims)
+  - `<upstream-repo>/src/auth/lock.ts` (acquire/release advisory PID lock at `<sessionDir>/.browser.lock` — `open('wx')`, stale detection via `process.kill(pid, 0)` returning `ESRCH`, expiry on age > login-timeout)
+  - `<upstream-repo>/src/auth/login-flow.ts` (orchestrator: acquire lock → `launchPersistentContext({ channel, headless:false })` → `exposeBinding` → `addInitScript` → `page.goto('https://outlook.office.com/mail/')` → race against close + timeout → filter cookies for `.office.com|.outlook.office.com|login.microsoftonline.com` → build session object → release lock)
+  - `<upstream-repo>/test_scripts/unit/jwt.spec.ts`
+  - `<upstream-repo>/test_scripts/unit/lock.spec.ts`
 - **Dependencies**: Phases A, B, C
 - **Can be parallelized with**: Phase E (different modules, no shared runtime state in tests)
 - **Verification**:
@@ -90,9 +90,9 @@ Phases are ordered by dependency, not by chronology. Where two phases can execut
 
 - **Goal**: Replay captured auth against `outlook.office.com/api/v2.0/*` with mandatory timeout, single 401 retry, and the full error taxonomy from `investigation-outlook-cli.md §4.9`.
 - **Files created/modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/http/outlook-client.ts` (exports `OutlookClient` with `get(path, opts)` method; accepts `session`, `timeoutMs`, `onReauthNeeded` callback; builds `Authorization`, `X-AnchorMailbox`, `Accept`, `Cookie` headers; wraps `AbortController`; on 401 invokes callback once, rebuilds headers from the refreshed session, retries exactly once)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/http/errors.ts` (`mapHttpResponseToError(response, body)` — returns typed `UpstreamError`/`AuthError` per exit-code table; NEVER embeds the Bearer or cookie values in the error's `message`, `cause`, or `stack`)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/unit/outlook-client.spec.ts` (uses `vitest` + mocked `fetch` — no live network)
+  - `<upstream-repo>/src/http/outlook-client.ts` (exports `OutlookClient` with `get(path, opts)` method; accepts `session`, `timeoutMs`, `onReauthNeeded` callback; builds `Authorization`, `X-AnchorMailbox`, `Accept`, `Cookie` headers; wraps `AbortController`; on 401 invokes callback once, rebuilds headers from the refreshed session, retries exactly once)
+  - `<upstream-repo>/src/http/errors.ts` (`mapHttpResponseToError(response, body)` — returns typed `UpstreamError`/`AuthError` per exit-code table; NEVER embeds the Bearer or cookie values in the error's `message`, `cause`, or `stack`)
+  - `<upstream-repo>/test_scripts/unit/outlook-client.spec.ts` (uses `vitest` + mocked `fetch` — no live network)
 - **Dependencies**: Phases A, B, C
 - **Can be parallelized with**: Phase D
 - **Verification**:
@@ -103,16 +103,16 @@ Phases are ordered by dependency, not by chronology. Where two phases can execut
 
 - **Goal**: Implement the seven read-only commands on top of Phases B/C/D/E.
 - **Files created/modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/login.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/auth-check.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/list-mail.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/get-mail.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/download-attachments.ts` (consumes `docs/research/outlook-v2-attachments.md §6` pseudocode; delegates to `src/util/filename.ts`)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/list-calendar.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/get-event.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/util/filename.ts` (exports `sanitizeAttachmentName`, `deduplicateFilename` per `docs/research/outlook-v2-attachments.md §5.1`)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/unit/filename.spec.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/unit/download-attachments.spec.ts` (mocked client)
+  - `<upstream-repo>/src/commands/login.ts`
+  - `<upstream-repo>/src/commands/auth-check.ts`
+  - `<upstream-repo>/src/commands/list-mail.ts`
+  - `<upstream-repo>/src/commands/get-mail.ts`
+  - `<upstream-repo>/src/commands/download-attachments.ts` (consumes `docs/research/outlook-v2-attachments.md §6` pseudocode; delegates to `src/util/filename.ts`)
+  - `<upstream-repo>/src/commands/list-calendar.ts`
+  - `<upstream-repo>/src/commands/get-event.ts`
+  - `<upstream-repo>/src/util/filename.ts` (exports `sanitizeAttachmentName`, `deduplicateFilename` per `docs/research/outlook-v2-attachments.md §5.1`)
+  - `<upstream-repo>/test_scripts/unit/filename.spec.ts`
+  - `<upstream-repo>/test_scripts/unit/download-attachments.spec.ts` (mocked client)
 - **Dependencies**: Phases B, C, D, E
 - **Can be parallelized with**: all sibling commands can be written concurrently since they share only the `OutlookClient` interface. Recommended split: `{login, auth-check}` together (they touch Phase D), `{list-mail, get-mail, list-calendar, get-event}` together (pure HTTP/output), `{download-attachments}` alone (filename util + atomic write).
 - **Verification**:
@@ -125,9 +125,9 @@ Phases are ordered by dependency, not by chronology. Where two phases can execut
 
 - **Goal**: Wire `src/cli.ts` with commander global flags + 7 subcommands; route errors to the right exit codes; render JSON or table per flag.
 - **Files created/modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/cli.ts` (full body: commander setup, global flags, per-command action stubs that call Phase F modules, top-level try/catch mapping errors to exit codes, `--quiet` / `--log-file` wiring)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/output/formatter.ts` (`renderJson(value)`, `renderTable(rows, columns)` — use a hand-rolled minimal table (no extra dep) to keep dependency footprint at commander-only)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/unit/formatter.spec.ts`
+  - `<upstream-repo>/src/cli.ts` (full body: commander setup, global flags, per-command action stubs that call Phase F modules, top-level try/catch mapping errors to exit codes, `--quiet` / `--log-file` wiring)
+  - `<upstream-repo>/src/output/formatter.ts` (`renderJson(value)`, `renderTable(rows, columns)` — use a hand-rolled minimal table (no extra dep) to keep dependency footprint at commander-only)
+  - `<upstream-repo>/test_scripts/unit/formatter.spec.ts`
 - **Dependencies**: Phase F
 - **Can be parallelized with**: — (sequential after F)
 - **Verification**:
@@ -141,25 +141,25 @@ Phases are ordered by dependency, not by chronology. Where two phases can execut
 
 - **Goal**: Cover every AC with a dedicated `test_scripts/` file, update `CLAUDE.md` with the `<outlook-cli>` block + one child per subcommand, and register the functional requirements.
 - **Files created/modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-login-ok.ts` (manual — requires user interaction)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-authcheck-ok.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-listmail-ok.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-getmail-ok.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-download-ok.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-listcal-ok.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-getevent-ok.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-session-reuse.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-missing-session.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-expired-token.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-401-retry.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-user-cancel.ts` (manual)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-config-missing.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-perms.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-no-secret-leak.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-invalid-id.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/test_scripts/ac-overwrite-guard.ts`
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/CLAUDE.md` (append `<outlook-cli>` root block + 7 child entries)
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/project-design.md` (system-level design summary — may be written in parallel with this plan)
+  - `<upstream-repo>/test_scripts/ac-login-ok.ts` (manual — requires user interaction)
+  - `<upstream-repo>/test_scripts/ac-authcheck-ok.ts`
+  - `<upstream-repo>/test_scripts/ac-listmail-ok.ts`
+  - `<upstream-repo>/test_scripts/ac-getmail-ok.ts`
+  - `<upstream-repo>/test_scripts/ac-download-ok.ts`
+  - `<upstream-repo>/test_scripts/ac-listcal-ok.ts`
+  - `<upstream-repo>/test_scripts/ac-getevent-ok.ts`
+  - `<upstream-repo>/test_scripts/ac-session-reuse.ts`
+  - `<upstream-repo>/test_scripts/ac-missing-session.ts`
+  - `<upstream-repo>/test_scripts/ac-expired-token.ts`
+  - `<upstream-repo>/test_scripts/ac-401-retry.ts`
+  - `<upstream-repo>/test_scripts/ac-user-cancel.ts` (manual)
+  - `<upstream-repo>/test_scripts/ac-config-missing.ts`
+  - `<upstream-repo>/test_scripts/ac-perms.ts`
+  - `<upstream-repo>/test_scripts/ac-no-secret-leak.ts`
+  - `<upstream-repo>/test_scripts/ac-invalid-id.ts`
+  - `<upstream-repo>/test_scripts/ac-overwrite-guard.ts`
+  - `<upstream-repo>/CLAUDE.md` (append `<outlook-cli>` root block + 7 child entries)
+  - `<upstream-repo>/docs/design/project-design.md` (system-level design summary — may be written in parallel with this plan)
 - **Dependencies**: Phase G
 - **Can be parallelized with**: — (sequential after G; within H, individual `ac-*.ts` scripts are independent)
 - **Verification**:
@@ -171,7 +171,7 @@ Phases are ordered by dependency, not by chronology. Where two phases can execut
 
 ### Parallelization summary
 
-```
+```text
 A  →  B  ─┐
        C  ─┼→  D  ─┐
        E  ─┘      │
@@ -189,7 +189,7 @@ A  →  B  ─┐
 
 ## 3. Proposed File Tree
 
-```
+```text
 src/
   cli.ts
   commands/
@@ -275,6 +275,7 @@ Notes:
 - No table library (`cli-table3` etc.) — the `src/output/formatter.ts` hand-roll keeps the runtime dep list at exactly one: `commander`.
 - Test runner decision: **vitest** (fast, zero-config with `tsconfig.json`, works with CommonJS `"type": "commonjs"`, modern `expect`/`vi.mock` API). `@playwright/test` is already installed but unused — we keep it available for future end-to-end browser scenarios without adopting it as the unit runner.
 - Build: `tsc` with existing `outDir: dist`, `target: ES2022`, `module: commonjs`. New `package.json` scripts:
+
   ```json
   {
     "scripts": {
@@ -366,4 +367,4 @@ Non-blocking defaults picked (user may override before Phase A with a one-line n
 - Risk register from investigation §5 translated into concrete phase-scoped actions (R1–R13).
 - One genuine ambiguity flagged for user confirmation: Chrome channel mandatory-vs-default policy (OQ #2 in the refined request).
 
-Absolute output path: `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/plan-001-outlook-cli.md`
+Absolute output path: `<upstream-repo>/docs/design/plan-001-outlook-cli.md`

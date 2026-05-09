@@ -37,7 +37,7 @@ playwright-cli video-start recordings/login-flow-2024-01-15.webm
 playwright-cli video-start recordings/checkout-test-run-42.webm
 ```
 
-### 2. Record entire hero scripts.
+### 2. Record entire hero scripts
 
 When recording a video for the user or as a proof of work, it is best to create a code snippet and execute it with run-code.
 It allows pulling appropriate pauses between the actions and annotating the video. There are new Playwright APIs for that.

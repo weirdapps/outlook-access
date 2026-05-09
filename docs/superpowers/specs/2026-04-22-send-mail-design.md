@@ -22,7 +22,7 @@
 
 **Goal:** Add a `send-mail` subcommand (and supporting `OutlookClient.sendMail()`) to `outlook-cli`, replacing the AppleScript-based send path used by `email-handler` (`/send-mail`, `/mail-review` reply drafts) and by the user's `pbcopy`-to-Outlook workflow.
 
-**Why now:** Phase A (cherry-pick of upstream v1.2.0+v1.3.0) is done. The fork is the only place these features can land — upstream BikS keeps `outlook-cli` read-only by design. Our use case requires send (compliance: every outbound mail CCs `dimitrios.plessas@nbg.gr`; reply automation needs send capability without GUI Outlook running).
+**Why now:** Phase A (cherry-pick of upstream v1.2.0+v1.3.0) is done. The fork is the only place these features can land — upstream BikS keeps `outlook-cli` read-only by design. Our use case requires send (compliance: every outbound mail CCs the authenticated user's primary address; reply automation needs send capability without GUI Outlook running).
 
 **Architecture (assumed; revisit if decisions invalidate it):**
 
@@ -74,7 +74,7 @@ Three styles to choose from:
 
 ### Decision 4: CC-self default
 
-Your CLAUDE.md says **"primary email: dimitrios.plessas@nbg.gr (always CC self)"**. Should the CLI auto-CC?
+If your CLAUDE.md says something like **"primary email: you@example.com (always CC self)"** then the CLI should auto-CC. Should we bake this in?
 
 - [ ] **A.** Bake `--cc-self` flag into CLI; default ON; can disable with `--no-cc-self`. The CLI knows the authenticated UPN from the session (`session.account.upn`).
 - [ ] **B.** Bake `--cc-self` flag; default OFF. Caller decides.
@@ -164,6 +164,6 @@ Comparable to Phase A's `get-thread` + `--just-count` work (~600 LOC merged). Si
 
 - **Throttling**: M365 send rate limit is 30 messages/min for personal mailboxes; mailbox-level limit ~10000/day. Bulk-send loops via this CLI risk hitting it. **Mitigation:** document the limit; do not add automatic backoff in v1.
 - **DLP / compliance scanners**: NBG tenant likely has DLP rules that scan outbound mail. The CLI submits via the same path Outlook web does, so DLP applies the same way — no special handling needed.
-- **Test mailbox**: smoke testing send means actually sending mail. **Mitigation:** all smokes send to self (`--to dimitrios.plessas@nbg.gr`); never to external addresses.
+- **Test mailbox**: smoke testing send means actually sending mail. **Mitigation:** all smokes send to self (`--to you@example.com`); never to external addresses.
 - **Idempotency**: if the network drops mid-POST and we retry, M365 may double-send. **Mitigation:** `/sendmail` is not idempotent by spec. We do NOT retry on send failures — let the caller decide. Auto-reauth on 401 is fine because that's a pre-send failure.
 - **Greek text**: M365 handles UTF-8 natively. Verified end-to-end during Phase A smoke (Greek subjects + bodies preserved). Re-verify in send smoke.

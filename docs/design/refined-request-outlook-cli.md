@@ -65,6 +65,7 @@ Exit codes:
   - `--force` — ignore existing cache and always open the browser.
 - Behavior: opens headed Chrome via Playwright; waits for the user to reach the Outlook inbox; hooks `window.fetch` beforehand to capture the first Bearer token; collects cookies; writes the session file.
 - Output (JSON):
+
   ```json
   {
     "status": "ok",
@@ -80,6 +81,7 @@ Exit codes:
 - Options: none.
 - Behavior: loads session file; performs a cheap REST call (e.g. `GET /api/v2.0/me`); reports validity. Does NOT auto-reauth.
 - Output (JSON):
+
   ```json
   {
     "status": "ok" | "expired" | "missing" | "rejected",
@@ -119,6 +121,7 @@ Exit codes:
   - `--include-inline` — also save inline attachments (default `false`).
 - REST target: `GET /api/v2.0/me/messages/{id}/attachments` then per-item `GET /api/v2.0/me/messages/{id}/attachments/{attId}` (or `$value` where applicable for file attachments).
 - Output (JSON):
+
   ```json
   {
     "messageId": "...",
@@ -299,16 +302,16 @@ Each AC below must be covered by at least one test script under `test_scripts/`.
 
 ### Failing / edge scenarios
 
-9. **AC-MISSING-SESSION** — With no session file, `outlook-cli list-mail` automatically invokes the login flow; if `--no-auto-reauth` is passed instead, it exits with code 4 and a clear error.
-10. **AC-EXPIRED-TOKEN** — With a session whose `bearer.expiresAt` is in the past, any data command transparently triggers the re-auth flow (browser opens once), then succeeds. With `--no-auto-reauth`, the same situation exits 4.
-11. **AC-401-RETRY** — When the REST API returns 401 despite a non-expired cached token, the tool re-opens the browser exactly ONCE, refreshes the session, retries, and succeeds. A second 401 causes exit 4 without a second browser launch.
-12. **AC-USER-CANCEL** — If the user closes the Chrome window without logging in, the tool exits 4 within `OUTLOOK_CLI_LOGIN_TIMEOUT_MS` and leaves any pre-existing session file untouched.
-13. **AC-CONFIG-MISSING** — If `OUTLOOK_CLI_HTTP_TIMEOUT_MS` is unset AND `--timeout` is not passed, the tool exits 3 with a `ConfigurationError` naming `OUTLOOK_CLI_HTTP_TIMEOUT_MS`. No silent default.
-14. **AC-PERMS** — After any write of the session file, its mode is exactly `0600` and the parent dir is `0700`. Verified in test.
-15. **AC-NO-SECRET-LEAK** — With `--log-file` enabled at debug level, the produced log file contains NO occurrences of `bearer.token` value and NO cookie values.
-16. **AC-INVALID-ID** — `outlook-cli get-mail bogus-id` exits 5 with an error payload containing the upstream HTTP status and a redacted message.
-17. **AC-OVERWRITE-GUARD** — `download-attachments` into a directory where a file of the same name already exists exits 6 unless `--overwrite` is passed.
-18. **AC-CLAUDEMD-UPDATED** — `CLAUDE.md` is updated with tool docs per project conventions (one top-level `<outlook-cli>` entry plus one child entry per subcommand, each using the `<toolName>/<objective>/<command>/<info>` format).
+1. **AC-MISSING-SESSION** — With no session file, `outlook-cli list-mail` automatically invokes the login flow; if `--no-auto-reauth` is passed instead, it exits with code 4 and a clear error.
+2. **AC-EXPIRED-TOKEN** — With a session whose `bearer.expiresAt` is in the past, any data command transparently triggers the re-auth flow (browser opens once), then succeeds. With `--no-auto-reauth`, the same situation exits 4.
+3. **AC-401-RETRY** — When the REST API returns 401 despite a non-expired cached token, the tool re-opens the browser exactly ONCE, refreshes the session, retries, and succeeds. A second 401 causes exit 4 without a second browser launch.
+4. **AC-USER-CANCEL** — If the user closes the Chrome window without logging in, the tool exits 4 within `OUTLOOK_CLI_LOGIN_TIMEOUT_MS` and leaves any pre-existing session file untouched.
+5. **AC-CONFIG-MISSING** — If `OUTLOOK_CLI_HTTP_TIMEOUT_MS` is unset AND `--timeout` is not passed, the tool exits 3 with a `ConfigurationError` naming `OUTLOOK_CLI_HTTP_TIMEOUT_MS`. No silent default.
+6. **AC-PERMS** — After any write of the session file, its mode is exactly `0600` and the parent dir is `0700`. Verified in test.
+7. **AC-NO-SECRET-LEAK** — With `--log-file` enabled at debug level, the produced log file contains NO occurrences of `bearer.token` value and NO cookie values.
+8. **AC-INVALID-ID** — `outlook-cli get-mail bogus-id` exits 5 with an error payload containing the upstream HTTP status and a redacted message.
+9. **AC-OVERWRITE-GUARD** — `download-attachments` into a directory where a file of the same name already exists exits 6 unless `--overwrite` is passed.
+10. **AC-CLAUDEMD-UPDATED** — `CLAUDE.md` is updated with tool docs per project conventions (one top-level `<outlook-cli>` entry plus one child entry per subcommand, each using the `<toolName>/<objective>/<command>/<info>` format).
 
 ## 10. Open Questions
 

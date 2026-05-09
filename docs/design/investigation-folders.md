@@ -149,7 +149,7 @@ emitted directly).
 
 **Example request — list direct children of the root:**
 
-```
+```text
 GET /api/v2.0/me/MailFolders?$top=100&$select=Id,DisplayName,ParentFolderId,ChildFolderCount,UnreadItemCount,TotalItemCount,WellKnownName
 Authorization: Bearer <redacted>
 Accept: application/json
@@ -186,7 +186,7 @@ Accept: application/json
 
 **Example — list children under Inbox:**
 
-```
+```text
 GET /api/v2.0/me/MailFolders/AAMkAGI...Inbox/childfolders?$top=100&$select=Id,DisplayName,...
 ```
 
@@ -236,7 +236,7 @@ Flow for `create-folder Projects/Alpha --parent Inbox --create-parents --idempot
 
 **Example — create a top-level folder under the root:**
 
-```
+```text
 POST /api/v2.0/me/MailFolders
 Authorization: Bearer <redacted>
 Content-Type: application/json
@@ -261,7 +261,7 @@ Accept: application/json
 
 **Example — create a nested folder:**
 
-```
+```text
 POST /api/v2.0/me/MailFolders/AAMkAGI...Projects/childfolders
 Content-Type: application/json
 
@@ -270,7 +270,7 @@ Content-Type: application/json
 
 **Example collision (most tenants):**
 
-```
+```text
 HTTP/1.1 409 Conflict
 {"error":{"code":"ErrorFolderExists","message":"A folder with the specified name already exists."}}
 ```
@@ -311,8 +311,7 @@ message resource with a **new** `Id`.
   - The new-id semantics are a scripting footgun unless we surface the
     mapping explicitly. Refined spec §5.4 mandates the `{sourceId, newId}`
     pair per move — that's the required mitigation.
-  - No native `$batch` support in v2.0 (refined NG4): N messages = N requests
-    - N round-trips. The partial-failure shape (`moved[] / failed[] /
+  - No native `$batch` support in v2.0 (refined NG4): N messages = N requests - N round-trips. The partial-failure shape (`moved[] / failed[] /
 summary`) mirrors `download-attachments`.
 - **Failure modes**
   - Source message already moved by another client → 404 on source id. Maps
@@ -327,7 +326,7 @@ summary`) mirrors `download-attachments`.
 
 **Example — move one message to a user folder:**
 
-```
+```text
 POST /api/v2.0/me/messages/AAMkAGI...srcA/move
 Authorization: Bearer <redacted>
 Content-Type: application/json
@@ -351,7 +350,7 @@ Accept: application/json
 
 **Example — move to a well-known alias:**
 
-```
+```text
 POST /api/v2.0/me/messages/AAMkAGI...srcA/move
 Content-Type: application/json
 
@@ -407,7 +406,7 @@ Flow:
 
 **Example — list messages by folder id:**
 
-```
+```text
 GET /api/v2.0/me/MailFolders/AAMkAGI...Alpha/messages?$top=10&$orderby=ReceivedDateTime%20desc&$select=Id,Subject,From,ReceivedDateTime,HasAttachments,IsRead,WebLink
 ```
 
@@ -634,7 +633,7 @@ Every new command file (`list-folders.ts`, `find-folder.ts`,
 `create-folder.ts`, `move-mail.ts`) follows the canonical shape documented
 in `codebase-scan-folders.md §2.1`:
 
-```
+```text
 1. validate opts against CliConfig defaults
 2. ensureSession(deps) → SessionFile
 3. deps.createClient(session) → OutlookClient
@@ -747,9 +746,7 @@ the JSON shape deterministic.
 
 ## 6. Technical Research Guidance
 
-**Research needed: Yes**
-
-Three items are NOT pinned down well enough to commit to code paths. Each is
+Research needed: **Yes**. Three items are NOT pinned down well enough to commit to code paths. Each is
 bounded and should take at most a short, empirical probe against a live
 tenant plus cross-checking Microsoft docs.
 
@@ -866,4 +863,4 @@ page['@odata.nextLink'] }`. If the tenant returns `$skiptoken`-based
 Refined at: `docs/design/refined-request-folders.md` — full scope, subcommand
 shapes, CLI surface, error-mapping rules, and acceptance criteria.
 
-Absolute output path: `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/investigation-folders.md`
+Absolute output path: `<upstream-repo>/docs/design/investigation-folders.md`

@@ -133,6 +133,7 @@ and not supplied via their flags.
 - **Default `$select` fields:** `Id,DisplayName,ParentFolderId,ChildFolderCount,UnreadItemCount,TotalItemCount,WellKnownName`
   (note: `WellKnownName` is only populated by Outlook on well-known folders.)
 - **Output (JSON):** an array of `FolderSummary` objects:
+
   ```json
   [
     {
@@ -147,8 +148,10 @@ and not supplied via their flags.
     }
   ]
   ```
+
   When `--recursive` is set, `Path` is the materialized display-name path from
   the parent down (using `/` separator — see §6.1).
+
 - **Output (table):** columns `Path | Unread | Total | Children | Id`.
 - **Exit codes:** 0; 2 (bad flag); 3 (missing mandatory config); 4; 5; 6 (n/a
   here, listed for symmetry).
@@ -208,6 +211,7 @@ and not supplied via their flags.
   with body `{"DisplayName": "<name>"}`. For nested creation, the call is
   repeated once per missing parent, then once for the leaf.
 - **Output (JSON):**
+
   ```json
   {
     "created": [
@@ -230,8 +234,10 @@ and not supplied via their flags.
     "idempotent": false
   }
   ```
+
   When `--idempotent` matches an existing leaf: `created` is empty,
   `leaf.PreExisting = true`, top-level `idempotent` is `true`.
+
 - **Output (table):** columns `Path | Id | PreExisting`.
 - **Exit codes:** 0; 2 (missing `<path>`, `/`-only path, invalid chars, or
   missing intermediate parent without `--create-parents`); 3; 4; 5
@@ -267,6 +273,7 @@ and not supplied via their flags.
   resource (with a **new Id** because ImmutableId is not used in REST v2.0
   defaults) in the destination folder.
 - **Output (JSON):**
+
   ```json
   {
     "destination": { "Id": "AAMkAGI...dest", "Path": "Projects/Alpha", "DisplayName": "Alpha" },
@@ -280,8 +287,10 @@ and not supplied via their flags.
     "summary": { "requested": 3, "moved": 2, "failed": 1 }
   }
   ```
+
   (The `failed` array is populated only when `--continue-on-error` is in effect
   or when `--ids-from` semantics apply — see below.)
+
 - **Output (table):** columns `Source Id | New Id | Status | Error`.
 - **Exit codes / semantics:**
   - 0 — all requested ids moved successfully.
@@ -558,43 +567,43 @@ Each AC below must be backed by at least one test script under `test_scripts/`
 
 ### Failing / edge scenarios
 
-14. **AC-FOLDER-NOT-FOUND** — `outlook-cli find-folder "DoesNotExist"` exits 5
-    with `code == "UPSTREAM_FOLDER_NOT_FOUND"`.
-15. **AC-FOLDER-AMBIGUOUS** — With two sibling folders named `Projects`,
-    `find-folder "Projects"` exits 2 with `code == "FOLDER_AMBIGUOUS"` and
-    lists the candidate ids. With `--first-match`, exit 0 and only the first
-    is returned.
-16. **AC-CREATE-COLLISION** — Creating an existing folder without
-    `--idempotent` exits 6 with `code == "FOLDER_ALREADY_EXISTS"`.
-17. **AC-CREATE-MISSING-PARENT** — `create-folder "A/B"` without
-    `--create-parents` when `A` does not exist exits 2 with
-    `code == "FOLDER_MISSING_PARENT"`.
-18. **AC-MOVE-BAD-DEST** — `move-mail <id> --to "Nope/Nope"` exits 5 with
-    `code == "UPSTREAM_FOLDER_NOT_FOUND"` (or exit 2 `FOLDER_AMBIGUOUS` if
-    path is malformed — consistent with §10 table).
-19. **AC-MOVE-BAD-SOURCE** — `move-mail bogus --to Inbox` exits 5 with
-    `code == "UPSTREAM_HTTP_404"`.
-20. **AC-MOVE-PARTIAL** — With `--continue-on-error`, a batch of 3 ids where
-    one source id is bogus exits **5** (not 0), but `moved[]` has 2 entries
-    and `failed[]` has 1.
-21. **AC-MOVE-STOPAT** — With `--ids-from` containing 5 ids and `--stop-at 2`,
-    exactly 2 are attempted; the run exits 2 with `code == "BAD_USAGE"` and a
-    summary of what would have been moved. (Rationale: `--stop-at` is a safety
-    valve; exceeding it is a usage error, not a partial success.)
-22. **AC-PATH-ESCAPE** — A folder named `A/B` can be created by passing
-    `"A\/B"` on the CLI, and `find-folder "A\/B"` resolves it without
-    descending into a non-existent parent `A`.
-23. **AC-PATH-DEPTH-CAP** — A path with 17 segments exits 2 with
+1. **AC-FOLDER-NOT-FOUND** — `outlook-cli find-folder "DoesNotExist"` exits 5
+   with `code == "UPSTREAM_FOLDER_NOT_FOUND"`.
+2. **AC-FOLDER-AMBIGUOUS** — With two sibling folders named `Projects`,
+   `find-folder "Projects"` exits 2 with `code == "FOLDER_AMBIGUOUS"` and
+   lists the candidate ids. With `--first-match`, exit 0 and only the first
+   is returned.
+3. **AC-CREATE-COLLISION** — Creating an existing folder without
+   `--idempotent` exits 6 with `code == "FOLDER_ALREADY_EXISTS"`.
+4. **AC-CREATE-MISSING-PARENT** — `create-folder "A/B"` without
+   `--create-parents` when `A` does not exist exits 2 with
+   `code == "FOLDER_MISSING_PARENT"`.
+5. **AC-MOVE-BAD-DEST** — `move-mail <id> --to "Nope/Nope"` exits 5 with
+   `code == "UPSTREAM_FOLDER_NOT_FOUND"` (or exit 2 `FOLDER_AMBIGUOUS` if
+   path is malformed — consistent with §10 table).
+6. **AC-MOVE-BAD-SOURCE** — `move-mail bogus --to Inbox` exits 5 with
+   `code == "UPSTREAM_HTTP_404"`.
+7. **AC-MOVE-PARTIAL** — With `--continue-on-error`, a batch of 3 ids where
+   one source id is bogus exits **5** (not 0), but `moved[]` has 2 entries
+   and `failed[]` has 1.
+8. **AC-MOVE-STOPAT** — With `--ids-from` containing 5 ids and `--stop-at 2`,
+   exactly 2 are attempted; the run exits 2 with `code == "BAD_USAGE"` and a
+   summary of what would have been moved. (Rationale: `--stop-at` is a safety
+   valve; exceeding it is a usage error, not a partial success.)
+9. **AC-PATH-ESCAPE** — A folder named `A/B` can be created by passing
+   `"A\/B"` on the CLI, and `find-folder "A\/B"` resolves it without
+   descending into a non-existent parent `A`.
+10. **AC-PATH-DEPTH-CAP** — A path with 17 segments exits 2 with
     `code == "FOLDER_PATH_INVALID"`.
-24. **AC-WELLKNOWN-PRECEDENCE** — Given a user-created top-level folder named
+11. **AC-WELLKNOWN-PRECEDENCE** — Given a user-created top-level folder named
     `Inbox`, `find-folder Inbox` resolves to the well-known Inbox. Reaching
     the user one requires `--parent MsgFolderRoot --first-match` or a
     disambiguating path.
-25. **AC-401-RETRY-FOLDERS** — A 401 on `POST /childfolders` triggers exactly
+12. **AC-401-RETRY-FOLDERS** — A 401 on `POST /childfolders` triggers exactly
     one re-auth, then succeeds. A second 401 exits 4.
-26. **AC-NO-SECRET-LEAK-FOLDERS** — With `--log-file` at debug, no folder or
+13. **AC-NO-SECRET-LEAK-FOLDERS** — With `--log-file` at debug, no folder or
     move log line contains the bearer token or cookie values.
-27. **AC-CLAUDEMD-UPDATED-FOLDERS** — `CLAUDE.md`'s `<outlook-cli>` entry
+14. **AC-CLAUDEMD-UPDATED-FOLDERS** — `CLAUDE.md`'s `<outlook-cli>` entry
     lists every new subcommand with the exact flag syntax, defaults, and
     exit-code table described here.
 
@@ -649,6 +658,6 @@ Each AC below must be backed by at least one test script under `test_scripts/`
 
 ## 14. Original Request
 
-```
+```text
 I want you to add support to search and create folders, move emails to folders, list emails in folders
 ```

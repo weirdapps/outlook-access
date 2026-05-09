@@ -3,15 +3,15 @@
 Plan date: 2026-04-21
 Inputs consumed (in priority order):
 
-1. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/refined-request-folders.md`
-2. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/investigation-folders.md`
-3. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/research/outlook-v2-folder-pagination-filter.md`
-4. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/research/outlook-v2-move-destination-alias.md`
-5. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/research/outlook-v2-folder-duplicate-error.md`
-6. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/reference/codebase-scan-folders.md`
-7. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/project-design.md`
-8. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/plan-001-outlook-cli.md` (structural template)
-9. `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/CLAUDE.md`
+1. `<upstream-repo>/docs/design/refined-request-folders.md`
+2. `<upstream-repo>/docs/design/investigation-folders.md`
+3. `<upstream-repo>/docs/research/outlook-v2-folder-pagination-filter.md`
+4. `<upstream-repo>/docs/research/outlook-v2-move-destination-alias.md`
+5. `<upstream-repo>/docs/research/outlook-v2-folder-duplicate-error.md`
+6. `<upstream-repo>/docs/reference/codebase-scan-folders.md`
+7. `<upstream-repo>/docs/design/project-design.md`
+8. `<upstream-repo>/docs/design/plan-001-outlook-cli.md` (structural template)
+9. `<upstream-repo>/CLAUDE.md`
 
 Plan 002 is **strictly additive** on top of the shipped Plan 001 codebase. Phase A
 of Plan 001 (scaffolding) and Phases B-H (config, session, auth, HTTP, seven
@@ -88,7 +88,7 @@ Items.md`.
 Added to the system diagram (cf. `project-design.md §1`). New components
 shown with `NEW`. Changed components shown with `CHG`.
 
-```
+```text
                         ┌──────────────────────────────────────────┐
                         │              user / shell                │
                         └──────────────────┬───────────────────────┘
@@ -147,7 +147,7 @@ shown with `NEW`. Changed components shown with `CHG`.
 
 Runtime dataflow for a folder-aware command:
 
-```
+```text
 cli.ts → command → ensureSession → createClient → resolver.resolveFolder
        └→ (walks) client.listAll<FolderSummary>(/me/MailFolders/{id}/childfolders)
        ↓
@@ -160,7 +160,7 @@ command returns typed result → cli.ts emitResult → formatter (JSON | table)
 
 ## 3. Dependency Graph of Implementation Phases
 
-```
+```text
                 P1 (types)  P2 (errors)
                      │          │
                      └────┬─────┘
@@ -213,27 +213,20 @@ Parallelization, Acceptance-criteria coverage, and Verification steps.
 - **Goal.** Declare every new TypeScript type used by the rest of the phases.
   No behaviour.
 - **Files modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/http/types.ts`
+  - `<upstream-repo>/src/http/types.ts`
     - **New exports**: `FolderSummary` (REST wire shape, PascalCase),
       `FolderCreateRequest` (`{ DisplayName: string }`), `MoveMessageRequest`
       (`{ DestinationId: string }`).
     - No changes to existing exports.
 - **Files created**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/folders/types.ts`
-    - **Exports**:
-      - `FolderSpec` (discriminated: `{ kind: 'wellknown' | 'path' | 'id',
-value: string, parent?: FolderSpec }`).
-      - `ResolvedFolder` (`FolderSummary & { Path: string; ResolvedVia:
-'wellknown'|'path'|'id' }`).
-      - `CreateFolderResult` (`{ created: CreateSegment[]; leaf:
-CreatedSegment; idempotent: boolean }` + nested segment shape).
-      - `MoveMailResult` (`{ destination: MoveDestination; moved: MoveEntry[];
-failed: FailedEntry[]; summary: { requested, moved, failed } }`).
-      - `WELL_KNOWN_ALIASES: readonly string[]` (frozen list from refined
-        §6.2, PascalCase matching v2.0 URL conventions).
-      - `MAX_PATH_SEGMENTS = 16`, `MAX_FOLDER_PAGES = 50`,
-        `MAX_FOLDERS_VISITED = 5000`, `DEFAULT_LIST_TOP = 250`,
-        `DEFAULT_LIST_FOLDERS_TOP = 100`.
+  - `<upstream-repo>/src/folders/types.ts` - **Exports**: - `FolderSpec` (discriminated: `{ kind: 'wellknown' | 'path' | 'id',
+value: string, parent?: FolderSpec }`). - `ResolvedFolder` (`FolderSummary & { Path: string; ResolvedVia:
+'wellknown'|'path'|'id' }`). - `CreateFolderResult` (`{ created: CreateSegment[]; leaf:
+CreatedSegment; idempotent: boolean }` + nested segment shape). - `MoveMailResult` (`{ destination: MoveDestination; moved: MoveEntry[];
+failed: FailedEntry[]; summary: { requested, moved, failed } }`). - `WELL_KNOWN_ALIASES: readonly string[]` (frozen list from refined
+    §6.2, PascalCase matching v2.0 URL conventions). - `MAX_PATH_SEGMENTS = 16`, `MAX_FOLDER_PAGES = 50`,
+    `MAX_FOLDERS_VISITED = 5000`, `DEFAULT_LIST_TOP = 250`,
+    `DEFAULT_LIST_FOLDERS_TOP = 100`.
 - **Dependencies.** none (fresh types). Runs first.
 - **Parallel with.** P2.
 - **Acceptance-criteria covered.** none directly; gating for AC-\*.
@@ -250,18 +243,14 @@ failed: FailedEntry[]; summary: { requested, moved, failed } }`).
   the `code` string vocabularies on `UsageError` / `UpstreamError`. No CLI
   wiring yet (that is P6).
 - **Files modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/config/errors.ts`
-    - **New class**: `CollisionError extends OutlookCliError { exitCode = 6;
+  - `<upstream-repo>/src/config/errors.ts` - **New class**: `CollisionError extends OutlookCliError { exitCode = 6;
 code: string; path?: string; parentId?: string; }` — mirrors `IoError`
-      structure but with its own `instanceof` discriminator.
-    - **No changes** to `ConfigurationError`, `AuthError`, `UpstreamError`,
-      `IoError` class bodies. `UsageError` / `UpstreamError` `code` fields
-      already accept free strings — new codes are just documented in the
-      block comment above each class:
-      - `UsageError.code`: add `FOLDER_AMBIGUOUS`, `FOLDER_MISSING_PARENT`,
-        `FOLDER_PATH_INVALID`.
-      - `UpstreamError.code`: add `UPSTREAM_FOLDER_NOT_FOUND`,
-        `UPSTREAM_FOLDER_AMBIGUOUS`, `UPSTREAM_PAGINATION_LIMIT`.
+    structure but with its own `instanceof` discriminator. - **No changes** to `ConfigurationError`, `AuthError`, `UpstreamError`,
+    `IoError` class bodies. `UsageError` / `UpstreamError` `code` fields
+    already accept free strings — new codes are just documented in the
+    block comment above each class: - `UsageError.code`: add `FOLDER_AMBIGUOUS`, `FOLDER_MISSING_PARENT`,
+    `FOLDER_PATH_INVALID`. - `UpstreamError.code`: add `UPSTREAM_FOLDER_NOT_FOUND`,
+    `UPSTREAM_FOLDER_AMBIGUOUS`, `UPSTREAM_PAGINATION_LIMIT`.
 - **Dependencies.** none.
 - **Parallel with.** P1.
 - **Acceptance-criteria covered.** AC-CREATE-COLLISION (the class exists),
@@ -280,31 +269,21 @@ code: string; path?: string; parentId?: string; }` — mirrors `IoError`
   `doRequest`, add a public `post<TBody, TRes>`, and add `listAll<T>` with
   the 50-page safety cap.
 - **Files modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/http/outlook-client.ts`
-    - **Interface change** (`OutlookClient`):
-      - **Add**: `post<TBody, TRes>(path: string, body: TBody, query?:
-Record<string, QueryValue>): Promise<TRes>`.
-      - **Add**: `listAll<T>(path: string, query?: Record<string, QueryValue>,
-opts?: { maxPages?: number; top?: number }): Promise<T[]>`.
-      - `get<T>(...)` unchanged.
-    - **Implementation change**:
-      - Refactor private `doGet` → `doRequest(method, path, body?, query?)` —
-        hoist the 401-retry-once envelope (today at lines 93-110) into the
-        method-agnostic shape. `buildUrl`, `buildHeaders`, `executeFetch`,
-        `handleSuccessOrThrow`, `throwForResponse`, `mapFetchException`
-        **unchanged**.
-      - `buildHeaders`: emit `Content-Type: application/json` only when
-        `method === 'POST' | 'PATCH'`. Keep `Accept: application/json`,
-        `Authorization`, `X-AnchorMailbox`, `Cookie` untouched.
-      - `listAll<T>` per the snippet in `outlook-v2-folder-pagination-filter.md
+  - `<upstream-repo>/src/http/outlook-client.ts` - **Interface change** (`OutlookClient`): - **Add**: `post<TBody, TRes>(path: string, body: TBody, query?:
+Record<string, QueryValue>): Promise<TRes>`. - **Add**: `listAll<T>(path: string, query?: Record<string, QueryValue>,
+opts?: { maxPages?: number; top?: number }): Promise<T[]>`. - `get<T>(...)` unchanged. - **Implementation change**: - Refactor private `doGet` → `doRequest(method, path, body?, query?)` —
+    hoist the 401-retry-once envelope (today at lines 93-110) into the
+    method-agnostic shape. `buildUrl`, `buildHeaders`, `executeFetch`,
+    `handleSuccessOrThrow`, `throwForResponse`, `mapFetchException`
+    **unchanged**. - `buildHeaders`: emit `Content-Type: application/json` only when
+    `method === 'POST' | 'PATCH'`. Keep `Accept: application/json`,
+    `Authorization`, `X-AnchorMailbox`, `Cookie` untouched. - `listAll<T>` per the snippet in `outlook-v2-folder-pagination-filter.md
 §5` — first `GET` uses caller query + `$top` default
-        (`DEFAULT_LIST_TOP = 250`), subsequent pages follow
-        `@odata.nextLink` **verbatim** (no query re-merge).
-      - Off-host guard: reject any `@odata.nextLink` whose hostname is not
-        `outlook.office.com` — raise
-        `ApiError('PAGINATION_OFF_HOST', ...)`.
-      - Page-cap guard: on `pageCount >= maxPages` (default 50) raise
-        `ApiError('PAGINATION_LIMIT', ...)`.
+    (`DEFAULT_LIST_TOP = 250`), subsequent pages follow
+    `@odata.nextLink` **verbatim** (no query re-merge). - Off-host guard: reject any `@odata.nextLink` whose hostname is not
+    `outlook.office.com` — raise
+    `ApiError('PAGINATION_OFF_HOST', ...)`. - Page-cap guard: on `pageCount >= maxPages` (default 50) raise
+    `ApiError('PAGINATION_LIMIT', ...)`.
   - **No edits** to `src/http/errors.ts` (the `codeForStatus` 409 → `CONFLICT`
     mapping already covers the duplicate-folder path).
 - **Dependencies.** P1 (uses `ODataListResponse<T>` from `src/http/types.ts`).
@@ -325,51 +304,40 @@ opts?: { maxPages?: number; top?: number }): Promise<T[]>`.
   case-fold / ambiguity / well-known precedence / collision-error
   classification. Zero duplication across commands.
 - **Files created**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/folders/resolver.ts`
-    - **Exports**:
-      - `parseFolderPath(input: string): string[]` — split on `/`; unescape
-        `\/` → `/`, `\\` → `\`; reject empty segments; reject paths > 16
-        segments (raises `UsageError('FOLDER_PATH_INVALID', ...)`);
-        NFC-normalize every segment.
-      - `buildFolderPath(segments: string[]): string` — inverse. Escapes
-        `/` and `\` inside segments.
-      - `matchesWellKnownAlias(input: string): string | null` — exact match
-        against `WELL_KNOWN_ALIASES` (PascalCase). Returns canonical form
-        or null.
-      - `listChildren(client, parentId, opts): Promise<FolderSummary[]>` —
-        thin wrapper over `client.listAll<FolderSummary>` for
-        `/me/MailFolders/{parentId}/childfolders`. Default `$select`:
-        `Id,DisplayName,ParentFolderId,ChildFolderCount,UnreadItemCount,
+  - `<upstream-repo>/src/folders/resolver.ts` - **Exports**: - `parseFolderPath(input: string): string[]` — split on `/`; unescape
+    `\/` → `/`, `\\` → `\`; reject empty segments; reject paths > 16
+    segments (raises `UsageError('FOLDER_PATH_INVALID', ...)`);
+    NFC-normalize every segment. - `buildFolderPath(segments: string[]): string` — inverse. Escapes
+    `/` and `\` inside segments. - `matchesWellKnownAlias(input: string): string | null` — exact match
+    against `WELL_KNOWN_ALIASES` (PascalCase). Returns canonical form
+    or null. - `listChildren(client, parentId, opts): Promise<FolderSummary[]>` —
+    thin wrapper over `client.listAll<FolderSummary>` for
+    `/me/MailFolders/{parentId}/childfolders`. Default `$select`:
+    `Id,DisplayName,ParentFolderId,ChildFolderCount,UnreadItemCount,
 TotalItemCount,WellKnownName,CreatedDateTime,IsHidden`. Honors
-        `includeHidden` via `includeHiddenFolders=true` query param.
-      - `resolveFolder(client, spec: FolderSpec, opts: { caseSensitive?,
+    `includeHidden` via `includeHiddenFolders=true` query param. - `resolveFolder(client, spec: FolderSpec, opts: { caseSensitive?,
 includeHidden?, firstMatch? }): Promise<ResolvedFolder>` — the
-        path-walk workhorse. Contract:
-        - `spec.kind === 'id'` → one `GET /me/MailFolders/{id}`; map 404 →
-          `UpstreamError('UPSTREAM_FOLDER_NOT_FOUND', ...)`.
-        - `spec.kind === 'wellknown'` → no REST call; constructed
-          `ResolvedFolder` with `Id = value`, `DisplayName = value`,
-          `ResolvedVia = 'wellknown'`. Reason: Outlook accepts the alias in
-          subsequent URL paths verbatim.
-        - `spec.kind === 'path'` → walk segment-by-segment with
-          `listChildren`, match client-side using NFC + simple case-fold
-          (case-sensitive if `caseSensitive`). Ambiguity rules per
-          refined §6.4 (raises `UsageError('FOLDER_AMBIGUOUS', ...)`
-          unless `firstMatch` — then sort by `CreatedDateTime asc, Id asc`
-          per OQ-2).
-      - `createFolderPath(client, { anchorId, segments, createParents,
+    path-walk workhorse. Contract: - `spec.kind === 'id'` → one `GET /me/MailFolders/{id}`; map 404 →
+    `UpstreamError('UPSTREAM_FOLDER_NOT_FOUND', ...)`. - `spec.kind === 'wellknown'` → no REST call; constructed
+    `ResolvedFolder` with `Id = value`, `DisplayName = value`,
+    `ResolvedVia = 'wellknown'`. Reason: Outlook accepts the alias in
+    subsequent URL paths verbatim. - `spec.kind === 'path'` → walk segment-by-segment with
+    `listChildren`, match client-side using NFC + simple case-fold
+    (case-sensitive if `caseSensitive`). Ambiguity rules per
+    refined §6.4 (raises `UsageError('FOLDER_AMBIGUOUS', ...)`
+    unless `firstMatch` — then sort by `CreatedDateTime asc, Id asc`
+    per OQ-2). - `createFolderPath(client, { anchorId, segments, createParents,
 idempotent }): Promise<CreateFolderResult>` — for each segment:
-        (1) lookup under current parent;
-        (2) if present → advance with `PreExisting: true`;
-        (3) if not and not leaf and not `createParents` → raise
-        `UsageError('FOLDER_MISSING_PARENT', ...)`;
-        (4) else `client.post<FolderCreateRequest, FolderSummary>`;
-        (5) on `ApiError` where `isFolderExistsError(err)` is true: - if `idempotent` → re-list children, locate by DisplayName,
-        advance with `PreExisting: true`. - else raise `CollisionError('FOLDER_ALREADY_EXISTS',
-      segmentPath, parentId)`.
-      - `isFolderExistsError(err): boolean` — `instanceof ApiError` +
-        (status 400 OR 409) + `err.body?.error?.code === 'ErrorFolderExists'`
-        (per `outlook-v2-folder-duplicate-error.md §4.1`).
+    (1) lookup under current parent;
+    (2) if present → advance with `PreExisting: true`;
+    (3) if not and not leaf and not `createParents` → raise
+    `UsageError('FOLDER_MISSING_PARENT', ...)`;
+    (4) else `client.post<FolderCreateRequest, FolderSummary>`;
+    (5) on `ApiError` where `isFolderExistsError(err)` is true: - if `idempotent` → re-list children, locate by DisplayName,
+    advance with `PreExisting: true`. - else raise `CollisionError('FOLDER_ALREADY_EXISTS',
+      segmentPath, parentId)`. - `isFolderExistsError(err): boolean` — `instanceof ApiError` +
+    (status 400 OR 409) + `err.body?.error?.code === 'ErrorFolderExists'`
+    (per `outlook-v2-folder-duplicate-error.md §4.1`).
 - **Dependencies.** P1 (types), P2 (errors), P3 (client.post, client.listAll).
 - **Parallel with.** — (P5a-e all need this).
 - **Acceptance-criteria covered.** Building block for every folder AC.
@@ -394,22 +362,18 @@ own file — zero file overlap (see §5 Parallel-safety matrix).
 - **Goal.** Enumerate top-level folders, or children of any parent; recursive
   mode materializes `Path`.
 - **File created**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/list-folders.ts`
-    - **Exports**:
-      - `ListFoldersDeps` / `ListFoldersOptions` / `run(deps, opts):
-Promise<FolderSummary[]>`.
-      - Options: `parent?: string` (well-known / path / `id:...`, default
-        `MsgFolderRoot`), `recursive: boolean`, `includeHidden: boolean`,
-        `top?: number` (default 100, range 1..250; validated — raises
-        `UsageError('BAD_USAGE', ...)` outside range).
-    - **Shape**: canonical per `codebase-scan-folders.md §2.1`:
-      `ensureSession` → `createClient` → resolve parent via
-      `resolveFolder(...)` (or short-circuit on `MsgFolderRoot` → no
-      REST call; path is `/me/MailFolders`) → `client.listAll` →
-      if `recursive`, recurse DFS while materializing `Path`, bounded by
-      `MAX_FOLDERS_VISITED = 5000` (exceeded → raises
-      `UpstreamError('UPSTREAM_PAGINATION_LIMIT', ...)`).
-      Wraps every `client.listAll` call in `try { ... } catch (err) {
+  - `<upstream-repo>/src/commands/list-folders.ts` - **Exports**: - `ListFoldersDeps` / `ListFoldersOptions` / `run(deps, opts):
+Promise<FolderSummary[]>`. - Options: `parent?: string` (well-known / path / `id:...`, default
+    `MsgFolderRoot`), `recursive: boolean`, `includeHidden: boolean`,
+    `top?: number` (default 100, range 1..250; validated — raises
+    `UsageError('BAD_USAGE', ...)` outside range). - **Shape**: canonical per `codebase-scan-folders.md §2.1`:
+    `ensureSession` → `createClient` → resolve parent via
+    `resolveFolder(...)` (or short-circuit on `MsgFolderRoot` → no
+    REST call; path is `/me/MailFolders`) → `client.listAll` →
+    if `recursive`, recurse DFS while materializing `Path`, bounded by
+    `MAX_FOLDERS_VISITED = 5000` (exceeded → raises
+    `UpstreamError('UPSTREAM_PAGINATION_LIMIT', ...)`).
+    Wraps every `client.listAll` call in `try { ... } catch (err) {
 throw mapHttpError(err); }`.
 - **Dependencies.** P1-P4.
 - **Parallel with.** P5b, P5c, P5d, P5e.
@@ -422,15 +386,10 @@ throw mapHttpError(err); }`.
 - **Goal.** Resolve a query (well-known / path / `id:...`) to a single
   `ResolvedFolder`, surfacing ambiguity and not-found correctly.
 - **File created**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/find-folder.ts`
-    - Exports `FindFolderDeps` / `FindFolderOptions` / `run(deps, query,
-opts): Promise<ResolvedFolder>`.
-    - Options: `parent?: string`, `caseSensitive: boolean`, `includeHidden:
-boolean`, `firstMatch: boolean`.
-    - Positional `<query>` — missing → `UsageError('BAD_USAGE', ...)`.
-    - `id:` prefix detection → `FolderSpec { kind: 'id' }`; else alias →
-      `kind: 'wellknown'`; else path → `parseFolderPath` + `kind: 'path'`.
-    - Single call to `resolver.resolveFolder`.
+  - `<upstream-repo>/src/commands/find-folder.ts` - Exports `FindFolderDeps` / `FindFolderOptions` / `run(deps, query,
+opts): Promise<ResolvedFolder>`. - Options: `parent?: string`, `caseSensitive: boolean`, `includeHidden:
+boolean`, `firstMatch: boolean`. - Positional `<query>` — missing → `UsageError('BAD_USAGE', ...)`. - `id:` prefix detection → `FolderSpec { kind: 'id' }`; else alias →
+    `kind: 'wellknown'`; else path → `parseFolderPath` + `kind: 'path'`. - Single call to `resolver.resolveFolder`.
 - **Dependencies.** P1-P4.
 - **Parallel with.** P5a, P5c, P5d, P5e.
 - **Acceptance-criteria covered.** AC-FIND-WELLKNOWN, AC-FIND-PATH, AC-FIND-ID,
@@ -444,18 +403,13 @@ boolean`, `firstMatch: boolean`.
 - **Goal.** Create a folder path (optionally nested) under a parent, with
   idempotent-on-collision semantics.
 - **File created**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/create-folder.ts`
-    - Exports `CreateFolderDeps` / `CreateFolderOptions` / `run(deps, path,
-opts): Promise<CreateFolderResult>`.
-    - Options: `parent?: string`, `createParents: boolean`, `idempotent:
+  - `<upstream-repo>/src/commands/create-folder.ts` - Exports `CreateFolderDeps` / `CreateFolderOptions` / `run(deps, path,
+opts): Promise<CreateFolderResult>`. - Options: `parent?: string`, `createParents: boolean`, `idempotent:
 boolean`, `displayName?: string` (override the last segment's
-      DisplayName).
-    - Positional `<path>` — missing → `UsageError('BAD_USAGE', ...)`.
-    - Flow: resolve parent → `parseFolderPath` → `resolver.createFolderPath`.
-    - Reject well-known aliases as top-level DisplayNames per refined §5.3
-      ("cannot create Inbox at root"): raise `UsageError('BAD_USAGE', ...)`
-      if the last segment normalizes to a well-known alias AND the resolved
-      anchor is `MsgFolderRoot`.
+    DisplayName). - Positional `<path>` — missing → `UsageError('BAD_USAGE', ...)`. - Flow: resolve parent → `parseFolderPath` → `resolver.createFolderPath`. - Reject well-known aliases as top-level DisplayNames per refined §5.3
+    ("cannot create Inbox at root"): raise `UsageError('BAD_USAGE', ...)`
+    if the last segment normalizes to a well-known alias AND the resolved
+    anchor is `MsgFolderRoot`.
 - **Dependencies.** P1-P4.
 - **Parallel with.** P5a, P5b, P5d, P5e.
 - **Acceptance-criteria covered.** AC-CREATE-TOPLEVEL, AC-CREATE-NESTED,
@@ -471,39 +425,25 @@ boolean`, `displayName?: string` (override the last segment's
 - **Goal.** Move one or more messages to a destination folder, always
   pre-resolving the destination to a raw id (OQ-4).
 - **File created**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/move-mail.ts`
-    - Exports `MoveMailDeps` / `MoveMailOptions` / `run(deps, id?, opts):
-Promise<MoveMailResult>`.
-    - Options: `to?: string` (well-known or path), `toId?: string` (raw id),
-      `toParent?: string`, `idsFrom?: string` (path, or `-` for stdin),
-      `continueOnError: boolean`, `stopAt: number` (default 1000, range
-      1..10000), `firstMatch: boolean`.
-    - Validation:
-      - `<id>` positional XOR `--ids-from` — both / neither →
-        `UsageError('BAD_USAGE', ...)`.
-      - `--to` XOR `--to-id` — both / neither →
-        `UsageError('BAD_USAGE', ...)`.
-      - `--stop-at` out of range → `UsageError('BAD_USAGE', ...)`.
-      - When `--ids-from` yields > `--stop-at` ids → exit 2
-        `BAD_USAGE` per AC-MOVE-STOPAT.
-    - Flow:
-      1. Resolve destination id once (pre-move): if `--to-id` → use as-is;
-         else `resolver.resolveFolder` and use `.Id`. Aliases still go
-         through the resolver (short-circuits to the alias string for
-         `GET /MailFolders/{alias}` → returns raw `Id`), per OQ-4.
-      2. For each source id (one or many): `client.post<MoveMessageRequest,
+  - `<upstream-repo>/src/commands/move-mail.ts` - Exports `MoveMailDeps` / `MoveMailOptions` / `run(deps, id?, opts):
+Promise<MoveMailResult>`. - Options: `to?: string` (well-known or path), `toId?: string` (raw id),
+    `toParent?: string`, `idsFrom?: string` (path, or `-` for stdin),
+    `continueOnError: boolean`, `stopAt: number` (default 1000, range
+    1..10000), `firstMatch: boolean`. - Validation: - `<id>` positional XOR `--ids-from` — both / neither →
+    `UsageError('BAD_USAGE', ...)`. - `--to` XOR `--to-id` — both / neither →
+    `UsageError('BAD_USAGE', ...)`. - `--stop-at` out of range → `UsageError('BAD_USAGE', ...)`. - When `--ids-from` yields > `--stop-at` ids → exit 2
+    `BAD_USAGE` per AC-MOVE-STOPAT. - Flow: 1. Resolve destination id once (pre-move): if `--to-id` → use as-is;
+    else `resolver.resolveFolder` and use `.Id`. Aliases still go
+    through the resolver (short-circuits to the alias string for
+    `GET /MailFolders/{alias}` → returns raw `Id`), per OQ-4. 2. For each source id (one or many): `client.post<MoveMessageRequest,
 { Id: string }>('/me/messages/{srcId}/move', { DestinationId:
 destId })`. On success push `{ sourceId, newId }` to `moved[]`.
-         On `ApiError`:
-         - if `--continue-on-error` → push to `failed[]` + continue.
-         - else throw `mapHttpError(err)`.
-      3. Assemble `MoveMailResult` with `summary: { requested, moved,
-failed }`.
-    - Exit-code semantics per refined §5.4: partial failure under
-      `--continue-on-error` still surfaces exit 5 (done in P6 by
-      re-throwing the last `UpstreamError` after emission — the payload
-      still contains `moved[]`/`failed[]`). Pattern mirrored from
-      `download-attachments`.
+    On `ApiError`: - if `--continue-on-error` → push to `failed[]` + continue. - else throw `mapHttpError(err)`. 3. Assemble `MoveMailResult` with `summary: { requested, moved,
+failed }`. - Exit-code semantics per refined §5.4: partial failure under
+    `--continue-on-error` still surfaces exit 5 (done in P6 by
+    re-throwing the last `UpstreamError` after emission — the payload
+    still contains `moved[]`/`failed[]`). Pattern mirrored from
+    `download-attachments`.
 - **Dependencies.** P1-P4.
 - **Parallel with.** P5a, P5b, P5c, P5e.
 - **Acceptance-criteria covered.** AC-MOVE-SINGLE, AC-MOVE-MANY,
@@ -518,25 +458,16 @@ failed }`.
 - **Goal.** Accept `--folder-id` and widen `--folder` to accept paths and
   any well-known alias, while preserving the five-alias fast path.
 - **File modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/commands/list-mail.ts`
-    - **ListMailOptions change**: add `folderId?: string`, `folderParent?:
-string`.
-    - **`ALLOWED_FOLDERS`** (line 37) — keep as-is; re-interpret as
-      "fast-path alias list" (no resolver hop). Extend the per-`--folder`
-      validation (currently at line 73) to:
-      - If `opts.folderId` set AND `opts.folder` set → `UsageError`.
-      - If `opts.folderId` set → path = `/me/MailFolders/{folderId}/messages`.
-      - Else if `opts.folder` is in `ALLOWED_FOLDERS` → existing fast path,
-        no change.
-      - Else if `opts.folder` matches any other `WELL_KNOWN_ALIASES` entry
-        (`JunkEmail`, `Outbox`, `MsgFolderRoot`, `RecoverableItemsDeletions`)
-        → fast path with that alias.
-      - Else → `resolver.resolveFolder(FolderSpec { kind: 'path', value,
-parent: opts.folderParent })` → use `.Id`.
-    - **Everything else unchanged** (`$orderby`, `$select`, `--top`, table
-      output).
-    - **`ensureSession` / `mapHttpError` / `UsageError`** — unchanged, still
-      re-exported for sibling commands.
+  - `<upstream-repo>/src/commands/list-mail.ts` - **ListMailOptions change**: add `folderId?: string`, `folderParent?:
+string`. - **`ALLOWED_FOLDERS`** (line 37) — keep as-is; re-interpret as
+    "fast-path alias list" (no resolver hop). Extend the per-`--folder`
+    validation (currently at line 73) to: - If `opts.folderId` set AND `opts.folder` set → `UsageError`. - If `opts.folderId` set → path = `/me/MailFolders/{folderId}/messages`. - Else if `opts.folder` is in `ALLOWED_FOLDERS` → existing fast path,
+    no change. - Else if `opts.folder` matches any other `WELL_KNOWN_ALIASES` entry
+    (`JunkEmail`, `Outbox`, `MsgFolderRoot`, `RecoverableItemsDeletions`)
+    → fast path with that alias. - Else → `resolver.resolveFolder(FolderSpec { kind: 'path', value,
+parent: opts.folderParent })` → use `.Id`. - **Everything else unchanged** (`$orderby`, `$select`, `--top`, table
+    output). - **`ensureSession` / `mapHttpError` / `UsageError`** — unchanged, still
+    re-exported for sibling commands.
 - **Dependencies.** P1-P4.
 - **Parallel with.** P5a, P5b, P5c, P5d.
 - **Acceptance-criteria covered.** AC-LISTMAIL-PATH, AC-LISTMAIL-ID,
@@ -553,49 +484,35 @@ parent: opts.folderParent })` → use `.Id`.
   `list-mail`, add `ColumnSpec` constants, wire `CollisionError` into
   `formatErrorJson` / `exitCodeFor`.
 - **Files modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/src/cli.ts`
-    - **Additions** (next to existing `LIST_MAIL_COLUMNS` at line 199):
-      - `LIST_FOLDERS_COLUMNS`: `Path | Unread | Total | Children | Id`
-        (no `maxWidth` on `Id`).
-      - `CREATE_FOLDER_COLUMNS` (applied to `result.created`):
-        `Path | Id | PreExisting`.
-      - `MOVE_MAIL_COLUMNS` (applied to `result.moved` concatenated with
-        `result.failed` after a status-mapping step):
-        `Source Id | New Id | Status | Error`.
-      - `FIND_FOLDER_COLUMNS`: **none** — `find-folder` returns a single
-        object; `emitResult` falls back to JSON when no column spec is
-        passed (acceptable per `codebase-scan-folders.md §7`).
-    - **Subcommand registrations** (mirror the existing `list-mail` block at
-      lines 486-507):
-      - `.command('list-folders')` → options `--parent`, `--recursive`,
-        `--include-hidden`, `--top` → calls `list-folders.run`, passes
-        `LIST_FOLDERS_COLUMNS`.
-      - `.command('find-folder <query>')` → options `--parent`,
-        `--case-sensitive`, `--include-hidden`, `--first-match` → calls
-        `find-folder.run`, no columns.
-      - `.command('create-folder <path>')` → options `--parent`,
-        `--create-parents`, `--idempotent`, `--display-name` → calls
-        `create-folder.run`, passes `CREATE_FOLDER_COLUMNS` applied to
-        `result.created`.
-      - `.command('move-mail [id]')` → options `--to`, `--to-id`,
-        `--to-parent`, `--ids-from`, `--continue-on-error`, `--stop-at`,
-        `--first-match` → calls `move-mail.run`, passes `MOVE_MAIL_COLUMNS`.
-    - **`list-mail` block**: add `--folder-id <id>`, `--folder-parent
-<name-or-path>` options to the existing registration.
-    - **`formatErrorJson`** (line 297) — add `if (err instanceof
+  - `<upstream-repo>/src/cli.ts` - **Additions** (next to existing `LIST_MAIL_COLUMNS` at line 199): - `LIST_FOLDERS_COLUMNS`: `Path | Unread | Total | Children | Id`
+    (no `maxWidth` on `Id`). - `CREATE_FOLDER_COLUMNS` (applied to `result.created`):
+    `Path | Id | PreExisting`. - `MOVE_MAIL_COLUMNS` (applied to `result.moved` concatenated with
+    `result.failed` after a status-mapping step):
+    `Source Id | New Id | Status | Error`. - `FIND_FOLDER_COLUMNS`: **none** — `find-folder` returns a single
+    object; `emitResult` falls back to JSON when no column spec is
+    passed (acceptable per `codebase-scan-folders.md §7`). - **Subcommand registrations** (mirror the existing `list-mail` block at
+    lines 486-507): - `.command('list-folders')` → options `--parent`, `--recursive`,
+    `--include-hidden`, `--top` → calls `list-folders.run`, passes
+    `LIST_FOLDERS_COLUMNS`. - `.command('find-folder <query>')` → options `--parent`,
+    `--case-sensitive`, `--include-hidden`, `--first-match` → calls
+    `find-folder.run`, no columns. - `.command('create-folder <path>')` → options `--parent`,
+    `--create-parents`, `--idempotent`, `--display-name` → calls
+    `create-folder.run`, passes `CREATE_FOLDER_COLUMNS` applied to
+    `result.created`. - `.command('move-mail [id]')` → options `--to`, `--to-id`,
+    `--to-parent`, `--ids-from`, `--continue-on-error`, `--stop-at`,
+    `--first-match` → calls `move-mail.run`, passes `MOVE_MAIL_COLUMNS`. - **`list-mail` block**: add `--folder-id <id>`, `--folder-parent
+<name-or-path>` options to the existing registration. - **`formatErrorJson`** (line 297) — add `if (err instanceof
 CollisionError) return { error: { code: err.code, path: err.path,
-parentId: err.parentId, message: err.message } };`.
-    - **`exitCodeFor`** (line 359) — add `if (err instanceof CollisionError)
-return 6;` before the `OutlookCliError` fallback.
-    - **Partial-move exit-5 handling**: `move-mail.run` returns a
-      `MoveMailResult` and, when `--continue-on-error` observed failures,
-      sets `result.__partialFailure = true` (non-exported sentinel) — the
-      action wrapper inspects it after `emitResult` and re-throws a
-      synthetic `UpstreamError('UPSTREAM_PARTIAL_MOVE', ...)` routed to
-      exit 5. Alternative cleaner design: `move-mail.run` itself throws
-      an `UpstreamError` **after** `emitResult` was already called — but
-      since commands must not touch stdout (§Patterns to preserve #2),
-      the cli.ts wrapper owns the ordering.
+parentId: err.parentId, message: err.message } };`. - **`exitCodeFor`** (line 359) — add `if (err instanceof CollisionError)
+return 6;` before the `OutlookCliError` fallback. - **Partial-move exit-5 handling**: `move-mail.run` returns a
+    `MoveMailResult` and, when `--continue-on-error` observed failures,
+    sets `result.__partialFailure = true` (non-exported sentinel) — the
+    action wrapper inspects it after `emitResult` and re-throws a
+    synthetic `UpstreamError('UPSTREAM_PARTIAL_MOVE', ...)` routed to
+    exit 5. Alternative cleaner design: `move-mail.run` itself throws
+    an `UpstreamError` **after** `emitResult` was already called — but
+    since commands must not touch stdout (§Patterns to preserve #2),
+    the cli.ts wrapper owns the ordering.
   - **No new files.**
 - **Dependencies.** P1, P2, P3, P4, P5 (all sub-phases).
 - **Parallel with.** — (strictly sequential).
@@ -617,26 +534,26 @@ return 6;` before the `OutlookCliError` fallback.
 - **Goal.** Register the new features in every project-wide doc per the
   project conventions.
 - **Files modified**:
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/CLAUDE.md`
+  - `<upstream-repo>/CLAUDE.md`
     - Add four new child blocks inside `<outlook-cli>`: `<list-folders>`,
       `<find-folder>`, `<create-folder>`, `<move-mail>`.
     - Update the `<list-mail>` block description to mention the new
       `--folder-id` / `--folder-parent` flags and path-based `--folder`.
     - Append the new exit-code / code-vocabulary rows to the error table.
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/project-design.md`
+  - `<upstream-repo>/docs/design/project-design.md`
     - Extend the §1 architecture diagram with the `src/folders/` module.
     - Append §2.X module-contract sections for `src/folders/resolver.ts`,
       `src/folders/types.ts`, the extended `OutlookClient` interface, and
       the new `CollisionError` class. Normative TypeScript signatures per
       §2 existing convention.
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/project-functions.MD`
+  - `<upstream-repo>/docs/design/project-functions.MD`
     - Add FR-008 (`list-folders`), FR-009 (`find-folder`), FR-010
       (`create-folder`), FR-011 (`move-mail`), and extend FR-003 with the
       `--folder-id` / `--folder-parent` / path-based `--folder` behaviour.
     - Add FF-006 — folder resolver (path / alias / NFC / case-fold /
       ambiguity policy).
     - Add FF-007 — pagination + 50-page cap.
-  - `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/Issues - Pending Items.md`
+  - `<upstream-repo>/Issues - Pending Items.md`
     - If any follow-up pending items are discovered during P1-P6 (e.g.
       OQ-1..OQ-4 unresolved by user), register them per the
       "pending-on-top" convention.
@@ -830,7 +747,7 @@ Claude can execute the following at each phase boundary:
 
 ### Compile-time
 
-- `cd /Users/giorgosmarinos/aiwork/coding-platform/outlook-tool && npx tsc
+- `cd <upstream-repo> && npx tsc
 --noEmit` — must return exit 0 at every phase boundary.
 
 ### Unit tests
@@ -869,7 +786,7 @@ Recommended order for a manual smoke pass:
 7. `outlook-cli move-mail <any-inbox-message-id> --to "<smoke-folder>"` →
    exit 0, `moved[0].newId != moved[0].sourceId`.
 8. `outlook-cli --log-file /tmp/outlook-cli-smoke.log list-folders
---recursive --table` — the log file must not contain `Bearer ` or
+--recursive --table` — the log file must not contain `Bearer` or
    `Cookie:` (AC-NO-SECRET-LEAK-FOLDERS).
 
 ### Documentation grep checks
@@ -909,4 +826,4 @@ src/config/errors.ts src/cli.ts` → hits in both files.
   notes and the investigation risk register; each has a named mitigation
   in a specific phase.
 
-Absolute output path: `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/plan-002-folders.md`
+Absolute output path: `<upstream-repo>/docs/design/plan-002-folders.md`

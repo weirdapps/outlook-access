@@ -19,13 +19,13 @@ Inputs consumed (in priority order):
 
 Folder-management extension (§10, ADR-13..ADR-16) additionally consumes:
 
-8. `docs/design/refined-request-folders.md`
-9. `docs/design/plan-002-folders.md`
-10. `docs/design/investigation-folders.md`
-11. `docs/research/outlook-v2-folder-pagination-filter.md`
-12. `docs/research/outlook-v2-move-destination-alias.md`
-13. `docs/research/outlook-v2-folder-duplicate-error.md`
-14. `docs/reference/codebase-scan-folders.md`
+1. `docs/design/refined-request-folders.md`
+2. `docs/design/plan-002-folders.md`
+3. `docs/design/investigation-folders.md`
+4. `docs/research/outlook-v2-folder-pagination-filter.md`
+5. `docs/research/outlook-v2-move-destination-alias.md`
+6. `docs/research/outlook-v2-folder-duplicate-error.md`
+7. `docs/reference/codebase-scan-folders.md`
 
 ---
 
@@ -34,7 +34,7 @@ Folder-management extension (§10, ADR-13..ADR-16) additionally consumes:
 Text-based component diagram. Arrows show runtime call direction; boxes group files by
 layer. "Out-of-process" dependencies are labeled.
 
-```
+```text
                         ┌──────────────────────────────────────────┐
                         │              user / shell                │
                         │     $ outlook-cli <verb> [flags]         │
@@ -715,7 +715,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient;
     filtered to cookies whose `domain` matches `outlook.office.com` via RFC 6265 suffix
     rules. `httpOnly` cookies MUST be included (they are available on the jar even
     though hidden from `document.cookie`). `secure` cookies MUST be included (requests
-    are HTTPS). Format: `name=value`, joined with `; `. Do NOT URL-encode cookie values.
+    are HTTPS). Format: `name=value`, joined with `;`. Do NOT URL-encode cookie values.
   - For body-bearing endpoints (future): `Content-Type: application/json`.
 - `AbortController`: `signal` is passed to `fetch`; a `setTimeout(httpTimeoutMs, abort)`
   fires if the request is not complete. On abort → `UpstreamError("UPSTREAM_TIMEOUT",
@@ -939,9 +939,9 @@ export function formatOutput<T>(
   and `String(cell).length` across all rows, capped at 80.
 - Null/undefined cells render as empty string.
 - Header row: headers, padded with spaces per column.
-- Separator row: `-` repeated to column width, joined by `  ` (two spaces).
+- Separator row: `-` repeated to column width, joined by `` (two spaces).
 - Data rows: one per entry, `String(cell)` left-padded (or right-padded if
-  `align: 'right'`), joined by `  `.
+  `align: 'right'`), joined by ``.
 - No bordering characters, no Unicode — pure ASCII, two-space column gutter.
 - Trailing newline on the output.
 
@@ -997,6 +997,7 @@ program
 5. Call `store.saveSession(cfg.sessionFilePath, session)`.
 6. Release the lock.
 7. Format and print the output JSON:
+
    ```json
    {
      "status": "ok",
@@ -1066,7 +1067,7 @@ program
 1. Validate `--folder` against the allowed set; else throw `OutlookCliError` → exit 2.
 2. Load/refresh session as needed; build client.
 3. `select = opts.select ?? "Id,Subject,From,ReceivedDateTime,HasAttachments,IsRead,WebLink"`.
-4. `path = `/api/v2.0/me/MailFolders/${opts.folder}/messages``;
+4. `path =`/api/v2.0/me/MailFolders/${opts.folder}/messages``;
 `query = { $top: String(opts.top), $orderby: 'ReceivedDateTime desc', $select: select }`.
 5. `response = await client.get<{ value: MessageSummary[] }>(path, query)`.
 6. Format: `response.value` as array (JSON) or as table with columns
@@ -1190,7 +1191,7 @@ program
 2. Resolve `to   = opts.to   ?? cfg.calTo` (default "now + 7d" → `new Date(Date.now() + 7*86400000).toISOString()`).
 3. Build client.
 4. `query = { startDateTime: from, endDateTime: to, $orderby: 'Start/DateTime asc',
-  $select: 'Id,Subject,Start,End,Organizer,Location,IsAllDay' }`.
+$select: 'Id,Subject,Start,End,Organizer,Location,IsAllDay' }`.
 5. `response = await client.get<{ value: EventSummary[] }>('/api/v2.0/me/calendarview', query)`.
 6. Format: JSON array; table columns `[Start, End, Subject, Organizer, Location, Id]`.
 
@@ -1538,7 +1539,7 @@ is replaced with `[REDACTED]`. The client performs this substitution before wrap
 
 Pseudocode for `loadConfig`:
 
-```
+```text
 function loadConfig(cliFlags):
 
   # 1. Mandatory settings — throw if unresolved
@@ -1694,7 +1695,7 @@ starts; "Publishes" lists interfaces this unit is authoritative for.
 
 **Parallelization graph** (identical to plan-001 §2):
 
-```
+```text
 P-A  →  P-B  ─┐
          P-C  ─┼→  P-D  ─┐
          P-E  ─┘         │
@@ -1786,7 +1787,7 @@ must also begin with that shebang; `tsc` preserves the first line.
 
 Append (even though there is no git repo yet — this is forward-looking):
 
-```
+```text
 node_modules/
 dist/
 
@@ -2041,7 +2042,7 @@ new command under `src/commands/`. The existing `src/commands/list-mail.ts`
 is extended in place (the well-known fast path is preserved verbatim;
 non-well-known names are delegated to the resolver).
 
-```
+```text
                         ┌──────────────────────────────────────────┐
                         │        src/cli.ts  (bin entry)           │  CHG
                         │   + list-folders / find-folder /          │
@@ -2470,7 +2471,7 @@ No other escaping rules apply: leading/trailing whitespace is preserved and
 not trimmed; Unicode characters pass through verbatim (subject to NFC
 normalization at compare time, §10.5.3).
 
-```
+```text
 parseFolderPath(input):
   segments = []
   current  = ""
@@ -2505,7 +2506,7 @@ parseFolderPath(input):
 
 **Walk.** Given a parsed segment list and an anchor `FolderSpec`:
 
-```
+```text
 resolveFolder(client, spec, opts):
   if spec.kind == 'id':
     return client.get<FolderSummary>("/me/MailFolders/" + encode(spec.value))
@@ -2792,7 +2793,7 @@ conflicts.
 
 Graph of implementation dependencies — identical to plan-002 §3:
 
-```
+```text
                 Wave 1 (parallel)
                 P1 (types)  P2 (errors)
                      │          │
@@ -2884,4 +2885,4 @@ folder feature scope.
 - 16 ADRs justify every non-obvious technology and architecture choice (ADR-13..ADR-16
   cover plan-002 OQ-1..OQ-4).
 
-Absolute output path: `/Users/giorgosmarinos/aiwork/coding-platform/outlook-tool/docs/design/project-design.md`
+Absolute output path: `<upstream-repo>/docs/design/project-design.md`

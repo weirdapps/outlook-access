@@ -43,13 +43,16 @@ Several commands have their own options (`-n / --top`, `--folder`, `--from`, `--
 - **Secrets** (captured Bearer token, session cookies) are NEVER placed in config files. They live only in `$HOME/.outlook-cli/session.json` at mode `0600`, written atomically by the CLI itself.
 - **Permanent setup**: append `source /abs/path/to/outlook-cli.env` to `~/.zshrc` or `~/.bashrc` so every shell has the three mandatory settings preloaded.
 - **One-off invocations**: prefix the command, e.g.
+
   ```bash
   OUTLOOK_CLI_HTTP_TIMEOUT_MS=30000 \
   OUTLOOK_CLI_LOGIN_TIMEOUT_MS=300000 \
   OUTLOOK_CLI_CHROME_CHANNEL=chrome \
     node dist/cli.js list-mail -n 5
   ```
+
 - **Per-call override**: the CLI flag always wins, so you can bump a single call's timeout without touching env:
+
   ```bash
   node dist/cli.js --timeout 60000 list-mail -n 50
   ```
