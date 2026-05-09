@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc",
     "postbuild": "chmod +x dist/cli.js",
+    "prepare": "[ -d src ] && npm run build || true",
     "cli": "ts-node src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
