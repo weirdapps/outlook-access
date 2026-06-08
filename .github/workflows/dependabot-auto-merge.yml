@@ -17,12 +17,15 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Enable auto-merge for safe updates
         # Auto-merge: patch + minor for ALL ecosystems, including grouped updates.
-        # Major version bumps still require manual review.
+        # Major version bumps always require manual review — even inside a group.
         if: |
-          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
-          steps.meta.outputs.update-type == 'version-update:semver-minor' ||
-          steps.meta.outputs.update-type == 'version-update:semver-patchminor' ||
-          steps.meta.outputs.dependency-group != ''
+          steps.meta.outputs.update-type != 'version-update:semver-major' &&
+          (
+            steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+            steps.meta.outputs.update-type == 'version-update:semver-minor' ||
+            steps.meta.outputs.update-type == 'version-update:semver-patchminor' ||
+            steps.meta.outputs.dependency-group != ''
+          )
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
