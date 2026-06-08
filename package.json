@@ -36,7 +36,9 @@
     "vitest": "^4.1.5"
   },
   "dependencies": {
-    "commander": "^14.0.3",
+    "commander": "^14.0.3"
+  },
+  "optionalDependencies": {
     "playwright": "^1.59.1"
   }
 }

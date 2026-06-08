@@ -9,7 +9,7 @@
 //             docs/design/refined-request-outlook-cli.md §6.3 (re-auth flow)
 
 import * as fs from 'node:fs';
-import { chromium, BrowserContext, Page } from 'playwright';
+import type { BrowserContext, Page } from 'playwright';
 
 import { Cookie } from '../session/schema';
 import type { SharepointSession } from '../session/sharepoint-schema';
@@ -212,6 +212,10 @@ export function _redactToken(token: string): string {
 
 export async function captureOutlookSession(opts: CaptureOptions): Promise<CaptureResult> {
   // NOSONAR S3776 - browser automation orchestration
+  // Lazy-load playwright so read-only commands (list-mail, get-mail, …) never
+  // trigger its module init or browser-binary download.
+  const { chromium } = await import('playwright');
+
   // 1. Ensure profile dir exists with mode 0o700.
   fs.mkdirSync(opts.profileDir, { recursive: true, mode: 0o700 });
   try {

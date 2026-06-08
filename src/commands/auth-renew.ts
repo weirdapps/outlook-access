@@ -13,7 +13,7 @@ import type { CliConfig } from '../config/config';
 import type { SessionFile } from '../session/schema';
 import { AuthError } from '../config/errors';
 import { acquireLock } from '../auth/lock';
-import { captureOutlookSession, AuthCaptureError } from '../auth/browser-capture';
+import { AuthCaptureError } from '../auth/browser-capture';
 
 /** Default headless renewal timeout — much shorter than interactive login. */
 const DEFAULT_RENEW_TIMEOUT_MS = 30_000;
@@ -63,6 +63,7 @@ export async function run(
   const t0 = Date.now();
 
   try {
+    const { captureOutlookSession } = await import('../auth/browser-capture');
     const captured = await captureOutlookSession({
       profileDir: deps.config.profileDir,
       chromeChannel: deps.config.chromeChannel,

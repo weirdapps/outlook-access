@@ -14,11 +14,7 @@ import {
   OutlookCliError,
   UpstreamError,
 } from './config/errors';
-import {
-  AuthCaptureError,
-  captureOutlookSession,
-  type CaptureResult,
-} from './auth/browser-capture';
+import { AuthCaptureError, type CaptureResult } from './auth/browser-capture';
 import { createOutlookClient, type OutlookClient } from './http/outlook-client';
 import { CollisionError } from './http/errors';
 import { loadSession, saveSession } from './session/store';
@@ -102,7 +98,10 @@ function buildDeps(globalFlags: CliFlags): CommandDeps {
   const sessionPath = config.sessionFileOverride ?? config.sessionFilePath;
 
   // Re-auth closure. The client uses it on 401 unless `noAutoReauth` is set.
+  // Lazy-imports captureOutlookSession so playwright is only loaded when auth
+  // is actually needed (login, auth-renew, or 401 re-auth).
   const doAuthCapture = async (): Promise<SessionFile> => {
+    const { captureOutlookSession } = await import('./auth/browser-capture');
     const captured = await captureOutlookSession({
       profileDir: config.profileDir,
       chromeChannel: config.chromeChannel,
@@ -118,6 +117,7 @@ function buildDeps(globalFlags: CliFlags): CommandDeps {
   const doAuthCaptureWithSharepoint = async (
     host: string,
   ): Promise<{ session: SessionFile; sharepointPath: string }> => {
+    const { captureOutlookSession } = await import('./auth/browser-capture');
     const captured = await captureOutlookSession({
       profileDir: config.profileDir,
       chromeChannel: config.chromeChannel,
