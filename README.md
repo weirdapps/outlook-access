@@ -1,8 +1,16 @@
 # outlook-cli
 
-A TypeScript command-line tool for reading, sending, and organizing Outlook
-mail and calendar, by reusing an interactively captured Outlook-web session
-— no app registration, no tenant admin, no API keys.
+[![CI](https://github.com/weirdapps/outlook-access/actions/workflows/ci.yml/badge.svg)](https://github.com/weirdapps/outlook-access/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js 22](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](https://nodejs.org/)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](package.json)
+
+> **Drive your personal Outlook mailbox from the command line — no app
+> registration, no tenant admin, no API keys.**
+
+Captures the Bearer token that Outlook-web already uses in your browser, caches
+it locally (mode `0600`), and replays it against the same REST surface. One
+`login` command; everything else is scriptable.
 
 ---
 
