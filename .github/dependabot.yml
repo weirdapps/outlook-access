@@ -14,9 +14,13 @@ updates:
       - 'dependencies'
       - 'npm'
     groups:
-      minor-and-patch:
-        patterns:
-          - '*'
+      development-dependencies:
+        dependency-type: 'development'
+        update-types:
+          - 'minor'
+          - 'patch'
+      production-dependencies:
+        dependency-type: 'production'
         update-types:
           - 'minor'
           - 'patch'
