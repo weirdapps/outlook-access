@@ -40,5 +40,8 @@
   },
   "optionalDependencies": {
     "playwright": "^1.59.1"
+  },
+  "overrides": {
+    "vite": ">=8.0.16"
   }
 }
