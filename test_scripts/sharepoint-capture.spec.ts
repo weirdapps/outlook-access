@@ -40,19 +40,28 @@ interface FakeCookie {
   domain: string;
 }
 
-function makeFakePage(request: FakeRequest) {
-  return {
-    goto: vi.fn().mockResolvedValue(undefined),
-    waitForRequest: vi.fn().mockResolvedValue(request),
+// Mimic a Playwright BrowserContext that captures requests at the context level.
+// When `request` is provided, it is delivered to the registered 'request'
+// listener as soon as the page navigates (mirroring real SharePoint emitting a
+// Bearer call during initial load). When null, no request arrives, so the
+// capture falls through to its timeout.
+function makeFakeEnv(request: FakeRequest | null, cookies: FakeCookie[] = []) {
+  let requestHandler: ((req: FakeRequest) => void) | undefined;
+  const page = {
+    goto: vi.fn().mockImplementation(async () => {
+      if (request && requestHandler) requestHandler(request);
+    }),
     close: vi.fn().mockResolvedValue(undefined),
   };
-}
-
-function makeFakeContext(page: ReturnType<typeof makeFakePage>, cookies: FakeCookie[] = []) {
-  return {
+  const context = {
     newPage: vi.fn().mockResolvedValue(page),
     cookies: vi.fn().mockResolvedValue(cookies),
+    on: vi.fn((event: string, handler: (req: FakeRequest) => void) => {
+      if (event === 'request') requestHandler = handler;
+    }),
+    off: vi.fn(),
   };
+  return { context, page };
 }
 
 describe('captureSharepointFromContext', () => {
@@ -66,8 +75,7 @@ describe('captureSharepointFromContext', () => {
       { name: 'FedAuth', value: 'def', domain: 'nbg.sharepoint.com' },
       { name: 'unrelated', value: 'xyz', domain: 'login.microsoftonline.com' },
     ];
-    const page = makeFakePage(fakeRequest);
-    const context = makeFakeContext(page, cookies);
+    const { context, page } = makeFakeEnv(fakeRequest, cookies);
 
     const session = await captureSharepointFromContext(
       context as any,
@@ -85,23 +93,39 @@ describe('captureSharepointFromContext', () => {
     expect(page.close).toHaveBeenCalled();
   });
 
+  it('captures a Bearer from an MCAS-proxied (*.mcas.ms) request', async () => {
+    // MCAS Conditional Access App Control rewrites the SharePoint host to
+    // "<fqdn>.mcas.ms"; the capture must still match it (regression test for
+    // the headless/VPS timeout fix).
+    const fakeRequest: FakeRequest = {
+      url: () => 'https://nbg.sharepoint.com.mcas.ms/_api/web/lists',
+      headers: () => ({ authorization: `Bearer ${FAKE_JWT}` }),
+    };
+    const { context } = makeFakeEnv(fakeRequest, []);
+
+    const session = await captureSharepointFromContext(
+      context as any,
+      'nbg.sharepoint.com',
+      30_000,
+    );
+
+    expect(session.bearer).toBe(FAKE_JWT);
+    expect(session.host).toBe('nbg.sharepoint.com');
+  });
+
   it('throws SHAREPOINT_INVALID_HOST for non-sharepoint hosts', async () => {
-    const page = makeFakePage({ url: () => 'x', headers: () => ({}) });
-    const context = makeFakeContext(page);
+    const { context } = makeFakeEnv(null);
     await expect(
       captureSharepointFromContext(context as any, 'evil.example.com', 30_000),
     ).rejects.toThrow(SharepointCaptureError);
   });
 
-  it('throws SHAREPOINT_TIMEOUT when waitForRequest rejects', async () => {
-    const page = {
-      goto: vi.fn().mockResolvedValue(undefined),
-      waitForRequest: vi.fn().mockRejectedValue(new Error('Timeout 30000ms exceeded')),
-      close: vi.fn().mockResolvedValue(undefined),
-    };
-    const context = makeFakeContext(page as unknown as ReturnType<typeof makeFakePage>);
+  it('throws SHAREPOINT_TIMEOUT when no Bearer request arrives', async () => {
+    // No request delivered → the capture falls through to its timeout. Use a
+    // tiny timeout so the test stays fast.
+    const { context } = makeFakeEnv(null);
     await expect(
-      captureSharepointFromContext(context as any, 'tenant.sharepoint.com', 30_000),
+      captureSharepointFromContext(context as any, 'tenant.sharepoint.com', 20),
     ).rejects.toThrow(/SharePoint Bearer/);
   });
 });

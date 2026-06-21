@@ -616,13 +616,21 @@ export async function main(argv: string[]): Promise<number> {
     .command('auth-renew')
     .description('Silently renew the bearer using the persisted browser profile (headless)')
     .option('--timeout <ms>', 'Headless capture timeout (default 30000)', parseIntArg)
+    .option(
+      '--sharepoint-host <host>',
+      'Also silently refresh a SharePoint session for this host (e.g. tenant.sharepoint.com)',
+    )
     .action(
-      makeAction<{ timeout?: number }, []>(program, async (deps, g, cmdOpts) => {
-        const result = await authRenew.run(deps, {
-          timeoutMs: cmdOpts.timeout,
-        });
-        emitResult(result, resolveOutputMode(g));
-      }),
+      makeAction<{ timeout?: number; sharepointHost?: string }, []>(
+        program,
+        async (deps, g, cmdOpts) => {
+          const result = await authRenew.run(deps, {
+            timeoutMs: cmdOpts.timeout,
+            sharepointHost: cmdOpts.sharepointHost,
+          });
+          emitResult(result, resolveOutputMode(g));
+        },
+      ),
     );
 
   // -------- list-mail --------
