@@ -26,8 +26,12 @@ export interface AuthRenewDeps {
 }
 
 export interface AuthRenewOptions {
-  /** Override the renew-specific timeout (default 30000ms). */
+  /** Override the renew-specific timeout (default 30000ms; 90000ms when sharepointHost is set). */
   timeoutMs?: number;
+  /** When set, also silently refresh a SharePoint session for this host
+   *  (e.g. "tenant.sharepoint.com") into ~/.outlook-cli/sharepoint-session.json.
+   *  Uses the same headless silent-SSO context that renews the Outlook bearer. */
+  sharepointHost?: string;
 }
 
 export interface AuthRenewResult {
@@ -35,6 +39,8 @@ export interface AuthRenewResult {
   sessionFile: string;
   tokenExpiresAt: string;
   account: { upn: string; puid: string; tenantId: string };
+  /** Path to the persisted SharePoint session file when --sharepoint-host was set. */
+  sharepointSessionFile?: string;
   /** Wall-clock duration of the renewal in milliseconds. */
   durationMs: number;
 }
@@ -47,7 +53,7 @@ export async function run(
   deps: AuthRenewDeps,
   opts: AuthRenewOptions = {},
 ): Promise<AuthRenewResult> {
-  const timeoutMs = opts.timeoutMs ?? DEFAULT_RENEW_TIMEOUT_MS;
+  const timeoutMs = opts.timeoutMs ?? (opts.sharepointHost ? 90_000 : DEFAULT_RENEW_TIMEOUT_MS);
 
   // A renewal only makes sense if a prior interactive login left a profile
   // behind. Fail fast otherwise — the caller should run `login`.
@@ -69,6 +75,7 @@ export async function run(
       chromeChannel: deps.config.chromeChannel,
       loginTimeoutMs: timeoutMs,
       headless: true,
+      sharepointHost: opts.sharepointHost,
     });
 
     const session: SessionFile = {
@@ -81,11 +88,29 @@ export async function run(
     };
     await deps.saveSession(deps.sessionPath, session);
 
+    // When a SharePoint host was requested, persist its session too. This is the
+    // same headless silent-SSO context that just renewed the Outlook bearer, so
+    // it works unattended wherever auth-renew works (e.g. the device-trusted Mac).
+    let sharepointSessionFile: string | undefined;
+    if (opts.sharepointHost) {
+      if (!captured.sharepoint) {
+        throw new AuthError(
+          'AUTH_LOGIN_TIMEOUT',
+          `Headless renewal captured no SharePoint session for host "${opts.sharepointHost}". Run \`outlook-cli login --sharepoint-host ${opts.sharepointHost}\`.`,
+        );
+      }
+      const { defaultSharepointSessionPath, saveSharepointSession } =
+        await import('../session/sharepoint-schema');
+      sharepointSessionFile = defaultSharepointSessionPath();
+      await saveSharepointSession(sharepointSessionFile, captured.sharepoint);
+    }
+
     return {
       status: 'ok',
       sessionFile: path.resolve(deps.sessionPath),
       tokenExpiresAt: session.bearer.expiresAt,
       account: session.account,
+      ...(sharepointSessionFile ? { sharepointSessionFile } : {}),
       durationMs: Date.now() - t0,
     };
   } catch (err) {
