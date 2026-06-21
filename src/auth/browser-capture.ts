@@ -9,7 +9,7 @@
 //             docs/design/refined-request-outlook-cli.md §6.3 (re-auth flow)
 
 import * as fs from 'node:fs';
-import type { BrowserContext, Page } from 'playwright';
+import type { BrowserContext, Page, Request } from 'playwright';
 
 import { Cookie } from '../session/schema';
 import type { SharepointSession } from '../session/sharepoint-schema';
@@ -267,6 +267,47 @@ export async function captureOutlookSession(opts: CaptureOptions): Promise<Captu
     });
 
     await context.addInitScript(INIT_SCRIPT_TEXT);
+
+    // 4b. Node-side capture (primary path). The in-page init-script hook above
+    //     misses two cases: (a) MCAS (Defender for Cloud Apps) tenants proxy
+    //     every request to "<fqdn>.mcas.ms", so the office.com prefixes never
+    //     match; and (b) modern Outlook dispatches API calls from a Service
+    //     Worker whose fetch is NOT affected by page-level monkey-patching. A
+    //     context-level request listener sees both — the reliable path for
+    //     headless capture (Xvfb/VPS) on MCAS tenants. The init-script stays as
+    //     defense-in-depth for older Outlook builds.
+    const isTargetUrlNode = (url: string): boolean => {
+      if (
+        url.startsWith('https://outlook.office.com/api/v2.0/') ||
+        url.startsWith('https://outlook.office.com/ows/') ||
+        url.startsWith('https://outlook.office365.com/api/v2.0/') ||
+        url.startsWith('https://outlook.office365.com/ows/')
+      ) {
+        return true;
+      }
+      // MCAS-proxied form ("<original-host>.mcas.ms"); keep it Outlook-specific.
+      if (/\.mcas\.ms\//i.test(url)) {
+        const l = url.toLowerCase();
+        return (
+          (l.includes('outlook') || l.includes('office')) &&
+          (l.includes('/api/') || l.includes('/ows/'))
+        );
+      }
+      return false;
+    };
+    context.on('request', (req: Request) => {
+      if (settled) return;
+      try {
+        const url = req.url();
+        if (!isTargetUrlNode(url)) return;
+        const h = req.headers();
+        const auth = h['authorization'] ?? h['Authorization'] ?? '';
+        if (!/^Bearer\s+/i.test(auth)) return;
+        resolveCapture({ url, token: auth });
+      } catch {
+        /* best-effort — ignore malformed requests */
+      }
+    });
 
     // 5. Open a fresh page. We do NOT rely on context.pages()[0] because the
     //    research doc flags a Playwright bug (#28692) where init scripts do
