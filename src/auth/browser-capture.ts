@@ -94,6 +94,9 @@ export const INIT_SCRIPT_TEXT = `
     'https://outlook.office.com/ows/',
     'https://outlook.office365.com/api/v2.0/',
     'https://outlook.office365.com/ows/',
+    'https://outlook.cloud.microsoft/api/v2.0/',
+    'https://outlook.cloud.microsoft/ows/',
+    'https://outlook.cloud.microsoft/owa/',
   ];
 
   function isTargetUrl(url) {
@@ -190,11 +193,14 @@ const COOKIE_DOMAIN_SUFFIXES: readonly string[] = [
   '.office.com',
   '.outlook.office.com',
   '.outlook.office365.com',
+  '.cloud.microsoft',
+  '.outlook.cloud.microsoft',
   '.login.microsoftonline.com',
   '.microsoftonline.com',
   'office.com',
   'outlook.office.com',
   'outlook.office365.com',
+  'outlook.cloud.microsoft',
   'login.microsoftonline.com',
 ];
 
@@ -281,7 +287,10 @@ export async function captureOutlookSession(opts: CaptureOptions): Promise<Captu
         url.startsWith('https://outlook.office.com/api/v2.0/') ||
         url.startsWith('https://outlook.office.com/ows/') ||
         url.startsWith('https://outlook.office365.com/api/v2.0/') ||
-        url.startsWith('https://outlook.office365.com/ows/')
+        url.startsWith('https://outlook.office365.com/ows/') ||
+        url.startsWith('https://outlook.cloud.microsoft/api/v2.0/') ||
+        url.startsWith('https://outlook.cloud.microsoft/ows/') ||
+        url.startsWith('https://outlook.cloud.microsoft/owa/')
       ) {
         return true;
       }
