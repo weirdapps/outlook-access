@@ -9,7 +9,8 @@
 // HTTP failures.
 
 export interface SharepointClientOpts {
-  bearer: string;
+  /** Optional: cookie-authenticated tenants have no Bearer. Sent only when present. */
+  bearer?: string;
   cookies: string;
   timeoutMs: number;
 }
@@ -59,9 +60,13 @@ export class SharepointClient {
     const timer = setTimeout(() => ctrl.abort(), this.opts.timeoutMs);
     try {
       const headers: Record<string, string> = {
-        Authorization: `Bearer ${this.opts.bearer}`,
         Accept: '*/*',
       };
+      // Cookie-auth tenants have no Bearer; the FedAuth/rtFa cookies authorize
+      // the request. Only send Authorization when a Bearer was captured.
+      if (this.opts.bearer && this.opts.bearer.length > 0) {
+        headers['Authorization'] = `Bearer ${this.opts.bearer}`;
+      }
       if (this.opts.cookies && this.opts.cookies.length > 0) {
         headers['Cookie'] = this.opts.cookies;
       }

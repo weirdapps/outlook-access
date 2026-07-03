@@ -28,8 +28,17 @@ describe('sharepoint session schema', () => {
     expect(parseSharepointSession(json)).toEqual(SAMPLE);
   });
 
-  it('rejects missing bearer', () => {
-    const broken = JSON.stringify({ ...SAMPLE, bearer: '' });
+  it('accepts a cookie-only session (bearer omitted)', () => {
+    // Cookie-auth tenants have no Bearer; the session is valid on cookies alone.
+    const { bearer: _omit, ...cookieOnly } = SAMPLE;
+    const json = JSON.stringify(cookieOnly);
+    const parsed = parseSharepointSession(json);
+    expect(parsed.bearer).toBeUndefined();
+    expect(parsed.cookies).toBe(SAMPLE.cookies);
+  });
+
+  it('rejects a non-string bearer', () => {
+    const broken = JSON.stringify({ ...SAMPLE, bearer: 123 });
     expect(() => parseSharepointSession(broken)).toThrow(SharepointSessionParseError);
     expect(() => parseSharepointSession(broken)).toThrow(/bearer/);
   });

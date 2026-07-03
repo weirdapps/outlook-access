@@ -38,6 +38,7 @@ interface FakeCookie {
   name: string;
   value: string;
   domain: string;
+  expires?: number; // Unix seconds; -1/absent for session cookies
 }
 
 // Mimic a Playwright BrowserContext that captures requests at the context level.
@@ -120,12 +121,41 @@ describe('captureSharepointFromContext', () => {
     ).rejects.toThrow(SharepointCaptureError);
   });
 
-  it('throws SHAREPOINT_TIMEOUT when no Bearer request arrives', async () => {
-    // No request delivered → the capture falls through to its timeout. Use a
-    // tiny timeout so the test stays fast.
-    const { context } = makeFakeEnv(null);
+  it('returns a cookie-only session when no Bearer arrives (cookie-auth tenant)', async () => {
+    // MCAS-gated / cookie-auth tenants never emit a SharePoint Bearer. The
+    // capture must succeed on cookies alone rather than time out.
+    const cookies: FakeCookie[] = [
+      { name: 'FedAuth', value: 'fed', domain: 'tenant.sharepoint.com' },
+      { name: 'rtFa', value: 'rt', domain: '.sharepoint.com' },
+    ];
+    const { context } = makeFakeEnv(null, cookies);
+
+    const session = await captureSharepointFromContext(context as any, 'tenant.sharepoint.com', 20);
+
+    expect(session.bearer).toBeUndefined();
+    expect(session.cookies).toContain('FedAuth=fed');
+    expect(session.cookies).toContain('rtFa=rt');
+    // No JWT and session cookies → fallback TTL in the future.
+    expect(new Date(session.tokenExpiresAt).getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it('derives tokenExpiresAt from the FedAuth cookie expiry when present', async () => {
+    const exp = 1893456000; // 2030-01-01
+    const cookies: FakeCookie[] = [
+      { name: 'FedAuth', value: 'fed', domain: 'tenant.sharepoint.com', expires: exp },
+    ];
+    const { context } = makeFakeEnv(null, cookies);
+
+    const session = await captureSharepointFromContext(context as any, 'tenant.sharepoint.com', 20);
+
+    expect(session.bearer).toBeUndefined();
+    expect(session.tokenExpiresAt).toBe(new Date(exp * 1000).toISOString());
+  });
+
+  it('throws SHAREPOINT_NO_TOKEN when neither Bearer nor cookies are captured', async () => {
+    const { context } = makeFakeEnv(null, []);
     await expect(
       captureSharepointFromContext(context as any, 'tenant.sharepoint.com', 20),
-    ).rejects.toThrow(/SharePoint Bearer/);
+    ).rejects.toThrow(SharepointCaptureError);
   });
 });
