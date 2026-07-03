@@ -100,4 +100,16 @@ describe('SharepointClient', () => {
     const [, init] = fetchMock.mock.calls[0];
     expect((init as RequestInit).headers).not.toHaveProperty('Cookie');
   });
+
+  it('omits Authorization header for cookie-only sessions (no bearer)', async () => {
+    // Cookie-auth tenants have no Bearer; the FedAuth/rtFa cookies authorize.
+    const fetchMock = vi.fn(async () => new Response('x', { status: 200 }));
+    global.fetch = fetchMock as unknown as typeof fetch;
+    const client = new SharepointClient({ cookies: 'FedAuth=z', timeoutMs: 30_000 });
+    await client.getBinary('https://x.sharepoint.com/y');
+    const [, init] = fetchMock.mock.calls[0];
+    const headers = (init as RequestInit).headers as Record<string, string>;
+    expect(headers).not.toHaveProperty('Authorization');
+    expect(headers).toMatchObject({ Cookie: 'FedAuth=z' });
+  });
 });

@@ -432,16 +432,24 @@ export async function captureOutlookSession(opts: CaptureOptions): Promise<Captu
     const account = { upn, puid, tenantId };
     const anchorMailbox = `PUID:${account.puid}@${account.tenantId}`;
 
-    // 14b. Optionally capture SharePoint session from the same context
-    // before teardown. Failure here is non-fatal for the Outlook part —
-    // we surface it as an error if it fails, since the caller asked for it.
+    // 14b. Optionally capture SharePoint session from the same context before
+    // teardown. Failure here is non-fatal for the Outlook part: the Outlook
+    // session is already captured above, so a SharePoint hiccup must not discard
+    // it. We warn and continue without a SharePoint session.
     let sharepointSession: SharepointSession | undefined;
     if (opts.sharepointHost && opts.sharepointHost.length > 0) {
-      sharepointSession = await captureSharepointFromContext(
-        context,
-        opts.sharepointHost,
-        opts.loginTimeoutMs,
-      );
+      try {
+        sharepointSession = await captureSharepointFromContext(
+          context,
+          opts.sharepointHost,
+          opts.loginTimeoutMs,
+        );
+      } catch (err) {
+        process.stderr.write(
+          `Warning: SharePoint session capture failed (${(err as Error).message}); ` +
+            `continuing with Outlook session only.\n`,
+        );
+      }
     }
 
     return {

@@ -40,11 +40,44 @@ function validateHost(host: string): void {
   }
 }
 
+// Cookie-auth sessions have no JWT to expire against. FedAuth/rtFa cookies carry
+// their own expiry; when they're session cookies (expires = -1) we fall back to a
+// conservative window. auth-renew re-captures every ~15 min, so this is only a
+// backstop for the expiry pre-check and the health-check alert.
+const COOKIE_FALLBACK_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+interface ExpiringCookie {
+  name: string;
+  expires?: number; // Unix seconds; -1 or absent for session cookies
+}
+
+/** Derive the session expiry: JWT exp when a Bearer was captured, else the
+ * FedAuth (then rtFa) cookie expiry, else a conservative fallback window. */
+function deriveTokenExpiry(bearer: string | undefined, cookies: ExpiringCookie[]): string {
+  if (bearer) {
+    try {
+      return new Date(decodeJwt(bearer).exp * 1000).toISOString();
+    } catch {
+      /* malformed bearer — fall through to cookie-based expiry */
+    }
+  }
+  for (const name of ['FedAuth', 'rtFa']) {
+    const c = cookies.find((k) => k.name.toLowerCase() === name.toLowerCase());
+    if (c && typeof c.expires === 'number' && c.expires > 0) {
+      return new Date(c.expires * 1000).toISOString();
+    }
+  }
+  return new Date(Date.now() + COOKIE_FALLBACK_TTL_MS).toISOString();
+}
+
 /**
- * Walks an existing context to a SharePoint host, captures the first
- * outbound Authorization: Bearer header, and returns a SharepointSession
- * ready to persist. Cookies for `host` (and its parent domain) are also
- * collected and serialized into the cookie header form.
+ * Walks an existing context to a SharePoint host and returns a SharepointSession
+ * ready to persist. Cookies for `host` (and its parent domain) are collected and
+ * serialized into the cookie header form; a Bearer is captured best-effort.
+ *
+ * Cookie-auth tenants (e.g. MCAS-gated) never emit a SharePoint Bearer, so a
+ * missing Bearer is NOT an error — the FedAuth/rtFa cookies authorize downloads.
+ * Only a total absence of auth (no Bearer AND no cookies) fails.
  *
  * Should be called AFTER the Outlook session is captured — by then the
  * persistent context already has Microsoft sign-in cookies, so SharePoint
@@ -74,85 +107,68 @@ export async function captureSharepointFromContext(
 
   const page = await context.newPage();
   try {
-    // Listen at the CONTEXT level, not the page level: modern SharePoint/Outlook
-    // dispatch REST/Graph calls from a Service Worker, whose requests a
-    // page-level listener (and in-page fetch/XHR hooks) can miss. Context-level
-    // request events also see Service Worker traffic.
-    const auth = await new Promise<string | null>((resolve) => {
-      let done = false;
-      const finish = (value: string | null): void => {
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        context.off('request', onRequest);
-        resolve(value);
-      };
-      const onRequest = (req: Request): void => {
-        try {
-          if (!isSharepointBearerUrl(req.url())) return;
-          const header = req.headers()['authorization'] ?? '';
-          if (!/^Bearer\s+/i.test(header)) return;
-          finish(header);
-        } catch {
-          /* best-effort — ignore malformed requests */
-        }
-      };
-      const timer = setTimeout(() => finish(null), timeoutMs);
-      context.on('request', onRequest);
-
-      // Navigate to trigger SharePoint's authenticated REST calls. Don't await —
-      // let the request listener race the navigation.
-      page
-        .goto(`https://${host}/_layouts/15/sharepoint.aspx`, {
-          waitUntil: 'domcontentloaded',
-          timeout: timeoutMs,
-        })
-        .catch(() => {
-          // Navigation may itself error if SharePoint redirects oddly (e.g. via
-          // the MCAS proxy); rely on the request listener instead.
-        });
-    });
-
-    if (auth === null) {
-      throw new SharepointCaptureError(
-        'SHAREPOINT_TIMEOUT',
-        `Timed out after ${timeoutMs}ms waiting for SharePoint Bearer header from ${host}`,
-      );
+    // Best-effort Bearer capture. Listen at the CONTEXT level (not page level):
+    // modern SharePoint dispatches REST/Graph calls from a Service Worker, whose
+    // requests a page-level listener can miss. We record the first Bearer seen
+    // during navigation but never block on it — cookie-auth tenants emit none.
+    let capturedAuth: string | null = null;
+    const onRequest = (req: Request): void => {
+      if (capturedAuth) return;
+      try {
+        if (!isSharepointBearerUrl(req.url())) return;
+        const header = req.headers()['authorization'] ?? '';
+        if (/^Bearer\s+/i.test(header)) capturedAuth = header;
+      } catch {
+        /* best-effort — ignore malformed requests */
+      }
+    };
+    context.on('request', onRequest);
+    try {
+      // Await navigation (bounded by timeoutMs) so cookies are set and any Bearer
+      // emitted during load is seen — then stop listening. This no longer hangs
+      // for the full timeout on cookie-auth tenants (the old symptom).
+      await page.goto(`https://${host}/_layouts/15/sharepoint.aspx`, {
+        waitUntil: 'domcontentloaded',
+        timeout: timeoutMs,
+      });
+    } catch {
+      // Navigation may error under MCAS redirects; cookies are still set on the
+      // context, so fall through and collect them.
+    } finally {
+      context.off('request', onRequest);
     }
 
-    const bearer = auth.replace(/^Bearer\s+/i, '');
-    if (!bearer) {
-      throw new SharepointCaptureError(
-        'SHAREPOINT_NO_TOKEN',
-        'Captured request had no Bearer token after stripping prefix',
-      );
-    }
-
-    const claims = decodeJwt(bearer);
-    const tokenExpiresAt = new Date(claims.exp * 1000).toISOString();
+    const bearer = capturedAuth ? (capturedAuth as string).replace(/^Bearer\s+/i, '') : undefined;
 
     // Collect cookies for the SharePoint host AND its parent domain
     // (e.g. *.sharepoint.com cookies are needed for cross-subdomain calls).
     const allCookies = await context.cookies();
     const parentDomain = host.split('.').slice(-2).join('.'); // sharepoint.com
-    const sharepointCookies = allCookies
-      .filter(
-        (c) =>
-          c.domain === host ||
-          c.domain === `.${host}` ||
-          c.domain === parentDomain ||
-          c.domain === `.${parentDomain}`,
-      )
-      .map((c) => `${c.name}=${c.value}`)
-      .join('; ');
+    const relevant = allCookies.filter(
+      (c) =>
+        c.domain === host ||
+        c.domain === `.${host}` ||
+        c.domain === parentDomain ||
+        c.domain === `.${parentDomain}`,
+    );
+    const cookies = relevant.map((c) => `${c.name}=${c.value}`).join('; ');
+
+    if (!bearer && !cookies) {
+      // No Bearer AND no cookies means sign-in established no SharePoint session
+      // at all — surface it rather than persist a dead file.
+      throw new SharepointCaptureError(
+        'SHAREPOINT_NO_TOKEN',
+        `No SharePoint auth captured for ${host} — sign-in may have failed (no Bearer, no cookies)`,
+      );
+    }
 
     return {
       version: 1,
       host,
       bearer,
-      cookies: sharepointCookies,
+      cookies,
       capturedAt: new Date().toISOString(),
-      tokenExpiresAt,
+      tokenExpiresAt: deriveTokenExpiry(bearer, relevant),
     };
   } finally {
     await page.close().catch(() => {

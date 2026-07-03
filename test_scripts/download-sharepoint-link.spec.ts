@@ -62,6 +62,36 @@ describe('download-sharepoint-link', () => {
     expect(fs.existsSync(path.join(outDir, 'report.pdf'))).toBe(true);
   });
 
+  it('works with a cookie-only session (no bearer)', async () => {
+    const cookieOnly: SharepointSession = {
+      version: 1,
+      host: 'nbg.sharepoint.com',
+      cookies: 'FedAuth=abc; rtFa=def',
+      capturedAt: new Date().toISOString(),
+      tokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    };
+    const { outDir, sessionPath } = await setupTempSession(cookieOnly);
+    const fakeClient = {
+      getBinary: vi.fn(async () => ({
+        bytes: Buffer.from('data'),
+        contentType: 'application/pdf',
+        size: 4,
+        filename: 'doc.pdf',
+      })),
+    };
+    const result = await run(
+      {
+        sharepointSessionPath: sessionPath,
+        httpTimeoutMs: 30_000,
+        createSharepointClient: () => fakeClient as never,
+      },
+      'https://nbg.sharepoint.com/sites/foo/Eabc',
+      { out: outDir },
+    );
+    expect(result.saved.length).toBe(1);
+    expect(result.saved[0].name).toBe('doc.pdf');
+  });
+
   it('falls back to URL-derived filename when no Content-Disposition', async () => {
     const { outDir, sessionPath } = await setupTempSession(freshSession());
     const fakeClient = {

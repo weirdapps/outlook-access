@@ -13,13 +13,19 @@ export interface SharepointSession {
   version: 1;
   /** SharePoint host, e.g. "nbg.sharepoint.com". */
   host: string;
-  /** Bearer token (no "Bearer " prefix). */
-  bearer: string;
+  /**
+   * Bearer token (no "Bearer " prefix). Optional: cookie-authenticated tenants
+   * (e.g. MCAS-gated) never emit a SharePoint Bearer, so the session relies on
+   * the FedAuth/rtFa cookies alone. When present it is still sent as an
+   * Authorization header.
+   */
+  bearer?: string;
   /** Serialized cookie header value, e.g. "rtFa=...; FedAuth=...". */
   cookies: string;
   /** ISO-8601 UTC timestamp of capture. */
   capturedAt: string;
-  /** ISO-8601 UTC, derived from JWT exp. */
+  /** ISO-8601 UTC. Derived from the JWT exp when a Bearer was captured, else
+   * from the FedAuth/rtFa cookie expiry. Drives the expiry pre-check. */
   tokenExpiresAt: string;
 }
 
@@ -48,10 +54,14 @@ export function parseSharepointSession(json: string): SharepointSession {
   if (obj.version !== 1) {
     throw new SharepointSessionParseError(`Unsupported version: ${String(obj.version)}`);
   }
-  for (const key of ['host', 'bearer', 'cookies', 'capturedAt', 'tokenExpiresAt']) {
+  for (const key of ['host', 'cookies', 'capturedAt', 'tokenExpiresAt']) {
     if (typeof obj[key] !== 'string' || (obj[key] as string).length === 0) {
       throw new SharepointSessionParseError(`Missing or invalid "${key}"`);
     }
+  }
+  // bearer is optional (cookie-auth tenants have none) but must be a string when present.
+  if (obj.bearer !== undefined && typeof obj.bearer !== 'string') {
+    throw new SharepointSessionParseError('Invalid "bearer" (must be a string when present)');
   }
   return obj as unknown as SharepointSession;
 }
