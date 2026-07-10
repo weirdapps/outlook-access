@@ -351,7 +351,7 @@ src/
   folders/
     resolver.ts             Well-known alias / path / id:<raw> resolution
     types.ts                ResolvedFolder, CreateFolderResult, MoveMailResult
-  commands/                 One file per subcommand (19 of them)
+  commands/                 One file per subcommand (17 files; reply.ts handles reply, reply-all, forward)
   config/
     config.ts               loadConfig with flag > env > default precedence
     errors.ts               ConfigurationError, AuthError, IoError, ...
