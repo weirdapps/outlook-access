@@ -61,7 +61,7 @@ Run `outlook-cli <command> --help` for the full flag set on each subcommand.
 ## How it works
 
 ```mermaid
-flowchart LR
+flowchart TD
     A["User"] -->|"outlook-cli login"| B["Playwright headed Chrome<br/>(persistent profile)"]
     B -->|"MFA / conditional access"| C["outlook.office.com<br/>outlook.office365.com<br/>outlook.cloud.microsoft"]
     B -->|"snoop first<br/>Authorization: Bearer"| D["captureOutlookSession"]
