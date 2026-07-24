@@ -6,7 +6,7 @@ If you discover a security vulnerability in this project, please report it respo
 
 **Please do NOT open a public GitHub issue for security vulnerabilities.**
 
-Instead, please email: plessas@nbg.gr
+Instead, please use GitHub's [private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability): open the **Security** tab of this repository and click **Report a vulnerability**.
 
 ### What to include
 

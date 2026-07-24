@@ -87,6 +87,9 @@ check "Partner names" "\bWorldline\b|\bHelvia\b|\bWealthyhood\b|\bFeedzai\b|\bMe
 # Tax authority refs
 check "Tax authority" "ΑΑΔΕ|ΑΦΜ|ΑΔΤ|ΑΜΚΑ"
 
+# Managed-tenant SharePoint host (org-specific tell)
+check "Managed tenant host" "groupnbg"
+
 # Specific user-machine paths (Plessas-specific)
 check "User-specific paths" "/Users/plessas|/SourceCode/claude-config|claude-config/shared-memory"
 

@@ -38,6 +38,16 @@ repos:
         types_or: [javascript, jsx, ts, tsx, json, yaml, markdown]
         require_serial: false
 
+  # PII gauntlet - block personal data leaking into tracked files
+  - repo: local
+    hooks:
+      - id: pii-gauntlet
+        name: pii-gauntlet
+        entry: scripts/pii-gauntlet.sh
+        language: script
+        pass_filenames: false
+        always_run: true
+
   # Gitleaks - secret scanning
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.21.2
@@ -49,7 +59,12 @@ repos:
     rev: v1.35.1
     hooks:
       - id: yamllint
-        args: [--strict, -d, '{extends: default, rules: {line-length: {max: 120}, document-start: disable}}']
+        args:
+          [
+            --strict,
+            -d,
+            '{extends: default, rules: {line-length: {max: 120}, document-start: disable}}',
+          ]
         files: \.github/workflows/.*\.ya?ml$
 
   # Markdown linting

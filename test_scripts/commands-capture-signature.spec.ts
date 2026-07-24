@@ -27,7 +27,7 @@ const MINIMAL_CONFIG = {
 const SESSION: SessionFile = {
   version: 1,
   capturedAt: '2026-04-21T12:00:00.000Z',
-  account: { upn: 'me@nbg.gr', puid: 'p', tenantId: 't' },
+  account: { upn: 'me@example.com', puid: 'p', tenantId: 't' },
   bearer: {
     token: 'x.y.z',
     expiresAt: '2099-04-21T12:00:00.000Z',

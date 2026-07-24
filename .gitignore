@@ -6,3 +6,9 @@ dist/
 outlook_report.json
 coverage/
 *.log
+
+# Local env overrides (the tracked outlook-cli.env is a documented template)
+.env
+.env.local
+.env.*.local
+.DS_Store

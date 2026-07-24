@@ -30,7 +30,7 @@ const MINIMAL_CONFIG = {
 const SESSION: SessionFile = {
   version: 1,
   capturedAt: '2026-04-21T12:00:00.000Z',
-  account: { upn: 'me@nbg.gr', puid: 'p', tenantId: 't' },
+  account: { upn: 'me@example.com', puid: 'p', tenantId: 't' },
   bearer: {
     token: 'x.y.z',
     expiresAt: '2099-04-21T12:00:00.000Z',
@@ -154,7 +154,7 @@ describe('send-mail — CC-self default', () => {
     const { deps, client } = makeDeps({}, { '/tmp/b.html': '<p>hi</p>' });
     await run(deps, { to: 'a@x.com', subject: 's', html: '/tmp/b.html' });
     const payload = (client.createDraft as ReturnType<typeof vi.fn>).mock.calls[0]![0];
-    expect(payload.CcRecipients).toEqual([{ EmailAddress: { Address: 'me@nbg.gr' } }]);
+    expect(payload.CcRecipients).toEqual([{ EmailAddress: { Address: 'me@example.com' } }]);
   });
 
   it('--no-cc-self (ccSelf: false) suppresses self-CC', async () => {
@@ -173,13 +173,13 @@ describe('send-mail — CC-self default', () => {
     const { deps, client } = makeDeps({}, { '/tmp/b.html': '<p>hi</p>' });
     await run(deps, {
       to: 'a@x.com',
-      cc: 'ME@nbg.gr',
+      cc: 'ME@example.com',
       subject: 's',
       html: '/tmp/b.html',
     });
     const payload = (client.createDraft as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(payload.CcRecipients).toHaveLength(1);
-    expect(payload.CcRecipients![0].EmailAddress.Address).toBe('ME@nbg.gr');
+    expect(payload.CcRecipients![0].EmailAddress.Address).toBe('ME@example.com');
   });
 });
 

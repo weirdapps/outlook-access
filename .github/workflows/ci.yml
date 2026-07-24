@@ -34,3 +34,10 @@ jobs:
           # Tests should not need real auth — outlook-cli.env is gitignored
           # and tests use mocks/fixtures
           CI: 'true'
+
+  pii-gauntlet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+      - name: PII gauntlet
+        run: bash scripts/pii-gauntlet.sh

@@ -301,7 +301,7 @@ For persistent overrides, source a shell file (for example `outlook-cli.env`) fr
 
 ### SharePoint host examples
 
-- NBG tenant: `groupnbg.sharepoint.com`
+- Managed tenant example: `contoso.sharepoint.com`
 - Other tenants: `<tenant>.sharepoint.com` (whatever host serves the shared link)
 
 ### Runtime data under `~/.outlook-cli/`

@@ -27,7 +27,7 @@ const MINIMAL_CONFIG = {
 const SESSION: SessionFile = {
   version: 1,
   capturedAt: '2026-04-21T12:00:00.000Z',
-  account: { upn: 'me@nbg.gr', puid: 'p', tenantId: 't' },
+  account: { upn: 'me@example.com', puid: 'p', tenantId: 't' },
   bearer: {
     token: 'x.y.z',
     expiresAt: '2099-04-21T12:00:00.000Z',
@@ -249,14 +249,14 @@ describe('forward', () => {
       html: '/tmp/r.html',
       to: 'a@x.com',
       cc: 'b@y.com, c@y.com',
-      bcc: 'audit@nbg.gr',
+      bcc: 'audit@example.com',
       noSignature: true,
     });
     const [, patch] = (client.updateMessage as ReturnType<typeof vi.fn>).mock.calls[0]!;
-    // 2 user CCs + 1 self-CC (default ON, session.account.upn = me@nbg.gr)
+    // 2 user CCs + 1 self-CC (default ON, session.account.upn = me@example.com)
     expect(patch.CcRecipients).toHaveLength(3);
-    expect(patch.CcRecipients!.map((r: any) => r.EmailAddress.Address)).toContain('me@nbg.gr');
-    expect(patch.BccRecipients).toEqual([{ EmailAddress: { Address: 'audit@nbg.gr' } }]);
+    expect(patch.CcRecipients!.map((r: any) => r.EmailAddress.Address)).toContain('me@example.com');
+    expect(patch.BccRecipients).toEqual([{ EmailAddress: { Address: 'audit@example.com' } }]);
   });
 
   it('forward --no-cc-self (ccSelf: false) suppresses self-CC', async () => {
@@ -270,7 +270,9 @@ describe('forward', () => {
     });
     const [, patch] = (client.updateMessage as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(patch.CcRecipients).toHaveLength(2);
-    expect(patch.CcRecipients!.map((r: any) => r.EmailAddress.Address)).not.toContain('me@nbg.gr');
+    expect(patch.CcRecipients!.map((r: any) => r.EmailAddress.Address)).not.toContain(
+      'me@example.com',
+    );
   });
 
   it('reply auto-CCs self when not already in To/Cc (default ON)', async () => {
@@ -279,20 +281,20 @@ describe('forward', () => {
     await run(deps, 'reply', 'AAMk-1', { html: '/tmp/r.html', noSignature: true });
     const [, patch] = (client.updateMessage as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(patch.CcRecipients).toBeDefined();
-    expect(patch.CcRecipients!.map((r: any) => r.EmailAddress.Address)).toContain('me@nbg.gr');
+    expect(patch.CcRecipients!.map((r: any) => r.EmailAddress.Address)).toContain('me@example.com');
   });
 
   it('reply ALWAYS adds self to CC even when already in original To (audit/archive)', async () => {
     const { deps, client } = makeDeps(
       { '/tmp/r.html': '<p>r</p>' },
-      [{ EmailAddress: { Address: 'me@nbg.gr' } }], // user already in To
+      [{ EmailAddress: { Address: 'me@example.com' } }], // user already in To
     );
     await run(deps, 'reply', 'AAMk-1', { html: '/tmp/r.html', noSignature: true });
     const [, patch] = (client.updateMessage as ReturnType<typeof vi.fn>).mock.calls[0]!;
     // Per CLAUDE.md compliance + user's "ALWAYS cc myself" rule, self goes
     // in CC even when also in TO.
     expect(patch.CcRecipients).toBeDefined();
-    expect(patch.CcRecipients!.map((r: any) => r.EmailAddress.Address)).toContain('me@nbg.gr');
+    expect(patch.CcRecipients!.map((r: any) => r.EmailAddress.Address)).toContain('me@example.com');
   });
 
   it('forward rejects malformed --to address', async () => {
