@@ -1,0 +1,12 @@
+# yamllint config — primarily guards the GitHub Actions workflow files.
+# Referenced by .pre-commit-config.yaml (yamllint hook, run with --strict).
+extends: default
+
+rules:
+  line-length:
+    max: 120
+  document-start: disable       # GitHub Actions workflows omit the leading '---'
+  truthy:
+    check-keys: false           # allow the 'on:' workflow trigger key
+  comments:
+    min-spaces-from-content: 1  # repo style uses a single space before inline '#'
