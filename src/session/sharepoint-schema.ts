@@ -11,7 +11,7 @@ import * as path from 'node:path';
 
 export interface SharepointSession {
   version: 1;
-  /** SharePoint host, e.g. "nbg.sharepoint.com". */
+  /** SharePoint host, e.g. "contoso.sharepoint.com". */
   host: string;
   /**
    * Bearer token (no "Bearer " prefix). Optional: cookie-authenticated tenants

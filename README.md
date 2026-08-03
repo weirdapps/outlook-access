@@ -297,7 +297,7 @@ Additional overrides:
 
 Precedence: CLI flag beats env var beats default. A malformed flag or env value still throws `ConfigurationError` (exit 3). The default only covers the unset case.
 
-For persistent overrides, source a shell file (for example `outlook-cli.env`) from your `~/.zshrc` or `~/.bashrc`.
+For persistent overrides, source a shell file from your `~/.zshrc` or `~/.bashrc`. `outlook-cli.env` in the repo root is a commented template of the exportable env vars; it is tracked because it holds only non-secret runtime knobs. Copy it out of the tree before adding anything of your own.
 
 ### SharePoint host examples
 
@@ -391,11 +391,19 @@ npm run test:coverage      # vitest run --coverage (v8)
 npm run format             # prettier --write .
 ```
 
-CI (`.github/workflows/ci.yml`) runs `npm ci --ignore-scripts`, then lint, build, and test on Node 22. CodeQL scans on push, pull request, and a weekly cron. SonarCloud runs on push and pull request. Dependabot manages npm and GitHub Actions updates with an auto-merge workflow for patch and minor bumps only. A monthly `deps-refresh` workflow (via `weirdapps/shared-workflows`) opens a consolidated PR when lock-only updates are available.
+CI (`.github/workflows/ci.yml`) has two jobs: `build-and-test` runs `npm ci --ignore-scripts`, then lint, build, and test on Node 22; `pii-gauntlet` runs `scripts/pii-gauntlet.sh`. CodeQL scans on push, pull request, and a weekly cron. SonarCloud runs on push, pull request, and manual dispatch. Dependabot manages npm (weekly, grouped) and GitHub Actions (monthly) updates; auto-merge is delegated to `weirdapps/shared-workflows`, which merges patch and minor bumps once the PR's own checks are green and never auto-merges a major, not even inside a group. A monthly `deps-refresh` workflow (also via `weirdapps/shared-workflows`) opens a consolidated PR when lock-only updates are available.
+
+Optional but recommended locally:
+
+```bash
+pip install pre-commit && pre-commit install
+```
+
+`.pre-commit-config.yaml` wires eslint, prettier, gitleaks, yamllint, markdownlint, and the PII gauntlet, so a commit that trips any of them is blocked before it reaches CI.
 
 ### PII gauntlet
 
-`scripts/pii-gauntlet.sh` greps fixtures, docs, and source for accidentally committed personal data. Run it before opening a PR that touches test fixtures or documentation.
+`scripts/pii-gauntlet.sh` greps fixtures, docs, and source for accidentally committed personal data. It is enforced twice: as a pre-commit hook and as its own CI job, so a PR that reintroduces personal data fails regardless of whether the hook was installed. Run it by hand (`bash scripts/pii-gauntlet.sh`) before pushing changes to test fixtures or documentation.
 
 ## Consumed by
 
@@ -404,7 +412,7 @@ CI (`.github/workflows/ci.yml`) runs `npm ci --ignore-scripts`, then lint, build
 
 ## Security posture
 
-The session file contains a live Bearer token (or cookies) and is written atomically under a `0700` directory with mode `0600`. It is never printed or logged (body-snippet redaction runs on every error path) and is `.gitignore`d alongside the Playwright profile directory. Disclosure policy: see [`SECURITY.md`](SECURITY.md).
+The session file contains a live Bearer token (or cookies) and is written atomically under a `0700` directory with mode `0600`. It is never printed or logged (body-snippet redaction runs on every error path) and lives outside the working tree, under `$HOME/.outlook-cli/`, together with the Playwright profile directory. Disclosure policy: see [`SECURITY.md`](SECURITY.md).
 
 ## Origin
 

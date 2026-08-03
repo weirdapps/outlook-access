@@ -31,8 +31,8 @@ jobs:
       - name: Test
         run: npm test
         env:
-          # Tests should not need real auth — outlook-cli.env is gitignored
-          # and tests use mocks/fixtures
+          # Tests should not need real auth: they use mocks/fixtures, and the
+          # tracked outlook-cli.env holds only non-secret runtime knobs.
           CI: 'true'
 
   pii-gauntlet:
