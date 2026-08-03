@@ -1,3 +1,4 @@
+<!-- markdownlint-disable-next-line MD041 -->
 <structure-and-conventions>
 ## Structure & Conventions
 
@@ -158,7 +159,7 @@ Implementation landed in `src/config/config.ts` (`DEFAULTS` constant +
         3. `list-mail [-n <N>] [--folder <name>] [--folder-id <id>] [--folder-parent <anchor>] [--select <csv>]`
            - Lists recent messages from a folder (well-known alias, display-name
              path, or raw id).
-           - `--top N`           1..100 (default 10).
+           - `--top N`           1..1000 (default 10). Alias: `-n`.
            - `--folder`          One of `Inbox`, `SentItems`, `Drafts`,
                                  `DeletedItems`, `Archive` (original fast path,
                                  no resolver hop) OR any other well-known alias
@@ -296,6 +297,46 @@ Implementation landed in `src/config/config.ts` (`DEFAULTS` constant +
              `{ sourceId, error:{ code, httpStatus?, message? } }`), and a
              `summary: { requested, moved, failed }`.
            - Table columns: `Source Id | New Id | Status | Error`.
+
+        12. `auth-renew [--timeout <ms>] [--sharepoint-host <host>]`
+           - Headless bearer refresh using the persisted Playwright profile.
+             No window is shown. Fails (exit 4) when the device-trust cookie
+             has expired and the tenant forces interactive re-MFA; recover
+             with `login`.
+
+        13. `get-thread <id> [--body <html|text|none>] [--order <asc|desc>]`
+           - Every message in a conversation, across folders. Accepts
+             `conv:<conversationId>` to skip the id-to-conversation resolve hop.
+             `--order` defaults to `asc` (oldest first).
+
+        14. `download-sharepoint-link <url> --out <dir> [--overwrite]`
+           - Fetches a `ReferenceAttachment.SourceUrl` using
+             `~/.outlook-cli/sharepoint-session.json`. That file only exists if
+             you passed `--sharepoint-host` to `login` / `auth-renew`; missing
+             or expired → exit 4 with the exact recovery command.
+
+        15. `send-mail --to <r...> --subject <s> (--html <file> | --text <file>)`
+           - Default is draft-first: creates a draft and activates Outlook
+             desktop (macOS only; other platforms log a skip note to stderr).
+             `--send-now` dispatches instead.
+           - Other flags: `--cc`, `--bcc`, `--attach <file>` (repeatable,
+             combined cap 30 MB), `--signature <file>`, `--no-signature`,
+             `--no-cc-self`, `--no-save-sent`, `--no-open`, `--dry-run`.
+           - CC-self and signature injection are ON by default.
+
+        16. `capture-signature [--from-message <id>] [--out <file>]`
+           - Extracts the signature block from a SentItems message into
+             `~/.outlook-cli/signature.html` (plus `signature-assets/` for
+             inline images). Default source: the latest SentItems message.
+
+        17. `reply <id>` / 18. `reply-all <id>` / 19. `forward <id>`
+           - Same draft-first / `--send-now` model, signature handling and
+             CC-self default as `send-mail`. The original is auto-quoted by
+             M365. `reply-all` gets its recipients pre-populated by the server.
+             `forward` additionally requires `--to`.
+
+        Full flag surface for all 19 subcommands: `outlook-cli <command> --help`,
+        or the command table in README.md.
 
         Folder error codes (additional to the generic upstream taxonomy):
           - `UPSTREAM_FOLDER_NOT_FOUND`   — exit 5 (folder or path segment

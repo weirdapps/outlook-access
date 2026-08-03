@@ -28,7 +28,7 @@ export interface LoginDeps {
 export interface LoginOptions {
   force?: boolean;
   /** When set, also capture a SharePoint session for this host
-   *  (e.g. "nbg.sharepoint.com") into ~/.outlook-cli/sharepoint-session.json. */
+   *  (e.g. "contoso.sharepoint.com") into ~/.outlook-cli/sharepoint-session.json. */
   sharepointHost?: string;
 }
 

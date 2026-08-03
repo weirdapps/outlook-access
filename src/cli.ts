@@ -585,7 +585,7 @@ export async function main(argv: string[]): Promise<number> {
     .option('--force', 'Ignore any cached session and always open the browser', false)
     .option(
       '--sharepoint-host <host>',
-      'After Outlook login, also capture a SharePoint session for this host (e.g. nbg.sharepoint.com)',
+      'After Outlook login, also capture a SharePoint session for this host (e.g. contoso.sharepoint.com)',
     )
     .action(
       makeAction<{ force?: boolean; sharepointHost?: string }, []>(
