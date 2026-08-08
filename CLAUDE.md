@@ -408,3 +408,30 @@ Implementation landed in `src/config/config.ts` (`DEFAULTS` constant +
     </info>
 
 </outlook-cli>
+
+## The three M365 CLIs
+
+One surface per repo. They share no session, no Playwright profile and no
+login, and each has its own state directory.
+
+| Surface                     | Repo                | Invoke                                            | State dir            |
+| --------------------------- | ------------------- | ------------------------------------------------- | -------------------- |
+| Mail, calendar, attachments | `outlook-access`    | `outlook-cli` (on PATH)                           | `~/.outlook-cli/`    |
+| Teams chats and channels    | `teams-access`      | `node ~/SourceCode/teams-access/dist/cli.js`      | `~/.teams-cli/`      |
+| SharePoint + OneDrive files | `sharepoint-access` | `node ~/SourceCode/sharepoint-access/dist/cli.js` | `~/.sharepoint-cli/` |
+
+Exit codes 0-6 are identical across all three: **4 = re-authenticate**,
+**5 = upstream error**. Keep it that way; cron wrappers branch on those numbers.
+
+### SharePoint moved out (2026-08-08)
+
+SharePoint and OneDrive-for-Business now live in `sharepoint-access`. The code
+still here is **deprecated and scheduled for removal**:
+`src/auth/sharepoint-capture.ts`, `src/http/sharepoint-client.ts`,
+`src/session/sharepoint-schema.ts`, the `download-sharepoint-link` command and
+the `--sharepoint-host` flag on `login`/`auth-renew`.
+
+Do not build anything new on them. The flag is still wired into
+`sync-tokens-to-vps.sh` as a belt-and-braces second session producer while the
+new path completes an observation cycle; see P9 in
+`sharepoint-access/Issues - Pending Items.md` for the removal checklist.
