@@ -77,7 +77,7 @@ The SharePoint capture path additionally handles cookie-authenticated tenants (n
 
 ## Requirements
 
-- **Node.js 20 LTS or newer.** CI runs Node 22. Older Node lacks global `fetch` and other APIs the tool depends on.
+- **Node.js 22.12.0 or newer.** CI runs Node 22. `commander` 15 ships as ESM, so the compiled CommonJS CLI loads it through `require(esm)`, which Node gained in 22.12.0. Older Node also lacks global `fetch` and other APIs the tool depends on.
 - **npm 10 or newer** (bundled with modern Node). `package-lock.json` is committed. Yarn / pnpm are not supported.
 - **Google Chrome or Microsoft Edge installed locally.** Playwright launches your installed browser via the channel mechanism (`chromium.launchPersistentContext({ channel })`) and does not download its own Chromium build. Accepted channels: `chrome` (default), `chrome-beta`, `chrome-dev`, `msedge`, `msedge-beta`.
 - **A Microsoft 365 / Office 365 mailbox** you can sign in to at `outlook.office.com`. Consumer `outlook.live.com` / `hotmail.com` mailboxes use a different API surface and are not supported.
