@@ -391,6 +391,15 @@ npm run test:coverage      # vitest run --coverage (v8)
 npm run format             # prettier --write .
 ```
 
+### TypeScript 7 and the tsc6 side-car
+
+`npm run build` compiles with the native TypeScript 7 compiler. TypeScript 7.0 ships no programmatic API (that is slated for 7.1), so tools that import `typescript` as a library, here `typescript-eslint` and `ts-node`, cannot load it. The project therefore uses the side-by-side layout Microsoft documents for exactly this gap:
+
+- `@typescript/native` is an npm alias for `typescript@7`, and supplies the `tsc` binary that `npm run build` and `npx tsc --noEmit` invoke.
+- `typescript` is an npm alias for `@typescript/typescript6`, which supplies the TypeScript 6 API those library consumers import, plus a `tsc6` binary if you ever want to diff the two compilers.
+
+Read the `devDependencies` block in `package.json` as the source of truth for which alias points where. When `typescript-eslint` and `ts-node` gain TypeScript 7 API support, collapse both entries back to a single plain `typescript` dependency.
+
 CI (`.github/workflows/ci.yml`) has two jobs: `build-and-test` runs `npm ci --ignore-scripts`, then lint, build, and test on Node 22; `pii-gauntlet` runs `scripts/pii-gauntlet.sh`. CodeQL scans on push, pull request, and a weekly cron. SonarCloud runs on push, pull request, and manual dispatch. Dependabot manages npm (weekly, grouped) and GitHub Actions (monthly) updates; auto-merge is delegated to `weirdapps/shared-workflows`, which merges patch and minor bumps once the PR's own checks are green and never auto-merges a major, not even inside a group. A monthly `deps-refresh` workflow (also via `weirdapps/shared-workflows`) opens a consolidated PR when lock-only updates are available.
 
 Optional but recommended locally:
