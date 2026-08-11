@@ -54,9 +54,13 @@ jobs:
             echo "::notice::SONAR_TOKEN not configured — skipping SonarCloud scan"
           fi
 
-      - name: SonarCloud Scan
+      # sonarcloud-github-action was archived on 2025-10-22; v5.0.0 is only a
+      # deprecation shim that forwards to sonarqube-scan-action. Take the
+      # rename instead of the dead-end bump. Drop-in: same SONAR_TOKEN, same
+      # inputs, and SONAR_HOST_URL stays unset for SonarQube Cloud.
+      - name: SonarQube Scan
         if: steps.check-sonar.outputs.has_token == 'true'
-        uses: SonarSource/sonarcloud-github-action@383f7e52eae3ab0510c3cb0e7d9d150bbaeab838  # v3
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f  # v8.2.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
