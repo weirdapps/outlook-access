@@ -37,3 +37,11 @@ updates:
     labels:
       - 'dependencies'
       - 'github-actions'
+    groups:
+      # github/codeql-action/init and /analyze must always be on the same
+      # version. Ungrouped, Dependabot opens one PR per sub-action and
+      # merging only one of them breaks CodeQL with
+      # "Loaded a configuration file for version X, but running version Y".
+      codeql-action:
+        patterns:
+          - 'github/codeql-action*'
