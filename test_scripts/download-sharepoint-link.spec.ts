@@ -7,7 +7,7 @@ import { run, SharepointSessionMissingError } from '../src/commands/download-sha
 import { saveSharepointSession, SharepointSession } from '../src/session/sharepoint-schema';
 import { SharepointHttpError } from '../src/http/sharepoint-client';
 
-function freshSession(host = 'nbg.sharepoint.com'): SharepointSession {
+function freshSession(host = 'contoso.sharepoint.com'): SharepointSession {
   return {
     version: 1,
     host,
@@ -53,7 +53,7 @@ describe('download-sharepoint-link', () => {
         httpTimeoutMs: 30_000,
         createSharepointClient: () => fakeClient as never,
       },
-      'https://nbg.sharepoint.com/sites/foo/Eabc',
+      'https://contoso.sharepoint.com/sites/foo/Eabc',
       { out: outDir },
     );
 
@@ -65,7 +65,7 @@ describe('download-sharepoint-link', () => {
   it('works with a cookie-only session (no bearer)', async () => {
     const cookieOnly: SharepointSession = {
       version: 1,
-      host: 'nbg.sharepoint.com',
+      host: 'contoso.sharepoint.com',
       cookies: 'FedAuth=abc; rtFa=def',
       capturedAt: new Date().toISOString(),
       tokenExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
@@ -85,7 +85,7 @@ describe('download-sharepoint-link', () => {
         httpTimeoutMs: 30_000,
         createSharepointClient: () => fakeClient as never,
       },
-      'https://nbg.sharepoint.com/sites/foo/Eabc',
+      'https://contoso.sharepoint.com/sites/foo/Eabc',
       { out: outDir },
     );
     expect(result.saved.length).toBe(1);
@@ -107,7 +107,7 @@ describe('download-sharepoint-link', () => {
         httpTimeoutMs: 30_000,
         createSharepointClient: () => fakeClient as never,
       },
-      'https://nbg.sharepoint.com/sites/foo/Documents/Report.pdf',
+      'https://contoso.sharepoint.com/sites/foo/Documents/Report.pdf',
       { out: outDir },
     );
     expect(result.saved[0].name).toBe('Report.pdf');
@@ -126,7 +126,7 @@ describe('download-sharepoint-link', () => {
         httpTimeoutMs: 30_000,
         createSharepointClient: () => fakeClient as never,
       },
-      'https://nbg.sharepoint.com/missing',
+      'https://contoso.sharepoint.com/missing',
       { out: outDir },
     );
     expect(result.saved.length).toBe(0);
@@ -148,7 +148,7 @@ describe('download-sharepoint-link', () => {
         httpTimeoutMs: 30_000,
         createSharepointClient: () => fakeClient as never,
       },
-      'https://nbg.sharepoint.com/locked',
+      'https://contoso.sharepoint.com/locked',
       { out: outDir },
     );
     expect(result.skipped[0].reason).toBe('access-denied');

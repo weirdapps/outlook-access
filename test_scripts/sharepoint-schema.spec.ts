@@ -15,7 +15,7 @@ import {
 
 const SAMPLE: SharepointSession = {
   version: 1,
-  host: 'nbg.sharepoint.com',
+  host: 'contoso.sharepoint.com',
   bearer: 'eyJ.fake.token',
   cookies: 'rtFa=abc; FedAuth=def',
   capturedAt: '2026-04-22T14:00:00.000Z',

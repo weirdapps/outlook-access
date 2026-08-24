@@ -23,7 +23,7 @@ const FAKE_JWT_HEADER = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
 const FAKE_JWT_PAYLOAD = b64url(
   JSON.stringify({
     exp: FAR_FUTURE_EXP,
-    aud: 'https://nbg.sharepoint.com',
+    aud: 'https://contoso.sharepoint.com',
   }),
 );
 const FAKE_JWT_SIG = b64url('not-a-real-signature');
@@ -68,24 +68,24 @@ function makeFakeEnv(request: FakeRequest | null, cookies: FakeCookie[] = []) {
 describe('captureSharepointFromContext', () => {
   it('extracts Bearer token + cookies for the SharePoint host', async () => {
     const fakeRequest: FakeRequest = {
-      url: () => 'https://nbg.sharepoint.com/_api/web/lists',
+      url: () => 'https://contoso.sharepoint.com/_api/web/lists',
       headers: () => ({ authorization: `Bearer ${FAKE_JWT}` }),
     };
     const cookies: FakeCookie[] = [
       { name: 'rtFa', value: 'abc', domain: '.sharepoint.com' },
-      { name: 'FedAuth', value: 'def', domain: 'nbg.sharepoint.com' },
+      { name: 'FedAuth', value: 'def', domain: 'contoso.sharepoint.com' },
       { name: 'unrelated', value: 'xyz', domain: 'login.microsoftonline.com' },
     ];
     const { context, page } = makeFakeEnv(fakeRequest, cookies);
 
     const session = await captureSharepointFromContext(
       context as any,
-      'nbg.sharepoint.com',
+      'contoso.sharepoint.com',
       30_000,
     );
 
     expect(session.version).toBe(1);
-    expect(session.host).toBe('nbg.sharepoint.com');
+    expect(session.host).toBe('contoso.sharepoint.com');
     expect(session.bearer).toBe(FAKE_JWT);
     expect(session.cookies).toContain('rtFa=abc');
     expect(session.cookies).toContain('FedAuth=def');
@@ -99,19 +99,19 @@ describe('captureSharepointFromContext', () => {
     // "<fqdn>.mcas.ms"; the capture must still match it (regression test for
     // the headless/VPS timeout fix).
     const fakeRequest: FakeRequest = {
-      url: () => 'https://nbg.sharepoint.com.mcas.ms/_api/web/lists',
+      url: () => 'https://contoso.sharepoint.com.mcas.ms/_api/web/lists',
       headers: () => ({ authorization: `Bearer ${FAKE_JWT}` }),
     };
     const { context } = makeFakeEnv(fakeRequest, []);
 
     const session = await captureSharepointFromContext(
       context as any,
-      'nbg.sharepoint.com',
+      'contoso.sharepoint.com',
       30_000,
     );
 
     expect(session.bearer).toBe(FAKE_JWT);
-    expect(session.host).toBe('nbg.sharepoint.com');
+    expect(session.host).toBe('contoso.sharepoint.com');
   });
 
   it('throws SHAREPOINT_INVALID_HOST for non-sharepoint hosts', async () => {

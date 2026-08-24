@@ -30,11 +30,11 @@ describe('SharepointClient', () => {
       cookies: 'rtFa=a; FedAuth=b',
       timeoutMs: 30_000,
     });
-    const result = await client.getBinary('https://nbg.sharepoint.com/path/file.pdf');
+    const result = await client.getBinary('https://contoso.sharepoint.com/path/file.pdf');
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe('https://nbg.sharepoint.com/path/file.pdf');
+    expect(url).toBe('https://contoso.sharepoint.com/path/file.pdf');
     expect((init as RequestInit).headers).toMatchObject({
       Authorization: 'Bearer redacted-bearer',
       Cookie: 'rtFa=a; FedAuth=b',
