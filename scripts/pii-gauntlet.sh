@@ -23,7 +23,17 @@ set -u
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-MODE="doctor"
+# Default to CI mode on a runner. Three repositories invoke this script with no
+# --mode flag at all, so they got doctor mode, which fails hard when the private
+# denylist is absent -- and on a runner it is always absent. Keying off the
+# environment rather than the caller means a workflow cannot get this wrong by
+# omission. GitHub, GitLab and most others set CI=true.
+if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
+  MODE="ci"
+else
+  MODE="doctor"
+fi
+_MODE_FROM_ENV="$MODE"
 for arg in "$@"; do
   case "$arg" in
     --mode=ci)     MODE="ci" ;;
