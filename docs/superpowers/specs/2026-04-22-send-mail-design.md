@@ -53,7 +53,7 @@ Each decision below has a **Recommendation** (my default if you don't push back)
 - [ ] **B.** A + inline images via `--inline <cid>=<path>` (referenced from HTML body as `<img src="cid:logo">`).
 - [ ] **C.** A + B + ReferenceAttachment (SharePoint URLs, no upload).
 
-**Recommendation:** A initially. Adding B requires HTML parsing to inject `cid:` references and is rarely needed (most NBG comms use external image URLs anyway). C is interesting for SharePoint-stored documents but the user's send pipeline rarely deals with this — if you do, attach the URL as a hyperlink in the body.
+**Recommendation:** A initially. Adding B requires HTML parsing to inject `cid:` references and is rarely needed (most the corporate tenant comms use external image URLs anyway). C is interesting for SharePoint-stored documents but the user's send pipeline rarely deals with this — if you do, attach the URL as a hyperlink in the body.
 
 **Trade-offs:** A keeps the surface tight (~50 LOC for attachment handling). B adds ~40 LOC + inline parser. C adds ~80 LOC and depends on SharePoint context (reuses our existing SharePoint session).
 
@@ -163,7 +163,7 @@ Comparable to Phase A's `get-thread` + `--just-count` work (~600 LOC merged). Si
 ## Risks / open technical questions
 
 - **Throttling**: M365 send rate limit is 30 messages/min for personal mailboxes; mailbox-level limit ~10000/day. Bulk-send loops via this CLI risk hitting it. **Mitigation:** document the limit; do not add automatic backoff in v1.
-- **DLP / compliance scanners**: NBG tenant likely has DLP rules that scan outbound mail. The CLI submits via the same path Outlook web does, so DLP applies the same way — no special handling needed.
+- **DLP / compliance scanners**: the corporate tenant likely has DLP rules that scan outbound mail. The CLI submits via the same path Outlook web does, so DLP applies the same way — no special handling needed.
 - **Test mailbox**: smoke testing send means actually sending mail. **Mitigation:** all smokes send to self (`--to you@example.com`); never to external addresses.
 - **Idempotency**: if the network drops mid-POST and we retry, M365 may double-send. **Mitigation:** `/sendmail` is not idempotent by spec. We do NOT retry on send failures — let the caller decide. Auto-reauth on 401 is fine because that's a pre-send failure.
 - **Greek text**: M365 handles UTF-8 natively. Verified end-to-end during Phase A smoke (Greek subjects + bodies preserved). Re-verify in send smoke.

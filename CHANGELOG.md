@@ -15,7 +15,7 @@ Fork-only features (not in upstream):
 ## [1.5.0] — 2026-04-22 (fork)
 
 Phase B3: complete signature handling across send-mail / reply / forward,
-including inline-image asset support so the user's NBG logo renders
+including inline-image asset support so the user's corporate logo renders
 correctly in delivered mail. Also strengthens CC-self compliance.
 
 ### Added
@@ -66,7 +66,7 @@ correctly in delivered mail. Also strengthens CC-self compliance.
 - Stderr warning when signature has cid: refs but no matching asset
   (the image will display as broken in Outlook); user should re-run
   `outlook-cli capture-signature` to refresh the assets.
-- Smoke verified end-to-end against live NBG mailbox: send-mail with
+- Smoke verified end-to-end against a live corporate mailbox: send-mail with
   unique-marker body → delivered with inline logo (verified bytes via
   sha256 prefix); reply with CC-self → present in CcRecipients; clean
   signature.html → no forwarded-thread cruft in delivered body.
@@ -119,8 +119,8 @@ send path in `email-handler` (downstream migration tracked separately).
 - Inline `cid:` images and SharePoint reference attachments are still
   deferred (would have been B2 stretch — likely a v1.5.0 follow-up if
   needed).
-- Smoke-verified against live NBG mailbox: capture-signature pulled the
-  user's standard NBG signature; reply against a real message produced
+- Smoke-verified against a live corporate mailbox: capture-signature pulled the
+  user's standard corporate signature; reply against a real message produced
   draft with auto-quote + signature + user content; forward pre-populated
   recipient correctly; missing `--to` on forward → BAD_USAGE.
 
@@ -152,7 +152,7 @@ CLI use; downstream `email-handler` migration tracked separately.
 
 - Inline `cid:` images, SharePoint reference attachments, and reply / reply-all / forward commands are deferred to **B2** (next plan).
 - `email-handler` `/send-mail` skill still uses AppleScript path; migration to `outlook-cli send-mail` in a separate downstream PR.
-- Smoke verified against live NBG mailbox: dry-run, draft creation, draft visible in Drafts folder, immediate send, attachment round-trip, Greek text preserved, error paths.
+- Smoke verified against a live corporate mailbox: dry-run, draft creation, draft visible in Drafts folder, immediate send, attachment round-trip, Greek text preserved, error paths.
 
 ---
 

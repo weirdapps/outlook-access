@@ -19,7 +19,7 @@ function makeValidSession(overrides?: Partial<SessionFile>): SessionFile {
     account: {
       upn: 'alice@contoso.com',
       puid: '10003F00AAAABBBB',
-      tenantId: '12345678-1234-1234-1234-123456789012',
+      tenantId: '11111111-2222-3333-4444-555555555555',
     },
     bearer: {
       token: 'aaaaaaaa.bbbbbbbb.cccccccc',
@@ -28,7 +28,7 @@ function makeValidSession(overrides?: Partial<SessionFile>): SessionFile {
       scopes: ['Mail.Read'],
     },
     cookies: [],
-    anchorMailbox: 'PUID:10003F00AAAABBBB@12345678-1234-1234-1234-123456789012',
+    anchorMailbox: 'PUID:10003F00AAAABBBB@11111111-2222-3333-4444-555555555555',
     ...overrides,
   };
 }

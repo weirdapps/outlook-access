@@ -4,7 +4,7 @@
 // to re-issue an OWA bearer without opening a visible browser window.
 //
 // Works while the device-trust cookie (ESTSAUTHPERSISTENT, ~90 days) is
-// alive. When that cookie expires or NBG forces re-MFA, this command fails
+// alive. When that cookie expires or the tenant forces re-MFA, this command fails
 // with AuthError(AUTH_LOGIN_TIMEOUT) and the caller must run `login`.
 
 import * as path from 'node:path';
@@ -115,7 +115,7 @@ export async function run(
     };
   } catch (err) {
     if (err instanceof AuthCaptureError) {
-      // Either the device-trust cookie is gone, NBG forced re-MFA, or some
+      // Either the device-trust cookie is gone, the tenant forced re-MFA, or some
       // navigation glitch. In all cases, the path forward is interactive.
       throw new AuthError(
         'AUTH_LOGIN_TIMEOUT',
