@@ -125,24 +125,36 @@ scan_ci() {
 apply_exclusion() {
   local hits="$1"
   local exclude="$2"
-  if [ -z "$exclude" ] || [ -z "$hits" ]; then
+  local exclude_path="${3:-}"
+  if { [ -z "$exclude" ] && [ -z "$exclude_path" ]; } || [ -z "$hits" ]; then
     printf '%s' "$hits"
     return
   fi
+  # A path-shaped exclusion is tested against the `path:` prefix of a hit only.
+  # Tested against the whole line it silently becomes a content filter: that is
+  # how `template` and `<[^>]+>` came to drop every hit on a line that merely
+  # contained an HTML tag, e.g. `<td>firstname.surname@<employer-domain></td>`.
+  if [ -n "$exclude_path" ]; then
+    hits=$(printf '%s\n' "$hits" | grep -vE "^[^:]*($exclude_path)" || true)
+  fi
+  if [ -n "$exclude" ]; then
+    hits=$(printf '%s\n' "$hits" | grep -vE "$exclude" || true)
+  fi
   # Copyright attribution names the author on purpose and is required by the
   # licence. Flagging it is noise, and noise is how a real hit gets ignored.
-  printf '%s\n' "$hits" | grep -vE "$exclude" | grep -viE '\(c\)[[:space:]]*[0-9]{4}|copyright' || true
+  printf '%s\n' "$hits" | grep -viE '\(c\)[[:space:]]*[0-9]{4}|copyright' || true
 }
 
 check() {
   local label="$1"
   local pattern="$2"
   local exclude="${3:-}"
+  local exclude_path="${4:-}"
   local hits
 
   if [ "$MODE" = "ci" ]; then
     hits=$(scan_ci "$pattern")
-    hits=$(apply_exclusion "$hits" "$exclude")
+    hits=$(apply_exclusion "$hits" "$exclude" "$exclude_path")
     if [ -n "$hits" ]; then
       echo "FAIL [$label]:"
       echo "$hits" | head -20
@@ -156,7 +168,7 @@ check() {
 
   # Doctor mode — separate tracked from gitignored.
   hits=$(scan_doctor "$pattern")
-  hits=$(apply_exclusion "$hits" "$exclude")
+  hits=$(apply_exclusion "$hits" "$exclude" "$exclude_path")
   if [ -z "$hits" ]; then
     echo "OK   [$label]"
     return
@@ -209,22 +221,41 @@ check() {
 # entries describing the removal of the real host. A check that fires on
 # deliberate, already-disclosed content teaches you to ignore it, which is how
 # the four real exposures sat unnoticed next to a green gauntlet.
-# Doc placeholders. Extend this when a new invented example host trips the check:
+# Doc placeholders. Extend these when a new invented example host trips the check:
 # being asked once "is this a real tenant?" is the check doing its job, and is a
 # far better failure mode than the silence it replaces.
-PLACEHOLDER='contoso|example|sample|template|your[-_.]?tenant|your-tenant|<[^>]+>|firstname\.lastname|your\.email|recipient\.name|user@|name@|(test|overridden|envvar|dummy|placeholder|foo|bar|[a-z])(-my)?\.sharepoint'
+#
+# Split in two on purpose. PLACEHOLDER_PATH says "this FILE is documentation or a
+# fixture" and is matched against the `path:` prefix of a hit only. PLACEHOLDER is
+# matched against the line content and is kept deliberately narrow: a broad content
+# exclusion is indistinguishable from having no check at all.
+PLACEHOLDER_PATH='example|sample|template'
+PLACEHOLDER='contoso|firstname\.lastname|your\.email|recipient\.name'
+
+# The tenant check needs a content exclusion of its own, because fixture hostnames
+# live in test code and help strings rather than under a documentation path. The
+# list is explicit: it used to end in a bare `[a-z]`, which matched the last letter
+# of EVERY hostname sitting before `.sharepoint` and so excluded every real tenant
+# the check exists to catch. Worse, the unanchored `y` alternative matched the
+# `y.sharepoint` inside any `<host>-my.sharepoint.com`, so every OneDrive host was
+# excluded too. `tenant.sharepoint.com` is the generic host used in help text and
+# specs, a placeholder word rather than a tenant name. The leading boundary stops
+# these swallowing a real host that merely ends in one of them.
+# `<...>.sharepoint` is the angle-bracket placeholder the docs use. It cannot hide
+# a real host, because a real host has no angle brackets in it.
+PLACEHOLDER_SHAREPOINT="$PLACEHOLDER"'|your[-_.]?tenant|your-tenant|<[a-z0-9_-]+>(-my)?\.sharepoint|(^|[^a-z0-9-])(tenant|test|overridden|envvar|dummy|placeholder|foo|bar|a|b|x|y|z)(-my)?\.sharepoint'
 
 # Some repos name the employer on purpose: a marketplace written for colleagues
 # says so in its README by design. Those opt out with a repo-root marker rather
 # than carrying a permanent red light.
 if [ ! -f ".pii-gauntlet-allow-employer-name" ]; then
-  check "Employer name" '(^|[^A-Za-z0-9])(NBG|ΕΤΕ)([^A-Za-z0-9]|$)|Εθνική Τράπεζα|National Bank of Greece' "$PLACEHOLDER"
+  check "Employer name" '(^|[^A-Za-z0-9])(NBG|ΕΤΕ)([^A-Za-z0-9]|$)|Εθνική Τράπεζα|National Bank of Greece' "$PLACEHOLDER" "$PLACEHOLDER_PATH"
 else
   echo "OK   [Employer name] (opted out via .pii-gauntlet-allow-employer-name)"
 fi
 
-check "Employer mail domain" '[A-Za-z0-9._%+-]+@nbg\.gr' "$PLACEHOLDER"
-check "SharePoint tenant"    '[a-z0-9-]+\.sharepoint\.com' "$PLACEHOLDER"
+check "Employer mail domain" '[A-Za-z0-9._%+-]+@nbg\.gr' "$PLACEHOLDER" "$PLACEHOLDER_PATH"
+check "SharePoint tenant"    '[a-z0-9-]+\.sharepoint\.com' "$PLACEHOLDER_SHAREPOINT" "$PLACEHOLDER_PATH"
 # A bare UUID is not a finding: fixtures, generated filenames and message ids
 # are full of them, and flagging all of them is how a check earns the right to
 # be ignored. What matters is a GUID sitting where a TENANT id sits, so key on
