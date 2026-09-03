@@ -352,13 +352,34 @@ export async function captureOutlookSession(opts: CaptureOptions): Promise<Captu
     //    issue an explicit goto so the init script fires (Playwright #28692).
     //    Navigation errors are non-fatal — the SPA may still complete the auth
     //    dance, and the timeout guard covers the pathological case.
-    try {
-      await page.goto('https://outlook.office.com/mail/', {
-        waitUntil: 'domcontentloaded',
-        timeout: opts.loginTimeoutMs,
-      });
-    } catch {
-      // Swallow: we trust the capture / timeout promises to drive the outcome.
+    //    Host order matters on an MCAS tenant. Defender for Cloud Apps proxies
+    //    every request through "<original-fqdn>.mcas.ms", and on such a tenant the
+    //    canonical host is where the browser actually lands (observed 2026-09-03:
+    //    Outlook web served from outlook.office365.com.mcas.ms/mail/ while this
+    //    code still navigated to outlook.office.com/mail/). The capture filter
+    //    below already understands the .mcas.ms form; navigation did not, so the
+    //    SPA never came up and zero Bearers were seen. The .mcas.ms hostname is
+    //    the generic proxy form, not a tenant identifier: the tenant lives in the
+    //    McasTsid query parameter, so nothing tenant-specific is hardcoded here.
+    //    Try each in turn and stop at the first that yields a token; a non-MCAS
+    //    tenant simply succeeds on the first entry.
+    const MAIL_URLS = [
+      'https://outlook.office.com/mail/',
+      'https://outlook.office365.com.mcas.ms/mail/',
+      'https://outlook.office.com.mcas.ms/mail/',
+      'https://outlook.cloud.microsoft/mail/',
+    ];
+    for (const mailUrl of MAIL_URLS) {
+      if (settled) break;
+      try {
+        await page.goto(mailUrl, {
+          waitUntil: 'domcontentloaded',
+          timeout: Math.min(30000, opts.loginTimeoutMs),
+        });
+        await page.waitForTimeout(6000);
+      } catch {
+        // Swallow: we trust the capture / timeout promises to drive the outcome.
+      }
     }
 
     // 9. Wait for the token.
