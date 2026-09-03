@@ -369,6 +369,31 @@ export async function captureOutlookSession(opts: CaptureOptions): Promise<Captu
       'https://outlook.office.com.mcas.ms/mail/',
       'https://outlook.cloud.microsoft/mail/',
     ];
+    //    Never navigate while a human is signing in. Walking the list on a timer
+    //    drags the page off login.microsoftonline.com mid-password, which is
+    //    exactly how the equivalent loop in teams-access swallowed a real sign-in
+    //    on 2026-09-03 (the profile's cookies were written, proving the user had
+    //    engaged, yet zero tokens were captured). Advance only once the sign-in
+    //    surface is gone, judged by DOM as well as URL because Entra's account
+    //    picker, password form and "stay signed in" step all sit on different
+    //    paths, and MCAS adds interstitials of its own.
+    const onSignIn = async (): Promise<boolean> => {
+      try {
+        if (/login\.microsoftonline\.com|\/signin|certificate-checker/i.test(page.url())) {
+          return true;
+        }
+        return (
+          (await page
+            .locator(
+              'input[type=password], input[name=loginfmt], input[type=email], [data-test-id="accountTile"]',
+            )
+            .count()) > 0
+        );
+      } catch {
+        return false;
+      }
+    };
+
     for (const mailUrl of MAIL_URLS) {
       if (settled) break;
       try {
@@ -377,6 +402,20 @@ export async function captureOutlookSession(opts: CaptureOptions): Promise<Captu
           timeout: Math.min(30000, opts.loginTimeoutMs),
         });
         await page.waitForTimeout(6000);
+        // Hold here for as long as a sign-in is on screen.
+        const deadline = Date.now() + Math.min(opts.loginTimeoutMs, 240000);
+        let held = false;
+        while (Date.now() < deadline && (await onSignIn())) {
+          if (!held) {
+            process.stderr.write(
+              '[outlook-cli login] sign-in required. Waiting for you to finish; nothing will navigate until you are through.\n',
+            );
+            held = true;
+          }
+          if (settled) break;
+          await page.waitForTimeout(2000);
+        }
+        if (held) await page.waitForTimeout(8000);
       } catch {
         // Swallow: we trust the capture / timeout promises to drive the outcome.
       }
