@@ -57,14 +57,31 @@ INFO=0
 # same file lives in installers/ in some repos and scripts/ in others, and
 # hand-maintained copies are what let them drift apart in the first place.
 # Both modes need it now, so it is computed before either branch.
-SELF_REL=$(git ls-files --full-name -- "$0" 2>/dev/null | head -1)
+# Every `git ls-files` in this file goes through this, and the flag is the whole
+# reason it exists. core.quotePath defaults to TRUE, so git renders any path
+# holding a non-ASCII byte as a quoted C string of octal escapes,
+# "\316\264\316\277...". Two consequences, and the second is the dangerous
+# one: the filename check cannot see a Greek-named file, and that file's
+# CONTENTS are never scanned by ANY check either, because xargs hands grep a
+# path that does not exist and the error goes to /dev/null.
+#
+# Measured, not inferred. A tracked file named in lowercase Greek, carrying both
+# an employer mail address and a tenant hostname, passed this gate completely
+# clean in two repos before this line existed. Both checks catch it after.
+#
+# Set per invocation rather than written into the repo's config, so nothing
+# outside this script changes. Unquoted at every use site: the word splitting
+# is intended.
+GIT_LS="git -c core.quotePath=false ls-files"
+
+SELF_REL=$($GIT_LS --full-name -- "$0" 2>/dev/null | head -1)
 [ -z "$SELF_REL" ] && SELF_REL="scripts/pii-gauntlet.sh"
 
 # Build the file list once. CI mode = tracked only. Doctor mode = working tree.
 if [ "$MODE" = "ci" ]; then
   # Exclude self + auto-generated lockfiles at any depth (lockfiles contain SHAs / hashes that
   # collide with the 9-digit-ID regex but carry no PII risk).
-  TRACKED=$(git ls-files \
+  TRACKED=$($GIT_LS \
     | grep -v "^$SELF_REL$" \
     | grep -vE '(^|/)LICENSE(\.md|\.txt)?$' \
     | grep -vE '(^|/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|Pipfile\.lock)$' \
@@ -75,7 +92,7 @@ fi
 
 # Helper: get the tracked-vs-untracked status of a file.
 file_is_tracked() {
-  git ls-files --error-unmatch "$1" >/dev/null 2>&1
+  $GIT_LS --error-unmatch "$1" >/dev/null 2>&1
 }
 
 # ---------------------------------------------------------------------------
@@ -90,8 +107,8 @@ file_is_tracked() {
 #
 # TREE_PATHS deliberately includes binaries, for exactly that reason. A
 # filename is text no matter what the file contains.
-TREE_PATHS=$(git ls-files | grep -v "^$SELF_REL$" || true)
-UNTRACKED_PATHS=$(git ls-files --others --exclude-standard 2>/dev/null || true)
+TREE_PATHS=$($GIT_LS | grep -v "^$SELF_REL$" || true)
+UNTRACKED_PATHS=$($GIT_LS --others --exclude-standard 2>/dev/null || true)
 
 # Pair every path with its separator-normalised form as "orig<TAB>normalised",
 # so a hit already carries its own path. Matching runs against the whole pasted
@@ -188,21 +205,16 @@ scan_ci() {
 # --exclude-standard rather than by a hand-maintained --exclude-dir list, so
 # the two cannot drift apart.
 #
-# core.quotePath=false on every one of these, and it is load-bearing. By
-# default `git ls-files` renders a non-ASCII path as a quoted C string of octal
-# bytes, "\316\244\316\225...", so TREE_PATHS above cannot see a Greek filename
-# at all, and worse, a Greek-named file's CONTENTS are never opened either:
-# xargs hands grep a filename that does not exist and the error goes to
-# /dev/null. That hole is pre-existing and shared by the -i checks, which are
-# left alone here. A Greek-name check that inherited it would be structurally
-# blind to the one filename it exists to catch. Set per invocation, never in
-# the repo's config, so nothing outside this script changes.
-CS_TREE_PATHS=$(git -c core.quotePath=false ls-files | grep -v "^$SELF_REL$" || true)
-CS_UNTRACKED_PATHS=$(git -c core.quotePath=false ls-files --others --exclude-standard 2>/dev/null || true)
+# These read through $GIT_LS like every other list in this file; its definition
+# explains why core.quotePath is load-bearing. It was fixed for these scanners
+# first, because a Greek-name check blind to Greek filenames would be checking
+# the one thing it cannot see, and then for every check.
+CS_TREE_PATHS=$($GIT_LS | grep -v "^$SELF_REL$" || true)
+CS_UNTRACKED_PATHS=$($GIT_LS --others --exclude-standard 2>/dev/null || true)
 CS_LIST_TMP=$(mktemp)
 {
-  git -c core.quotePath=false ls-files
-  [ "$MODE" = "doctor" ] && git -c core.quotePath=false ls-files --others --exclude-standard
+  $GIT_LS
+  [ "$MODE" = "doctor" ] && $GIT_LS --others --exclude-standard
 } 2>/dev/null \
   | grep -v "^$SELF_REL$" \
   | grep -vE '(^|/)LICENSE(\.md|\.txt)?$' \
@@ -223,6 +235,16 @@ scan_cs() {
 scan_paths_cs() {
   local pattern="$1"
   local list="$2"
+  # A caveat that belongs here rather than in a report, because this is where
+  # the surprise happens. The `_ . -` to space normalisation below is inherited
+  # from scan_paths, and for the SHAPE check it has a consequence the other
+  # checks do not have: a filename written in ALL-CAPS Greek with two parts
+  # separated by an underscore normalises to two long all-caps Greek words, and
+  # is therefore indistinguishable from SURNAME FORENAME by shape alone. It will
+  # be flagged. That is not a bug to route around. An ALL-CAPS Greek filename in
+  # a public repo is worth exactly one look, and a false positive that asks a
+  # human a fair question is the cheap failure. No such file exists in any of
+  # these repos today, which is why nobody has met this yet.
   [ -n "$list" ] || return 0
   paste <(printf '%s\n' "$list") <(printf '%s\n' "$list" | tr '_.-' '   ') \
     | grep -E "$pattern" 2>/dev/null \
