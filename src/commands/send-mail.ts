@@ -211,8 +211,16 @@ export async function run(deps: SendMailDeps, opts: SendMailOptions = {}): Promi
   const ccWithSelf = applyCcSelf(cc, session, opts.ccSelf);
 
   // -------- Build payload --------
+  const subject = await applyHostTag(
+    opts.subject,
+    to,
+    session,
+    reader,
+    (deps.homeDir ?? os.homedir)(),
+  );
+
   const payload: SendMailPayload = {
-    Subject: opts.subject,
+    Subject: subject,
     Body: { ContentType: bodyContentType, Content: bodyContent },
     ToRecipients: to.map((addr) => ({ EmailAddress: { Address: addr } })),
   };
@@ -352,6 +360,82 @@ function parseRecipients(input: string | string[] | undefined): string[] {
     }
   }
   return out;
+}
+
+/** `~/.outlook-cli/host-tag`: one line, the name of THIS machine. */
+const HOST_TAG_REL = path.join('.outlook-cli', 'host-tag');
+/** `~/.outlook-cli/self-addresses`: extra addresses that are also me. */
+const SELF_ADDRESSES_REL = path.join('.outlook-cli', 'self-addresses');
+
+/**
+ * Read a small optional config file as trimmed, comment-free lines.
+ * A missing file is the normal case and returns [], never throws: this feature
+ * is opt-in and must not be able to break a send.
+ */
+async function readOptionalLines(
+  reader: (p: string) => Promise<Buffer>,
+  filePath: string,
+): Promise<string[]> {
+  try {
+    const buf = await reader(filePath);
+    return buf
+      .toString('utf-8')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith('#'));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Prefix the subject with this machine's name, but ONLY on mail the sender is
+ * sending to themselves.
+ *
+ * Why it exists: several machines can drive one mailbox, and their automated
+ * reports arrive indistinguishable. Two nightly health mails once landed a
+ * minute apart contradicting each other, with nothing in either saying which
+ * machine produced it, so a dead reporter looked like one fewer mail in a busy
+ * inbox rather than like a fault.
+ *
+ * Why it is scoped to self-addressed mail: the same binary sends a person's
+ * real correspondence. Stamping "[Pro]" on a mail to a colleague would be a
+ * worse outcome than the ambiguity this fixes, so the tag is applied only when
+ * EVERY To: recipient is the sender. A recipient set that is even partly
+ * someone else is left alone. The failure direction is deliberate: an untagged
+ * report is a cosmetic loss, a tagged business mail is not.
+ *
+ * Configuration lives in the user's home directory, never in this repository:
+ * machine names and personal addresses are not this public tool's business.
+ * With no `host-tag` file, behaviour is exactly as it was before.
+ */
+async function applyHostTag(
+  subject: string,
+  to: string[],
+  session: SessionFile,
+  reader: (p: string) => Promise<Buffer>,
+  home: string,
+): Promise<string> {
+  const tag = (await readOptionalLines(reader, path.join(home, HOST_TAG_REL)))[0] ?? '';
+  if (tag.length === 0) return subject;
+
+  // Idempotent, because a caller may legitimately have tagged already: the
+  // wrapper script some deployments put in front of this binary prepends the
+  // same marker. Matched EXACTLY rather than "starts with any [bracket]", so a
+  // subject whose own first word is bracketed still gets its machine name.
+  const prefix = `[${tag}]`;
+  if (subject.startsWith(prefix)) return subject;
+
+  const self = new Set<string>();
+  const upn = session.account?.upn;
+  if (typeof upn === 'string' && upn.length > 0) self.add(upn.toLowerCase());
+  for (const addr of await readOptionalLines(reader, path.join(home, SELF_ADDRESSES_REL))) {
+    self.add(addr.toLowerCase());
+  }
+
+  // Case-insensitive: M365 addresses are, and the alias file is hand-written.
+  if (to.length === 0 || !to.every((addr) => self.has(addr.toLowerCase()))) return subject;
+  return `${prefix} ${subject}`;
 }
 
 /**
