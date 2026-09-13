@@ -275,6 +275,11 @@ Every subcommand supports two mutually exclusive formats:
 
 Errors are always emitted as JSON on stderr with `code`, optional `message`, and setting-specific fields (for example `missingSetting`, `path`, `failed[]`).
 
+Two further global flags control what reaches your terminal and your disk:
+
+- `--quiet`. Suppress stderr progress messages (`src/cli.ts:577`). stdout is unaffected, so `--json --quiet` gives a clean machine-readable stream with nothing else on the pipe.
+- `--log-file <path>`. Write a debug log to that path, created with mode `0600` (`src/cli.ts:579`). Use it rather than raising verbosity when you need a record of a failing run, since the redaction that keeps tokens and cookies out of stderr applies to this file too.
+
 ## Configuration
 
 `outlook-cli` needs no configuration file for a basic install. Runtime plumbing has three tunable settings, each with a default:
@@ -421,7 +426,9 @@ pip install pre-commit && pre-commit install
 
 ## Security posture
 
-The session file contains a live Bearer token (or cookies) and is written atomically under a `0700` directory with mode `0600`. It is never printed or logged (body-snippet redaction runs on every error path) and lives outside the working tree, under `$HOME/.outlook-cli/`, together with the Playwright profile directory. Disclosure policy: see [`SECURITY.md`](SECURITY.md).
+The session file contains a live Bearer token (or cookies) and is written atomically (write, fsync, rename) under a `0700` directory with mode `0600`. It is never printed or logged (body-snippet redaction runs on every error path) and lives outside the working tree, under `$HOME/.outlook-cli/`, together with the Playwright profile directory. Disclosure policy: see [`SECURITY.md`](SECURITY.md).
+
+A PID-based advisory lock at `$HOME/.outlook-cli/.browser.lock` stops two login flows racing on the same Playwright profile directory (`src/commands/login.ts:49`, `src/commands/auth-renew.ts:49`). That matters because the profile dir, not `session.json`, is the renewable credential: a concurrent write can leave it in a state from which silent SSO no longer succeeds, and the only recovery is an interactive login.
 
 ## Origin
 
