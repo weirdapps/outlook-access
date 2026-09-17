@@ -60,13 +60,3 @@ updates:
       codeql-action:
         patterns:
           - 'github/codeql-action*'
-  - package-ecosystem: 'github-actions'
-    directory: '/'
-    schedule:
-      interval: 'weekly'
-    open-pull-requests-limit: 5
-    # Added 2026-09-17 with the gitleaks SHA pin. Without this, the pin never
-    # moves and the secret scanner silently freezes at whatever it was pinned to.
-    groups:
-      actions:
-        patterns: ['*']
