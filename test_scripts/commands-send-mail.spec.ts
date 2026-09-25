@@ -222,6 +222,70 @@ describe('send-mail — body & attachments', () => {
     expect(Buffer.from(att.ContentBytes, 'base64').toString('utf-8')).toBe('PDF-CONTENT');
     expect(att.IsInline).toBe(false);
   });
+
+  it('--attach-inline sets IsInline and a ContentId equal to the filename stem', async () => {
+    const { deps, client } = makeDeps(
+      {},
+      {
+        '/tmp/b.html': '<p><img src="cid:chart-trx"></p>',
+        '/tmp/chart-trx.png': 'PNG-BYTES',
+      },
+    );
+    await run(deps, {
+      to: 'a@x.com',
+      subject: 's',
+      html: '/tmp/b.html',
+      attachInline: ['/tmp/chart-trx.png'],
+    });
+    const payload = (client.createDraft as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(payload.Attachments).toHaveLength(1);
+    const att = payload.Attachments![0];
+    expect(att.Name).toBe('chart-trx.png');
+    expect(att.ContentType).toBe('image/png');
+    // Without ContentId the cid: reference in the body dangles and the image
+    // renders as a broken placeholder, which is the whole point of the flag.
+    expect(att.ContentId).toBe('chart-trx');
+    expect(att.IsInline).toBe(true);
+  });
+
+  it('plain --attach still gets no ContentId, so the two kinds stay distinct', async () => {
+    const { deps, client } = makeDeps({}, { '/tmp/b.html': '<p>hi</p>', '/tmp/doc.png': 'PNG' });
+    await run(deps, {
+      to: 'a@x.com',
+      subject: 's',
+      html: '/tmp/b.html',
+      attach: ['/tmp/doc.png'],
+    });
+    const payload = (client.createDraft as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(payload.Attachments![0].ContentId).toBeUndefined();
+    expect(payload.Attachments![0].IsInline).toBe(false);
+  });
+
+  it('mixes inline and regular attachments under one size budget', async () => {
+    const { deps, client } = makeDeps(
+      {},
+      {
+        '/tmp/b.html': '<p><img src="cid:c1"></p>',
+        '/tmp/c1.png': 'A',
+        '/tmp/r.pdf': 'B',
+      },
+    );
+    await run(deps, {
+      to: 'a@x.com',
+      subject: 's',
+      html: '/tmp/b.html',
+      attachInline: ['/tmp/c1.png'],
+      attach: ['/tmp/r.pdf'],
+    });
+    const payload = (client.createDraft as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(payload.Attachments).toHaveLength(2);
+    const byName = Object.fromEntries(
+      payload.Attachments!.map((a: { Name: string }) => [a.Name, a]),
+    );
+    expect(byName['c1.png'].IsInline).toBe(true);
+    expect(byName['c1.png'].ContentId).toBe('c1');
+    expect(byName['r.pdf'].IsInline).toBe(false);
+  });
 });
 
 describe('send-mail — dispatch', () => {

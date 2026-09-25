@@ -56,6 +56,12 @@ export interface SendMailOptions {
   /** Repeatable --attach <file>. */
   attach?: string[];
   /**
+   * Repeatable --attach-inline <file>. Attached with IsInline:true and a
+   * ContentId equal to the filename stem, so `<img src="cid:stem">` in the
+   * HTML body resolves and the file stays out of the attachment list.
+   */
+  attachInline?: string[];
+  /**
    * Override signature file path. Defaults to `~/.outlook-cli/signature.html`
    * if it exists. Signature is appended after the user's body content.
    */
@@ -190,11 +196,18 @@ export async function run(deps: SendMailDeps, opts: SendMailOptions = {}): Promi
   }
 
   // -------- Attachment load --------
+  // Inline ones carry a ContentId so `<img src="cid:stem">` in the body resolves;
+  // they do not show in the recipient's attachment list. Both kinds share the
+  // one size budget.
   const attachmentPaths = Array.isArray(opts.attach) ? opts.attach : [];
+  const inlinePaths = Array.isArray(opts.attachInline) ? opts.attachInline : [];
   const attachments: SendFileAttachment[] = [];
   let totalAttachmentBytes = 0;
-  for (const p of attachmentPaths) {
-    const att = await loadAttachment(reader, p);
+  for (const { p, inline } of [
+    ...inlinePaths.map((p) => ({ p, inline: true })),
+    ...attachmentPaths.map((p) => ({ p, inline: false })),
+  ]) {
+    const att = await loadAttachment(reader, p, inline);
     totalAttachmentBytes += att.Size ?? 0;
     if (totalAttachmentBytes > MAX_ATTACHMENT_BYTES) {
       throw new UsageError(
@@ -475,23 +488,33 @@ async function readBodyFile(
 async function loadAttachment(
   reader: (p: string) => Promise<Buffer>,
   filePath: string,
+  inline = false,
 ): Promise<SendFileAttachment> {
+  const flagName = inline ? '--attach-inline' : '--attach';
   let buf: Buffer;
   try {
     buf = await reader(filePath);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new UsageError(`send-mail: --attach file read failed (${filePath}): ${msg}`);
+    throw new UsageError(`send-mail: ${flagName} file read failed (${filePath}): ${msg}`);
   }
   const name = path.basename(filePath);
   const ext = path.extname(filePath).toLowerCase();
   const contentType = MIME_BY_EXT[ext] ?? 'application/octet-stream';
-  return {
+  const att: SendFileAttachment = {
     '@odata.type': '#Microsoft.OutlookServices.FileAttachment',
     Name: name,
     ContentType: contentType,
     ContentBytes: buf.toString('base64'),
-    IsInline: false,
+    IsInline: inline,
     Size: buf.length,
   };
+  if (inline) {
+    // ContentId is what `<img src="cid:X">` binds to. Without it the reference
+    // dangles and the image renders as a broken placeholder, which is exactly
+    // what plain --attach does. The stem is used so the caller can predict the
+    // cid from the filename: chart-trx.png -> cid:chart-trx.
+    att.ContentId = path.basename(name, path.extname(name));
+  }
+  return att;
 }
