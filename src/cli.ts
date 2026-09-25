@@ -970,6 +970,14 @@ export async function main(argv: string[]): Promise<number> {
       [] as string[],
     )
     .option(
+      '--attach-inline <file>',
+      'Embed file in the HTML body (repeatable). ContentId is the filename stem, ' +
+        'so chart.png is referenced as <img src="cid:chart">. Shares the 30 MB cap ' +
+        'with --attach and stays out of the attachment list.',
+      (v: string, acc: string[] = []) => [...acc, v],
+      [] as string[],
+    )
+    .option(
       '--signature <file>',
       'Override signature file path (default: ~/.outlook-cli/signature.html)',
     )
@@ -992,6 +1000,7 @@ export async function main(argv: string[]): Promise<number> {
           html?: string;
           text?: string;
           attach?: string[];
+          attachInline?: string[];
           signature?: string;
           noSignature?: boolean;
           ccSelf?: boolean;
