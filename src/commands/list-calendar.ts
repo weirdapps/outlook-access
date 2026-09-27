@@ -5,7 +5,7 @@
 
 import type { CliConfig } from '../config/config';
 import type { OutlookClient } from '../http/outlook-client';
-import type { EventSummary, ODataListResponse } from '../http/types';
+import type { EventSummary } from '../http/types';
 import type { SessionFile } from '../session/schema';
 import { parseTimestamp } from '../util/dates';
 
@@ -69,11 +69,8 @@ export async function run(
   };
 
   try {
-    const resp = await client.get<ODataListResponse<EventSummary>>(
-      '/api/v2.0/me/calendarview',
-      query,
-    );
-    return Array.isArray(resp.value) ? resp.value : [];
+    // Every page, not the first: a bare GET returned at most 10 events.
+    return await client.listCalendarView(query);
   } catch (err) {
     throw mapHttpError(err);
   }

@@ -26,6 +26,7 @@ import {
   truncateAndRedactBody,
 } from './errors';
 import type {
+  EventSummary,
   FolderCreateRequest,
   FolderSummary,
   MessageSummary,
@@ -206,6 +207,19 @@ export interface OutlookClient {
    * @param top      `$top` hint for the first page (default: DEFAULT_LIST_TOP).
    */
   listFolders(parentId: string, top?: number): Promise<FolderSummary[]>;
+
+  /**
+   * List calendar events via `GET /api/v2.0/me/calendarview`, following
+   * `@odata.nextLink` through the same `listAll<T>` generator as `listFolders`
+   * (off-host guard), under its own `MAX_CALENDAR_PAGES` cap.
+   *
+   * A single `get` returns only the first page, which is 10 events when no
+   * `$top` is sent, so any window with more meetings than that was silently
+   * cut short.
+   *
+   * @param query `startDateTime`, `endDateTime` and any OData options.
+   */
+  listCalendarView(query: Record<string, string>): Promise<EventSummary[]>;
 
   /**
    * Fetch a single folder via `GET /api/v2.0/me/MailFolders/{idOrAlias}`.
@@ -403,6 +417,12 @@ export interface CreateClientOptions {
 
 const BASE_URL = 'https://outlook.office.com';
 const ALLOWED_HOST = 'outlook.office.com';
+/**
+ * Page cap for `listCalendarView`. Sized so that a server which ignores our
+ * `$top` and serves its default 10-event page still delivers 2,000 events
+ * before the cap fires; at the requested `$top` of 250 the cap is 50,000.
+ */
+const MAX_CALENDAR_PAGES = 200;
 const COOKIE_HOST_SUFFIXES = ['outlook.office.com', '.outlook.office.com'];
 /**
  * Synthetic sentinel values (case-insensitive) that instruct `createFolder`
@@ -510,19 +530,23 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
 
   /**
    * Private generic `listAll<T>` — follows `@odata.nextLink` verbatim up to
-   * `MAX_FOLDER_PAGES` pages. Yields individual items as they are decoded.
+   * `maxPages` pages (default `MAX_FOLDER_PAGES`). Yields individual items as they are decoded.
    *
    * Enforces two safety rails:
    *   1. Off-host guard: any `@odata.nextLink` whose hostname is not
    *      `outlook.office.com` raises
    *      `UpstreamError{code:'UPSTREAM_PAGINATION_LIMIT'}`.
-   *   2. Page cap: more than `MAX_FOLDER_PAGES` pages raises the same
+   *   2. Page cap: more than `maxPages` pages raises the same
    *      `UpstreamError{code:'UPSTREAM_PAGINATION_LIMIT'}`.
    *
    * Each page's GET rides the shared `doRequest` envelope, so a 401 on page
    * N is transparently retried after a single re-auth.
    */
-  async function* listAll<T>(path: string, query?: Record<string, string>): AsyncGenerator<T> {
+  async function* listAll<T>(
+    path: string,
+    query?: Record<string, string>,
+    maxPages: number = MAX_FOLDER_PAGES,
+  ): AsyncGenerator<T> {
     if (!path.startsWith('/')) {
       throw new Error(`outlook-client: path must start with '/': ${path}`);
     }
@@ -537,11 +561,11 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     let pageCount = 0;
 
     while (url !== null) {
-      if (pageCount >= MAX_FOLDER_PAGES) {
+      if (pageCount >= maxPages) {
         throw new UpstreamError({
           code: 'UPSTREAM_PAGINATION_LIMIT',
           message:
-            `Exceeded ${MAX_FOLDER_PAGES}-page cap while paginating ${path}. ` +
+            `Exceeded ${maxPages}-page cap while paginating ${path}. ` +
             `Narrow the scope (e.g. --parent) or raise the cap.`,
         });
       }
@@ -609,6 +633,24 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
       }
     } catch (err) {
       // UpstreamError already carries the CLI-layer shape — rethrow as-is.
+      if (err instanceof UpstreamError) throw err;
+      throw mapHttpToCliError(err);
+    }
+    return collected;
+  }
+
+  async function listCalendarView(query: Record<string, string>): Promise<EventSummary[]> {
+    const collected: EventSummary[] = [];
+    try {
+      for await (const item of listAll<EventSummary>(
+        '/api/v2.0/me/calendarview',
+        query,
+        MAX_CALENDAR_PAGES,
+      )) {
+        collected.push(item);
+      }
+    } catch (err) {
+      // UpstreamError already carries the CLI-layer shape; rethrow it as is.
       if (err instanceof UpstreamError) throw err;
       throw mapHttpToCliError(err);
     }
@@ -1001,6 +1043,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
   return {
     get: doGet,
     listFolders,
+    listCalendarView,
     getFolder,
     createFolder,
     moveMessage,
