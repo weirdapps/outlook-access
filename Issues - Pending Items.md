@@ -153,6 +153,19 @@ string)`; the implementation is `sanitizeAttachmentName(raw: string)` with a
   is another spot of hierarchy drift; consolidating into `AuthError` from
   `config/errors` would simplify the taxonomy.
 
+- **[extended-property-recursive-cost] `list-folders --recursive --extended-property`
+  is unmeasured near the folder cap.** File:
+  `<upstream-repo>/src/commands/list-folders.ts`
+  (`listRecursive`). The walk sends the
+  `$expand=SingleValueExtendedProperties(...)` clause on every
+  `/childfolders` page, so Exchange resolves the requested MAPI
+  properties for every folder it returns. Checked live on a 16-folder
+  tree (2026-10-03, after PR #51), where the cost was not noticeable;
+  never measured near `MAX_FOLDERS_VISITED` (5000). Measure
+  on a large tree before changing anything. If it proves slow or
+  throttled, one option is a second pass that fetches the properties
+  only for the folders the caller needs.
+
 ## Completed
 
 <!-- Completed items moved here. -->

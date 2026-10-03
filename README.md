@@ -268,7 +268,7 @@ outlook-cli list-mail --folder-parent Inbox --folder "Projects/Alpha"
 
 ### Extended (MAPI) properties
 
-`list-mail`, `get-mail` and `list-folders` accept `--extended-property <id>`, which returns single-value MAPI properties under `SingleValueExtendedProperties`. The flag is repeatable and also takes comma-separated ids. Id forms: `<Type> 0x<tag>`, `<Type> {guid} Id 0x<id>`, `<Type> {guid} Name <name>`. A malformed id exits 2. Outlook echoes the id lower-cased, so compare case-insensitively. Design: [`docs/design/plan-003-extended-properties.md`](docs/design/plan-003-extended-properties.md).
+`list-mail`, `get-mail` and `list-folders` accept `--extended-property <id>`, which returns single-value MAPI properties under `SingleValueExtendedProperties`. The flag is repeatable and also takes comma-separated ids. Id forms: `<Type> 0x<tag>`, `<Type> {guid} Id 0x<id>`, `<Type> {guid} Name <name>`. A malformed id exits 2. Outlook echoes the id lower-cased, so compare case-insensitively. An item that carries none of the requested properties comes back without the `SingleValueExtendedProperties` key at all (not with an empty array), so treat a missing key as "not set". Design: [`docs/design/plan-003-extended-properties.md`](docs/design/plan-003-extended-properties.md).
 
 ```bash
 outlook-cli list-mail --top 5 --extended-property "Binary 0x348A"
