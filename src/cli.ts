@@ -43,6 +43,7 @@ import * as listFolders from './commands/list-folders';
 import { LIST_FOLDERS_COLUMNS } from './commands/list-folders';
 import * as findFolder from './commands/find-folder';
 import * as createFolder from './commands/create-folder';
+import * as deleteDraft from './commands/delete-draft';
 import * as moveMail from './commands/move-mail';
 import * as sendMail from './commands/send-mail';
 import * as captureSignature from './commands/capture-signature';
@@ -968,6 +969,32 @@ export async function main(argv: string[]): Promise<number> {
           process.exitCode = 5;
         }
       }),
+    );
+
+  // -------- delete-draft <messageIds...> --------
+  program
+    .command('delete-draft')
+    .argument('<messageIds...>', 'One or more draft message ids to delete')
+    .description(
+      'Delete unsent drafts only. Each id is checked for IsDraft first; anything else is refused. ' +
+        'Deleted drafts go to Deleted Items.',
+    )
+    .option(
+      '--continue-on-error',
+      'Collect per-message failures into failed[] instead of aborting',
+      false,
+    )
+    .action(
+      makeAction<{ continueOnError?: boolean }, [string[]]>(
+        program,
+        async (deps, g, cmdOpts, messageIds) => {
+          const result = await deleteDraft.run(deps, messageIds, cmdOpts);
+          emitResult(result, resolveOutputMode(g));
+          if (result.failed.length > 0) {
+            process.exitCode = 5;
+          }
+        },
+      ),
     );
 
   // -------- send-mail --------

@@ -181,6 +181,8 @@ export interface GetMessageResult {
   CcRecipients?: { EmailAddress: SendEmailAddress }[];
   ConversationId?: string;
   ParentFolderId?: string;
+  /** True while the message is an unsent draft. Only present when selected. */
+  IsDraft?: boolean;
 }
 
 export interface GetMessageOptions {
@@ -345,6 +347,13 @@ export interface OutlookClient {
   getMessage(messageId: string, opts?: GetMessageOptions): Promise<GetMessageResult>;
 
   /**
+   * DELETE `/api/v2.0/me/messages/{messageId}`. Exchange moves the item to
+   * Deleted Items, so it stays recoverable. Callers decide WHAT may be deleted
+   * (`delete-draft` checks `IsDraft` first); this method sends the call as-is.
+   */
+  deleteMessage(messageId: string): Promise<void>;
+
+  /**
    * PATCH a draft message (subject / body / recipients). Used by reply/forward
    * after `createReply` etc returns the auto-quoted draft.
    */
@@ -465,7 +474,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
    * by `listAll` for `@odata.nextLink` follow-through).
    */
   async function doRequest<T>(
-    method: 'GET' | 'POST' | 'PATCH',
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     urlOrPath: string,
     body?: unknown,
   ): Promise<T> {
@@ -987,6 +996,18 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     }
   }
 
+  async function deleteMessage(messageId: string): Promise<void> {
+    if (typeof messageId !== 'string' || messageId.length === 0) {
+      throw new Error('outlook-client: deleteMessage requires a non-empty messageId');
+    }
+    const path = `/api/v2.0/me/messages/${encodeURIComponent(messageId)}`;
+    try {
+      await doRequest<null>('DELETE', buildUrl(path, undefined));
+    } catch (err) {
+      throw mapHttpToCliError(err);
+    }
+  }
+
   async function updateMessage(
     messageId: string,
     patch: UpdateMessagePatch,
@@ -1072,6 +1093,7 @@ export function createOutlookClient(opts: CreateClientOptions): OutlookClient {
     createDraft,
     sendDraft,
     getMessage,
+    deleteMessage,
     updateMessage,
     createReply,
     createReplyAll,
@@ -1176,7 +1198,10 @@ function buildUrl(path: string, query: Record<string, QueryValue> | undefined): 
 // Header / cookie construction
 // ---------------------------------------------------------------------------
 
-function buildHeaders(s: SessionFile, method: 'GET' | 'POST' | 'PATCH'): Record<string, string> {
+function buildHeaders(
+  s: SessionFile,
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+): Record<string, string> {
   const rawToken = s.bearer.token ?? '';
   const authValue = rawToken.startsWith('Bearer ') ? rawToken : `Bearer ${rawToken}`;
 
@@ -1241,7 +1266,7 @@ function cookieDomainMatches(domain: string): boolean {
 // ---------------------------------------------------------------------------
 
 async function executeFetch(
-  method: 'GET' | 'POST' | 'PATCH',
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   url: string,
   body: unknown,
   s: SessionFile,

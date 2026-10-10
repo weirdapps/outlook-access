@@ -86,6 +86,13 @@ describe('cli smoke tests', () => {
     expect(out).toContain('--continue-on-error');
   });
 
+  it('(1c) delete-draft --help describes the drafts-only rule and --continue-on-error', () => {
+    const r = runCli(['delete-draft', '--help'], { env: clearedConfigEnv() });
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain('IsDraft');
+    expect(r.stdout).toContain('--continue-on-error');
+  });
+
   it('(2) --version prints a semver and exits 0', () => {
     const r = runCli(['--version'], { env: clearedConfigEnv() });
     expect(r.status).toBe(0);
