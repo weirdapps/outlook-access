@@ -659,3 +659,57 @@ describe('createOutlookClient.listMessagesInFolder', () => {
     expect(parsed.searchParams.get('$orderby')).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// deleteMessage
+// ---------------------------------------------------------------------------
+
+describe('createOutlookClient.deleteMessage', () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function client() {
+    return createOutlookClient({
+      session: buildFakeSession(),
+      httpTimeoutMs: 5_000,
+      noAutoReauth: false,
+      onReauthNeeded: async () => buildFakeSession(),
+    });
+  }
+
+  it('(1) sends DELETE with no body and no Content-Type; 204 resolves', async () => {
+    fetchMock.mockResolvedValueOnce(makeResponse({ status: 204 }));
+    await expect(client().deleteMessage('DRAFT-ID')).resolves.toBeUndefined();
+
+    const [url, init] = fetchMock.mock.calls[0] as [
+      string,
+      { method: string; body?: string; headers: Record<string, string> },
+    ];
+    expect(url).toBe('https://outlook.office.com/api/v2.0/me/messages/DRAFT-ID');
+    expect(init.method).toBe('DELETE');
+    expect(init.body).toBeUndefined();
+    expect(init.headers['Content-Type']).toBeUndefined();
+  });
+
+  it('(2) 404 → UpstreamError', async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeResponse({ status: 404, body: { error: { code: 'ErrorItemNotFound', message: 'x' } } }),
+    );
+    await expect(client().deleteMessage('gone')).rejects.toSatisfy(
+      (err: unknown) => err instanceof UpstreamError && err.httpStatus === 404,
+    );
+  });
+
+  it('(3) rejects an empty id without calling fetch', async () => {
+    await expect(client().deleteMessage('')).rejects.toThrow(/non-empty messageId/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

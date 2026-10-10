@@ -129,6 +129,33 @@ describe('delete-draft', () => {
     expect(deleteMessage).not.toHaveBeenCalled();
   });
 
+  it('collects a delete that fails upstream, keeping its code', async () => {
+    const getMessage = vi.fn(async (id: string) => msg(id, true));
+    const deleteMessage = vi.fn(async () => {
+      throw new UpstreamError({ code: 'UPSTREAM_HTTP_404', message: 'gone', httpStatus: 404 });
+    });
+    const res = await runDeleteDraft(buildDeps({ getMessage, deleteMessage }), ['d1'], {
+      continueOnError: true,
+    });
+    expect(res.failed[0]).toMatchObject({
+      id: 'd1',
+      error: { code: 'UPSTREAM_HTTP_404', httpStatus: 404 },
+    });
+  });
+
+  it('maps a non-upstream error into failed[] with a generic code', async () => {
+    const getMessage = vi.fn(async () => {
+      throw new Error('socket hang up');
+    });
+    const res = await runDeleteDraft(buildDeps({ getMessage }), ['d1'], { continueOnError: true });
+    expect(res.failed[0].id).toBe('d1');
+    expect(res.failed[0].error.message).toMatch(/socket hang up/);
+  });
+
+  it('rejects an empty-string id', async () => {
+    await expect(runDeleteDraft(buildDeps({}), [''])).rejects.toBeInstanceOf(UsageError);
+  });
+
   it('rejects an empty id list', async () => {
     await expect(runDeleteDraft(buildDeps({}), [])).rejects.toBeInstanceOf(UsageError);
   });
