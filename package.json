@@ -44,7 +44,7 @@
     "commander": "^15.0.0"
   },
   "optionalDependencies": {
-    "playwright": "^1.59.1"
+    "playwright": "^1.64.0"
   },
   "overrides": {
     "vite": ">=8.0.16"
