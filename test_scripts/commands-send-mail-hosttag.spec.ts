@@ -121,11 +121,11 @@ describe('send-mail host tag', () => {
     // a strict UPN comparison would miss the exact case it was written for.
     const { deps, client } = makeDeps({
       ...BODY,
-      [HOST_TAG]: 'Neo\n',
+      [HOST_TAG]: 'Pro\n',
       [SELF_ADDRS]: '# my own addresses\nalias@example.com\n\n',
     });
     await run(deps, { to: 'alias@example.com', subject: 'automation health', html: BODY_PATH });
-    expect(subjectOf(client)).toBe('[Neo] automation health');
+    expect(subjectOf(client)).toBe('[Pro] automation health');
   });
 
   it('is idempotent: never double-tags an already-tagged subject', async () => {
