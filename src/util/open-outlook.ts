@@ -54,6 +54,8 @@ export async function activateOutlookApp(opts: ActivateOutlookOptions = {}): Pro
       }
     });
     child.on('error', (err) => reject(new Error(`open-outlook: spawn failed: ${err.message}`)));
-    child.unref();
+    // No child.unref(): an unref'd child does not hold the event loop, so Node
+    // could exit 0 with this promise still pending and the caller's result
+    // never printed. `open -a` returns as soon as Outlook is activated.
   });
 }
