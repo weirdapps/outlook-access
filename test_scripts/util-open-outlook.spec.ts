@@ -36,6 +36,17 @@ describe('activateOutlookApp', () => {
     });
   });
 
+  it('keeps the open child referenced until it closes', async () => {
+    // An unref'd child does not hold the event loop, so Node could exit 0
+    // while this promise was still pending: the caller never printed its
+    // --json result, and the MCP bridge read a created draft as a failure.
+    const child = fakeChild(0);
+    const unref = vi.spyOn(child, 'unref');
+    const spawnFn = vi.fn(() => child) as unknown as typeof import('child_process').spawn;
+    await activateOutlookApp({ platform: 'darwin', spawnFn });
+    expect(unref).not.toHaveBeenCalled();
+  });
+
   it('rejects with explanatory error when open exits non-zero', async () => {
     const spawnFn = vi.fn(() => fakeChild(1)) as unknown as typeof import('child_process').spawn;
     await expect(activateOutlookApp({ platform: 'darwin', spawnFn })).rejects.toThrow(
