@@ -2,7 +2,7 @@
 
 > **Status:** RESOLVED 2026-04-22. Promoted to two implementation plans:
 >
-> - **B1 (core send):** `docs/superpowers/plans/2026-04-22-send-mail-b1-core.md`
+> - **B1 (core send):** `docs/superpowers/plans/2026-04-22-send-mail-b1-core.md` (archived on branch archive/plans-2026-10-31)
 > - **B2 (reply/forward/signature):** to be written after B1 ships
 >
 > Decision log (final):
