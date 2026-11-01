@@ -13,6 +13,13 @@ export interface SharepointClientOpts {
   bearer?: string;
   cookies: string;
   timeoutMs: number;
+  /**
+   * The session's tenant host, e.g. "contoso.sharepoint.com". When set, only that
+   * host and its OneDrive twin ("contoso-my.sharepoint.com") receive the session.
+   * Any *.sharepoint.com host can be a stranger's tenant, so the suffix alone is
+   * not enough once the tenant is known.
+   */
+  host?: string;
 }
 
 export interface SharepointBinaryResult {
@@ -52,10 +59,46 @@ function parseContentDispositionFilename(header: string | null): string | undefi
   return undefined;
 }
 
+/**
+ * Throws unless `raw` is an https URL on a host allowed to receive the session.
+ * The URL usually comes from a mail (a ReferenceAttachment SourceUrl), which the
+ * sender controls, and the cookies authorize the whole tenant.
+ */
+export function assertSessionUrl(raw: string, tenantHost?: string): void {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    throw new Error(`not a valid URL: "${raw}"`);
+  }
+  if (u.protocol !== 'https:') {
+    throw new Error(`refusing non-https URL: "${raw}"`);
+  }
+  if (u.username || u.password) {
+    throw new Error(`refusing URL with credentials in it: "${u.hostname}"`);
+  }
+  const h = u.hostname.toLowerCase();
+  // Leading dot: "evilsharepoint.com" must not pass a suffix test.
+  if (h !== 'sharepoint.com' && !h.endsWith('.sharepoint.com')) {
+    throw new Error(
+      `refusing to send the SharePoint session to non-SharePoint host "${u.hostname}"`,
+    );
+  }
+  if (tenantHost) {
+    const t = tenantHost.toLowerCase();
+    const [label, ...rest] = t.split('.');
+    const oneDrive = [`${label}-my`, ...rest].join('.');
+    if (h !== t && h !== oneDrive) {
+      throw new Error(`refusing to send the SharePoint session to another tenant "${u.hostname}"`);
+    }
+  }
+}
+
 export class SharepointClient {
   constructor(private readonly opts: SharepointClientOpts) {}
 
   async getBinary(absoluteUrl: string): Promise<SharepointBinaryResult> {
+    assertSessionUrl(absoluteUrl, this.opts.host);
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), this.opts.timeoutMs);
     try {

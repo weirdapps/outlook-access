@@ -8,7 +8,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { ConfigurationError, OutlookCliError } from '../config/errors';
-import { SharepointClient, SharepointHttpError } from '../http/sharepoint-client';
+import { assertSessionUrl, SharepointClient, SharepointHttpError } from '../http/sharepoint-client';
 import {
   loadSharepointSession,
   defaultSharepointSessionPath,
@@ -79,6 +79,7 @@ function defaultClientFactory(session: SharepointSession, timeoutMs: number): Sh
     bearer: session.bearer,
     cookies: session.cookies,
     timeoutMs,
+    host: session.host,
   });
 }
 
@@ -113,6 +114,13 @@ export async function run( // NOSONAR S3776 - sharepoint link resolution orchest
     throw new SharepointSessionMissingError(
       `SharePoint session expired (tokenExpiresAt=${session.tokenExpiresAt}). Re-run \`outlook-cli login --sharepoint-host ${session.host}\`.`,
     );
+  }
+
+  // Refuse a foreign host before touching the disk; getBinary checks again.
+  try {
+    assertSessionUrl(url, session.host);
+  } catch (err) {
+    throw new UsageError(`download-sharepoint-link: ${(err as Error).message}`);
   }
 
   const outDir = path.resolve(opts.out);

@@ -192,3 +192,23 @@ describe('download-sharepoint-link', () => {
     ).rejects.toThrow();
   });
 });
+
+describe('download-sharepoint-link refuses a URL outside the session tenant', () => {
+  it('throws a usage error and never builds a client or writes a file', async () => {
+    const { outDir, sessionPath } = await setupTempSession(freshSession());
+    const factory = vi.fn();
+    await expect(
+      run(
+        {
+          sharepointSessionPath: sessionPath,
+          httpTimeoutMs: 30_000,
+          createSharepointClient: factory as never,
+        },
+        'https://evil.example/x.sharepoint.com/steal',
+        { out: outDir },
+      ),
+    ).rejects.toThrow(/refusing to send the SharePoint session/);
+    expect(factory).not.toHaveBeenCalled();
+    expect(fs.readdirSync(outDir)).toEqual([]);
+  });
+});
